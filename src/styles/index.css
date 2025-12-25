@@ -1,0 +1,247 @@
+/* =========================
+   1. Global Reset & Variables
+========================= */
+:root {
+  --bg-gradient-start: #1e1b4b; /* Deep Indigo */
+  --bg-gradient-end: #0f172a;   /* Slate 900 */
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary-color: #6366f1;     /* Indigo 500 */
+  --primary-hover: #4f46e5;     /* Indigo 600 */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --input-bg: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, var(--bg-gradient-start), var(--bg-gradient-end));
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================
+   2. Auth Card (Wider)
+========================= */
+.auth-container {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-card {
+  width: 100%;
+  /* Forcefully increased width */
+  max-width: 700px; 
+  /* Ensure it doesn't shrink too small on desktop */
+  min-width: 400px;
+  
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); 
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  padding: 3rem; /* Increased padding for better spacing */
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 2.2rem; /* Slightly larger title */
+  font-weight: 700;
+  margin-bottom: 2.5rem;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+/* =========================
+   3. Form Inputs
+========================= */
+.form-group {
+  margin-bottom: 1.5rem; /* More spacing between inputs */
+}
+
+label {
+  display: block;
+  font-size: 0.95rem; /* Larger text */
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 1rem 1.2rem; /* Larger inputs */
+  border-radius: 0.6rem;
+  border: 1px solid #334155;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+input::placeholder {
+  color: #475569;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  background: #151f32;
+}
+
+/* Password Toggle Button Position */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 3.5rem;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* =========================
+   4. Primary Button (Login)
+========================= */
+.submit-btn {
+  width: 100%;
+  padding: 1rem; /* Larger button */
+  margin-top: 0.75rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.submit-btn:hover {
+  box-shadow: 0 6px 15px rgba(99, 102, 241, 0.4);
+}
+
+.submit-btn:active {
+  transform: scale(0.98);
+}
+
+/* =========================
+   5. OAuth Section (Icon Only)
+========================= */
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.75rem 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #334155;
+}
+
+.oauth-divider::before { margin-right: 0.75em; }
+.oauth-divider::after { margin-left: 0.75em; }
+
+/* Side-by-Side Buttons */
+.oauth-buttons {
+  display: flex;
+  flex-direction: row; 
+  gap: 1.5rem; /* More space between buttons */
+}
+
+.oauth-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px; /* Taller buttons */
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.oauth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.oauth-btn:active {
+  transform: scale(0.95);
+}
+
+/* Google Specific */
+.oauth-btn.google {
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+/* GitHub Specific */
+.oauth-btn.github {
+  background: #24292e;
+  color: white;
+  border: 1px solid #24292e;
+}
+
+/* =========================
+   6. Footer / Hints
+========================= */
+.hint-text {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.hint-text a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.hint-text a:hover {
+  color: #818cf8;
+  text-decoration: underline;
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 740px) {
+  .auth-card {
+    width: 90%;
+    max-width: none;
+    padding: 2rem;
+  }
+}
