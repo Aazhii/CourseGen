@@ -2,13 +2,17 @@
    1. Global Reset & Variables
 ========================= */
 :root {
-  --bg-gradient-start: #1e1b4b; /* Deep Indigo */
-  --bg-gradient-end: #0f172a;   /* Slate 900 */
+  --bg-gradient-start: #1e1b4b;
+  /* Deep Indigo */
+  --bg-gradient-end: #0f172a;
+  /* Slate 900 */
   --card-bg: rgba(30, 41, 59, 0.7);
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
-  --primary-color: #6366f1;     /* Indigo 500 */
-  --primary-hover: #4f46e5;     /* Indigo 600 */
+  --primary-color: #6366f1;
+  /* Indigo 500 */
+  --primary-hover: #4f46e5;
+  /* Indigo 600 */
   --border-color: rgba(255, 255, 255, 0.08);
   --input-bg: #0f172a;
 }
@@ -42,15 +46,16 @@ body {
 .auth-card {
   width: 100%;
   /* Forcefully increased width */
-  max-width: 700px; 
+  max-width: 700px;
   /* Ensure it doesn't shrink too small on desktop */
   min-width: 400px;
-  
+
   background: var(--card-bg);
-  backdrop-filter: blur(12px); 
+  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 1rem;
-  padding: 3rem; /* Increased padding for better spacing */
+  padding: 3rem;
+  /* Increased padding for better spacing */
   border: 1px solid var(--border-color);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   display: flex;
@@ -59,10 +64,12 @@ body {
 
 .auth-title {
   text-align: center;
-  font-size: 2.2rem; /* Slightly larger title */
+  font-size: 2.2rem;
+  /* Slightly larger title */
   font-weight: 700;
   margin-bottom: 2.5rem;
   background: linear-gradient(to right, #fff, #94a3b8);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.5px;
@@ -72,12 +79,14 @@ body {
    3. Form Inputs
 ========================= */
 .form-group {
-  margin-bottom: 1.5rem; /* More spacing between inputs */
+  margin-bottom: 1.5rem;
+  /* More spacing between inputs */
 }
 
 label {
   display: block;
-  font-size: 0.95rem; /* Larger text */
+  font-size: 0.95rem;
+  /* Larger text */
   margin-bottom: 0.5rem;
   color: var(--text-muted);
   font-weight: 500;
@@ -85,7 +94,8 @@ label {
 
 input {
   width: 100%;
-  padding: 1rem 1.2rem; /* Larger inputs */
+  padding: 1rem 1.2rem;
+  /* Larger inputs */
   border-radius: 0.6rem;
   border: 1px solid #334155;
   background: var(--input-bg);
@@ -131,7 +141,8 @@ input:focus {
 ========================= */
 .submit-btn {
   width: 100%;
-  padding: 1rem; /* Larger button */
+  padding: 1rem;
+  /* Larger button */
   margin-top: 0.75rem;
   border-radius: 0.6rem;
   border: none;
@@ -172,14 +183,20 @@ input:focus {
   border-bottom: 1px solid #334155;
 }
 
-.oauth-divider::before { margin-right: 0.75em; }
-.oauth-divider::after { margin-left: 0.75em; }
+.oauth-divider::before {
+  margin-right: 0.75em;
+}
+
+.oauth-divider::after {
+  margin-left: 0.75em;
+}
 
 /* Side-by-Side Buttons */
 .oauth-buttons {
   display: flex;
-  flex-direction: row; 
-  gap: 1.5rem; /* More space between buttons */
+  flex-direction: row;
+  gap: 1.5rem;
+  /* More space between buttons */
 }
 
 .oauth-btn {
@@ -187,7 +204,8 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 54px; /* Taller buttons */
+  height: 54px;
+  /* Taller buttons */
   border-radius: 0.6rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -196,7 +214,7 @@ input:focus {
 
 .oauth-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .oauth-btn:active {
@@ -208,6 +226,7 @@ input:focus {
   background: white;
   border: 1px solid #e2e8f0;
 }
+
 /* GitHub Specific */
 .oauth-btn.github {
   background: #24292e;
@@ -237,11 +256,226 @@ input:focus {
   text-decoration: underline;
 }
 
+
 /* Responsive adjustment for small screens */
 @media (max-width: 740px) {
   .auth-card {
     width: 90%;
     max-width: none;
     padding: 2rem;
+  }
+}
+
+/* =========================
+   7. Layout & Navigation
+========================= */
+.dashboard-layout {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+}
+
+.navbar {
+  height: 70px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.brand-icon {
+  color: var(--primary-color);
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.nav-btn.logout:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* =========================
+   8. Dashboard
+========================= */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.create-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.create-btn:hover {
+  background: var(--primary-hover);
+}
+
+.create-btn.small {
+  margin-top: 1.5rem;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.loading-state,
+.empty-dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-dashboard h2 {
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* =========================
+   9. Create Course Page
+========================= */
+.create-course-container {
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem;
+  margin: 0 auto;
+}
+
+.create-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  padding: 3rem;
+  border: 1px solid var(--border-color);
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-sparkle {
+  color: #fbbf24;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+select {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border-radius: 0.6rem;
+  border: 1px solid #334155;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 1rem;
+  appearance: none;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.generate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }

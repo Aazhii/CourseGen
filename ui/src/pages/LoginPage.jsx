@@ -120,23 +120,7 @@ export default function LoginPage() {
         <OAuthButtons />
       </form>
 
-      <style>{`
-        .spin { animation: spin 1s linear infinite; margin: 0 auto; display: block; }
-        .error-text {
-            color: #ef4444;
-            background: rgba(239, 68, 68, 0.1);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        .form-group label {
-            margin-bottom: 0.5rem;
-            display: block;
-            color: var(--text-muted);
-        }
-      `}</style>
+
     </div>
   );
 }

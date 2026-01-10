@@ -9,21 +9,7 @@ export default function ProtectedLayout() {
                 <Outlet />
             </main>
 
-            <style>{`
-        .dashboard-layout {
-          width: 100%;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        .main-content {
-           padding: 2rem;
-           max-width: 1200px;
-           margin: 0 auto;
-           width: 100%;
-           flex: 1;
-        }
-      `}</style>
+
         </div>
     );
 }
