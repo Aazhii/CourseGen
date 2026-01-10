@@ -30,3 +30,15 @@ export async function getMe() {
     return r.json();
   });
 }
+
+export async function logout() {
+  try {
+    await apiFetch("/api/auth/logout", {
+      method: "POST",
+      requiresAuth: true,
+    });
+  } catch (err) {
+    console.warn("Logout endpoint failed or not implemented", err);
+  }
+}
+

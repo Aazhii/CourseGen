@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import { logout as apiLogout } from "../api/authApi";
 
 const AuthContext = createContext(null);
 
@@ -14,7 +15,8 @@ export function AuthProvider({ children }) {
     setToken(jwt);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await apiLogout(); // Call backend
     localStorage.removeItem("token");
     setToken(null);
   };
