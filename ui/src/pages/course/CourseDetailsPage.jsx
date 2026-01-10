@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getCourseById } from "../../api/courseApi";
-import { Book, ChevronLeft, PlayCircle, FileText } from "lucide-react";
+import { ChevronLeft, FileText } from "lucide-react";
+import CourseModule from "../../components/course/CourseModule";
 
 export default function CourseDetailsPage() {
   const { id } = useParams();
