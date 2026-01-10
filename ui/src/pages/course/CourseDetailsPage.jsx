@@ -39,30 +39,7 @@ export default function CourseDetailsPage() {
         <h2>Course Modules</h2>
         {course.modules && course.modules.length > 0 ? (
           course.modules.map((mod, idx) => (
-            <div key={idx} className="module-item">
-              <div className="module-header">
-                <span className="module-number">Module {idx + 1}</span>
-                <h3>{mod.title || "Untitled Module"}</h3>
-              </div>
-
-              {/* Render Nested Lessons */}
-              <div className="lessons-list">
-                {mod.lessons && mod.lessons.map((lesson, lIdx) => (
-                  <div key={lIdx} className="lesson-item">
-                    <div className="lesson-info">
-                      <FileText size={16} className="lesson-icon" />
-                      <span>{lesson.title || `Lesson ${lIdx + 1}`}</span>
-                    </div>
-                    <button className="start-lesson-btn">
-                      <PlayCircle size={14} /> Start
-                    </button>
-                  </div>
-                ))}
-                {(!mod.lessons || mod.lessons.length === 0) && (
-                  <p className="no-lessons">No lessons in this module.</p>
-                )}
-              </div>
-            </div>
+            <CourseModule key={idx} module={mod} index={idx} />
           ))
         ) : (
           <div className="empty-state">
