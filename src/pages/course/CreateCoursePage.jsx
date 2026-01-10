@@ -86,66 +86,7 @@ export default function CreateCoursePage() {
                 </form>
             </div>
 
-            <style>{`
-        .create-course-container {
-          width: 100%;
-          max-width: 800px;
-          padding: 2rem;
-          margin: 0 auto;
-        }
-        .create-card {
-           background: var(--card-bg);
-           backdrop-filter: blur(12px);
-           border-radius: 1rem;
-           padding: 3rem;
-           border: 1px solid var(--border-color);
-        }
-        .page-title {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        .icon-sparkle { color: #fbbf24; }
-        .page-subtitle {
-          color: var(--text-muted);
-          margin-bottom: 2rem;
-        }
-        
-        select {
-          width: 100%;
-          padding: 1rem 1.2rem;
-          border-radius: 0.6rem;
-          border: 1px solid #334155;
-          background: var(--input-bg);
-          color: var(--text-main);
-          font-size: 1rem;
-          appearance: none; /* simple cleaner look */
-        }
 
-        .grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-        }
-        @media (max-width: 600px) {
-            .grid-2 { grid-template-columns: 1fr; }
-        }
-
-        .generate-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-        }
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
         </div>
     );
 }
