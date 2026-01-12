@@ -24,7 +24,7 @@ export default function CourseCard({ course }) {
 
       <button
         className="view-btn"
-        onClick={() => navigate(`/course/${course.id}`)}
+        onClick={() => navigate(`/course/${encodeURIComponent(course.title)}/${course.id}`)}
       >
         View Course
       </button>

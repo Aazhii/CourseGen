@@ -20,7 +20,7 @@ export default function CreateCoursePage() {
             // Assuming backend expects: { topic, difficulty, duration }
             const res = await createCourse(form);
             // Assuming res returns the created course object with an ID
-            navigate(`/course/${res.id}`);
+            navigate(`/course/${encodeURIComponent(res.title)}/${res.id}`);
         } catch (err) {
             console.error(err);
             alert("Failed to generate course. Please try again.");

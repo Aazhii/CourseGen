@@ -627,58 +627,131 @@ select {
   font-weight: 600;
 }
 
+
 .modules-list h2 {
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: white;
 }
 
 .module-item {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
+  background: #1e293b;
+  /* Darker slate */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
   padding: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.module-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: rgba(99, 102, 241, 0.4);
+  /* Indigo glow on hover */
 }
 
 .module-header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  /* Handle mobile */
 }
 
 .module-number {
-  background: rgba(99, 102, 241, 0.2);
-  color: #818cf8;
-  padding: 0.2rem 0.6rem;
-  border-radius: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.module-desc {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.start-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 0.5rem 1rem;
+  background: #4f46e5;
+  /* Indigo 600 */
+  color: white;
+  padding: 0.35rem 0.8rem;
   border-radius: 0.5rem;
-  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+}
+
+.module-header h3 {
+  font-size: 1.25rem;
+  color: white;
+  font-weight: 700;
+  line-height: 1.4;
+  flex: 1;
+  /* Allow title to take huge space */
+}
+
+.lessons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lesson-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0 0.75rem 0.5rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  /* Subtle tree line */
   transition: all 0.2s;
 }
 
-.start-btn:hover {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+.lesson-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-left-color: var(--primary-color);
+  padding-left: 1rem;
+  /* Indent effect on hover */
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #cbd5e1;
+  /* Slate 300 */
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.lesson-icon {
+  color: var(--primary-color);
+  min-width: 18px;
+  /* Prevent shrink */
+}
+
+.start-lesson-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: white;
+  color: #0f172a;
+  /* Dark text for contrast against white button */
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.start-lesson-btn:hover {
+  background: #e2e8f0;
+  /* Slate 200 */
+  transform: scale(1.05);
+}
+
+.start-lesson-btn svg {
+  fill: #0f172a;
+  /* Filled play icon */
+  stroke: none;
+  /* If using Lucide, logic might need adjustment, see below */
 }
 
 .empty-state {

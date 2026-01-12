@@ -1,4 +1,4 @@
-import { FileText, PlayCircle } from "lucide-react";
+import { FileText, Play } from "lucide-react";
 
 export default function CourseLesson({ lesson, index }) {
     return (
@@ -8,7 +8,7 @@ export default function CourseLesson({ lesson, index }) {
                 <span>{lesson.title || `Lesson ${index + 1}`}</span>
             </div>
             <button className="start-lesson-btn">
-                <PlayCircle size={14} /> Start
+                <Play size={14} className="play-icon" /> Start
             </button>
         </div>
     );

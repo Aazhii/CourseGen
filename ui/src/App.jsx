@@ -23,6 +23,7 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="create-course" element={<CreateCoursePage />} />
         <Route path="course/:id" element={<CourseDetailsPage />} />
+        <Route path="course/:title/:id" element={<CourseDetailsPage />} />
       </Route>
 
       {/* fallback */}
