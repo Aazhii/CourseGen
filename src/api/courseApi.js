@@ -21,3 +21,15 @@ export async function updateCourse(id, data) {
         body: JSON.stringify(data),
     });
 }
+
+// --- New Lesson Endpoints ---
+
+export async function generateLessonContent(courseId, moduleId, lessonId) {
+    return apiFetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/generate`, {
+        method: "POST",
+    });
+}
+
+export async function getLessonById(id) {
+    return apiFetch(`/api/courses/lessons/${id}`);
+}

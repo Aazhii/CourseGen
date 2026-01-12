@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import CreateCoursePage from "./pages/course/CreateCoursePage";
 import CourseDetailsPage from "./pages/course/CourseDetailsPage";
+import LessonPage from "./pages/course/LessonPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ProtectedLayout from "./components/ProtectedLayout";
 
@@ -24,6 +25,7 @@ function App() {
         <Route path="create-course" element={<CreateCoursePage />} />
         <Route path="course/:id" element={<CourseDetailsPage />} />
         <Route path="course/:title/:id" element={<CourseDetailsPage />} />
+        <Route path="course/:courseId/module/:moduleId/lesson/:lessonId" element={<LessonPage />} />
       </Route>
 
       {/* fallback */}

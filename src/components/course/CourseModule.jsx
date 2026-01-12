@@ -10,7 +10,7 @@ export default function CourseModule({ module, index }) {
 
             <div className="lessons-list">
                 {module.lessons && module.lessons.map((lesson, lIdx) => (
-                    <CourseLesson key={lIdx} lesson={lesson} index={lIdx} />
+                    <CourseLesson key={lIdx} lesson={lesson} index={lIdx} moduleId={module.id} />
                 ))}
                 {(!module.lessons || module.lessons.length === 0) && (
                     <p className="no-lessons">No lessons in this module.</p>
