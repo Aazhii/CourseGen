@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { fetchCourses } from "../api/courseApi";
+import { fetchCourses, deleteCourse } from "../api/courseApi";
 import CourseCard from "../components/course/CourseCard";
 import { Plus, Loader } from "lucide-react";
 
@@ -13,9 +13,19 @@ export default function Dashboard() {
   useEffect(() => {
     fetchCourses()
       .then(setCourses)
-      .catch(err => console.error(err)) // specific error handling can be improved
+      .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDeleteCourse = async (courseId) => {
+    try {
+      await deleteCourse(courseId);
+      setCourses(courses.filter(course => course.id !== courseId));
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+      alert("Failed to delete course");
+    }
+  };
 
   return (
     <>
@@ -47,7 +57,7 @@ export default function Dashboard() {
           ) : (
             <div className="course-grid">
               {courses.map(course => (
-                <CourseCard key={course.id} course={course} />
+                <CourseCard key={course.id} course={course} onDelete={handleDeleteCourse} />
               ))}
             </div>
           )}
