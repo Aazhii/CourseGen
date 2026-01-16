@@ -14,11 +14,16 @@ export async function fetchCourses() {
 export async function getCourseById(id) {
     return apiFetch(`/api/courses/${id}`);
 }
-
 export async function updateCourse(id, data) {
     return apiFetch(`/api/courses/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
+    });
+}
+
+export async function deleteCourse(id) {
+    return apiFetch(`/api/courses/${id}`, {
+        method: "DELETE",
     });
 }
 
