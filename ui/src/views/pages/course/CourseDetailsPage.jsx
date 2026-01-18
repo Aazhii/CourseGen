@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getCourseById } from "../../api/courseApi";
+import { getCourseById } from "../../../services/courseApi";
 import { ChevronLeft, FileText } from "lucide-react";
 import CourseModule from "../../components/course/CourseModule";
 

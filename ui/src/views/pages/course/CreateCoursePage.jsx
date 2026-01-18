@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createCourse } from "../../api/courseApi";
+import { createCourse } from "../../../services/courseApi";
 import { Loader2, Sparkles } from "lucide-react";
 
 export default function CreateCoursePage() {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import Sidebar from "./Sidebar";
-import { fetchCourses } from "../api/courseApi";
+import Sidebar from "../components/Sidebar";
+import { fetchCourses } from "../../services/courseApi";
 
 export default function ProtectedLayout() {
     const [courses, setCourses] = useState([]);

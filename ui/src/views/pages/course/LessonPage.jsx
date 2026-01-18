@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getLessonById, generateLessonContent } from "../../api/courseApi";
+import { getLessonById, generateLessonContent } from "../../../services/courseApi";
 import { ChevronLeft, Loader2 } from "lucide-react";
 
 export default function LessonPage() {
