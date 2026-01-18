@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { apiFetch } from "../api/apiClient";
+import { apiFetch } from "../services/apiClient";
 
 export default function ProtectedRoute({ children }) {
   const { token } = useAuth();

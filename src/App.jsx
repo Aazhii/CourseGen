@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
-import CreateCoursePage from "./pages/course/CreateCoursePage";
-import CourseDetailsPage from "./pages/course/CourseDetailsPage";
-import LessonPage from "./pages/course/LessonPage";
+import LoginPage from "./views/pages/LoginPage";
+import Dashboard from "./views/pages/Dashboard";
+import CreateCoursePage from "./views/pages/course/CreateCoursePage";
+import CourseDetailsPage from "./views/pages/course/CourseDetailsPage";
+import LessonPage from "./views/pages/course/LessonPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
-import ProtectedLayout from "./components/ProtectedLayout";
+import ProtectedLayout from "./views/layouts/ProtectedLayout";
 
 function App() {
   return (

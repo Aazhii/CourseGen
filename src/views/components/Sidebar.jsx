@@ -1,95 +1,16 @@
-import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { deleteCourse, updateCourse } from "../api/courseApi";
+import { useAuth } from "../../auth/AuthContext";
+import { useSidebarController } from "../../controllers/useSidebarController";
 
 export default function Sidebar({ courses = [], onCourseDeleted }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { logout, user } = useAuth();
-    const [searchTerm, setSearchTerm] = useState("");
-    const [activeMenuId, setActiveMenuId] = useState(null);
 
-    // Renaming State
-    const [editingId, setEditingId] = useState(null);
-    const [tempTitle, setTempTitle] = useState("");
-
-    const sidebarRef = useRef(null);
-
-    const filteredCourses = courses.filter((course) =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-                setActiveMenuId(null);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
-    const handleDelete = async (e, courseId) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (window.confirm("Are you sure you want to delete this course?")) {
-            try {
-                await deleteCourse(courseId);
-                if (onCourseDeleted) onCourseDeleted();
-                setActiveMenuId(null);
-            } catch (error) {
-                console.error("Failed to delete", error);
-                alert("Failed to delete course");
-            }
-        }
-    };
-
-    const handleRenameStart = (e, course) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setEditingId(course.id);
-        setTempTitle(course.title);
-        setActiveMenuId(null); // Close menu
-    };
-
-    const handleRenameSave = async () => {
-        if (!tempTitle.trim()) {
-            setEditingId(null);
-            return;
-        }
-
-        try {
-            await updateCourse(editingId, { title: tempTitle });
-            if (onCourseDeleted) onCourseDeleted(); // Refresh list
-        } catch (error) {
-            console.error("Failed to rename", error);
-            alert("Failed to rename course");
-        } finally {
-            setEditingId(null);
-        }
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter") {
-            handleRenameSave();
-        } else if (e.key === "Escape") {
-            setEditingId(null);
-        }
-    };
-
-    const toggleMenu = (e, courseId) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setActiveMenuId(activeMenuId === courseId ? null : courseId);
-    };
-
+    const { state, actions } = useSidebarController(courses, onCourseDeleted);
+    const { searchTerm, activeMenuId, editingId, tempTitle, filteredCourses, sidebarRef } = state;
+    const { setSearchTerm, handleDelete, handleRenameStart, handleRenameSave, handleKeyDown, toggleMenu, setTempTitle, setEditingId } = actions;
 
     return (
         <aside className="sidebar" ref={sidebarRef}>
@@ -140,7 +61,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                                 <div key={course.id} className="sidebar-item-wrapper" style={{ position: 'relative' }}>
 
                                     {isEditing ? (
-                                        <div className={`sidebar-item ${isActive ? "active" : ""}`}>
+                                        <div className="sidebar-item active">
                                             <MessageSquare size={16} />
                                             <input
                                                 autoFocus
@@ -149,7 +70,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                                                 value={tempTitle}
                                                 onChange={(e) => setTempTitle(e.target.value)}
                                                 onKeyDown={handleKeyDown}
-                                                onBlur={() => setEditingId(null)} // Optional: save or cancel on blur
+                                                onBlur={() => setEditingId(null)}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();

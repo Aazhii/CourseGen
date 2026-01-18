@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi, register as registerApi } from "../api/authApi";
-import { useAuth } from "../auth/AuthContext";
+import { login as loginApi, register as registerApi } from "../../services/authApi";
+import { useAuth } from "../../auth/AuthContext";
 import OAuthButtons from "../components/OAuthButtons";
 import { Loader2 } from "lucide-react";
 

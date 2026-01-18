@@ -1,4 +1,4 @@
-import { apiFetch } from "../api/apiClient.js";
+import { apiFetch } from "./apiClient";
 
 // API_BASE is handled inside apiFetch via constants
 // const API_BASE = import.meta.env.VITE_API_URL ?? "";
