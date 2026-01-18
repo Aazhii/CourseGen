@@ -36,7 +36,7 @@ export default function ProtectedLayout() {
 
     return (
         <div className="app-layout">
-            <Sidebar courses={courses} />
+            <Sidebar courses={courses} onCourseDeleted={loadCourses} />
             <main className="main-content-area">
                 <Outlet />
             </main>

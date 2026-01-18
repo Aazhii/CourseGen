@@ -1036,3 +1036,107 @@ select {
 .sidebar-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* =========================
+   14. Sidebar Context Menu
+========================= */
+.sidebar-item-wrapper {
+  position: relative;
+}
+
+.more-options-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-item:hover .more-options-btn,
+.sidebar-item-wrapper:hover .more-options-btn,
+.more-options-btn.force-visible {
+  opacity: 1;
+}
+
+.more-options-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Dropdown Menu */
+.sidebar-context-menu {
+  position: absolute;
+  top: 100%;
+  /* Below the item */
+  right: 0;
+  /* Align to right edge */
+  width: 200px;
+  background: #1e293b;
+  /* Slate 800 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  z-index: 999;
+  /* High z-index to ensure visibility */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item.delete {
+  color: #f87171;
+}
+
+.menu-item.delete:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.25rem 0;
+}
+
+.menu-item svg {
+  opacity: 0.7;
+}
+
+.menu-item:hover svg {
+  opacity: 1;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
