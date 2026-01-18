@@ -29,42 +29,43 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="dashboard-header">
-        <div>
-          <h1>My Courses</h1>
-          <p className="subtitle">Manage and learn from your AI-generated courses.</p>
-        </div>
+      <div className="dashboard-content" style={{ marginTop: '1rem' }}>
+        <header className="dashboard-header">
+          <div>
+            <h1>My Courses</h1>
+            <p className="subtitle">Manage and learn from your AI-generated courses.</p>
+          </div>
+          <button className="create-btn" onClick={() => navigate("/create-course")}>
+            <Plus size={20} /> Create New Course
+          </button>
+        </header>
 
-        <button className="create-btn" onClick={() => navigate("/create-course")}>
-          <Plus size={20} /> Create New Course
-        </button>
-      </header>
-
-      {loading ? (
-        <div className="loading-state">
-          <Loader className="spin" size={32} />
-        </div>
-      ) : (
-        <>
-          {courses.length === 0 ? (
-            <div className="empty-dashboard">
-              <h2>No courses yet</h2>
-              <p>Start your learning journey by creating your first AI course.</p>
-              <button className="create-btn small" onClick={() => navigate("/create-course")}>
-                Get Started
-              </button>
-            </div>
-          ) : (
-            <div className="course-grid">
-              {courses.map(course => (
-                <CourseCard key={course.id} course={course} onDelete={handleDeleteCourse} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+        {loading ? (
+          <div className="loading-state">
+            <Loader className="spin" size={32} />
+          </div>
+        ) : (
+          <>
+            {courses.length === 0 ? (
+              <div className="empty-dashboard">
+                <h2>No courses yet</h2>
+                <p>Start your learning journey by creating your first AI course.</p>
+                <button className="create-btn small" onClick={() => navigate("/create-course")}>
+                  Get Started
+                </button>
+              </div>
+            ) : (
+              <div className="course-grid">
+                {courses.map(course => (
+                  <CourseCard key={course.id} course={course} onDelete={handleDeleteCourse} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
 
+      </div>
     </>
   );
 }
