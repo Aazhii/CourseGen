@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip } from "lucide-react";
+import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
-import { deleteCourse } from "../api/courseApi";
+import { deleteCourse, updateCourse } from "../api/courseApi";
 
 export default function Sidebar({ courses = [], onCourseDeleted }) {
     const navigate = useNavigate();
@@ -10,6 +10,11 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
     const { logout, user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeMenuId, setActiveMenuId] = useState(null);
+
+    // Renaming State
+    const [editingId, setEditingId] = useState(null);
+    const [tempTitle, setTempTitle] = useState("");
+
     const sidebarRef = useRef(null);
 
     const filteredCourses = courses.filter((course) =>
@@ -31,7 +36,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
     }, []);
 
     const handleDelete = async (e, courseId) => {
-        e.preventDefault(); // Prevent Navigation
+        e.preventDefault();
         e.stopPropagation();
 
         if (window.confirm("Are you sure you want to delete this course?")) {
@@ -46,11 +51,45 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
         }
     };
 
+    const handleRenameStart = (e, course) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingId(course.id);
+        setTempTitle(course.title);
+        setActiveMenuId(null); // Close menu
+    };
+
+    const handleRenameSave = async () => {
+        if (!tempTitle.trim()) {
+            setEditingId(null);
+            return;
+        }
+
+        try {
+            await updateCourse(editingId, { title: tempTitle });
+            if (onCourseDeleted) onCourseDeleted(); // Refresh list
+        } catch (error) {
+            console.error("Failed to rename", error);
+            alert("Failed to rename course");
+        } finally {
+            setEditingId(null);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+            handleRenameSave();
+        } else if (e.key === "Escape") {
+            setEditingId(null);
+        }
+    };
+
     const toggleMenu = (e, courseId) => {
         e.preventDefault();
         e.stopPropagation();
         setActiveMenuId(activeMenuId === courseId ? null : courseId);
     };
+
 
     return (
         <aside className="sidebar" ref={sidebarRef}>
@@ -95,32 +134,53 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                         filteredCourses.map((course) => {
                             const isActive = location.pathname.includes(`/course/${encodeURIComponent(course.title)}/${course.id}`);
                             const isMenuOpen = activeMenuId === course.id;
+                            const isEditing = editingId === course.id;
 
                             return (
                                 <div key={course.id} className="sidebar-item-wrapper" style={{ position: 'relative' }}>
-                                    <Link
-                                        to={`/course/${encodeURIComponent(course.title)}/${course.id}`}
-                                        className={`sidebar-item ${isActive ? "active" : ""}`}
-                                    >
-                                        <MessageSquare size={16} />
-                                        <span className="truncate">{course.title} </span>
 
-                                        {/* More Options Button (Visible on Hover or active) */}
-                                        <button
-                                            className={`more-options-btn ${isMenuOpen ? 'force-visible' : ''}`}
-                                            onClick={(e) => toggleMenu(e, course.id)}
+                                    {isEditing ? (
+                                        <div className={`sidebar-item ${isActive ? "active" : ""}`}>
+                                            <MessageSquare size={16} />
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                className="sidebar-edit-input"
+                                                value={tempTitle}
+                                                onChange={(e) => setTempTitle(e.target.value)}
+                                                onKeyDown={handleKeyDown}
+                                                onBlur={() => setEditingId(null)} // Optional: save or cancel on blur
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            to={`/course/${encodeURIComponent(course.title)}/${course.id}`}
+                                            className={`sidebar-item ${isActive ? "active" : ""}`}
                                         >
-                                            <MoreHorizontal size={16} />
-                                        </button>
-                                    </Link>
+                                            <MessageSquare size={16} />
+                                            <span className="truncate">{course.title} </span>
+
+                                            {/* More Options Button (Visible on Hover or active) */}
+                                            <button
+                                                className={`more-options-btn ${isMenuOpen ? 'force-visible' : ''}`}
+                                                onClick={(e) => toggleMenu(e, course.id)}
+                                            >
+                                                <MoreHorizontal size={16} />
+                                            </button>
+                                        </Link>
+                                    )}
 
                                     {/* Context Menu */}
-                                    {isMenuOpen && (
+                                    {isMenuOpen && !isEditing && (
                                         <div className="sidebar-context-menu">
                                             <div className="menu-item placeholder">
                                                 <Share size={14} /> Share
                                             </div>
-                                            <div className="menu-item placeholder">
+                                            <div className="menu-item" onClick={(e) => handleRenameStart(e, course)}>
                                                 <Edit size={14} /> Rename
                                             </div>
                                             <div className="menu-item placeholder">

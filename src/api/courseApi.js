@@ -17,6 +17,9 @@ export async function getCourseById(id) {
 export async function updateCourse(id, data) {
     return apiFetch(`/api/courses/${id}`, {
         method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(data),
     });
 }
