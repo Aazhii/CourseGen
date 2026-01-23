@@ -1,10 +1,12 @@
-import { createContext, useContext, useState } from "react";
-import { logout as apiLogout } from "../services/authApi";
+import { createContext, useContext, useState, useEffect } from "react";
+import { logout as apiLogout, getMe } from "../services/authApi";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const login = (jwt) => {
     // If backend returns a raw string with quotes, strip them
@@ -21,8 +23,28 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await getMe();
+        setUser(res.data || res);
+      } catch (err) {
+        console.error("Failed to fetch user", err);
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ token, login, logout }}>
+    <AuthContext.Provider value={{ token, login, logout, user, loading }}>
       {children}
     </AuthContext.Provider>
   );
