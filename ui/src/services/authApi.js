@@ -22,13 +22,7 @@ export async function register(data) {
 
 export async function getMe() {
   // use apiFetch so Authorization header from apiClient is used
-  return apiFetch("/api/auth/me").then(async (r) => {
-    if (!r.ok) {
-      const text = await r.text();
-      throw new Error(text || "Not authenticated");
-    }
-    return r.json();
-  });
+  return apiFetch("/api/auth/me");
 }
 
 export async function logout() {
