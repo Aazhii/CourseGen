@@ -56,8 +56,11 @@ export async function apiFetch(url, options = {}) {
   }
 
   const contentType = res.headers.get("content-type");
+  console.log("apiFetch: Response Status:", res.status, "Content-Type:", contentType);
   if (contentType && contentType.includes("application/json")) {
-    return res.json();
+    const json = await res.json();
+    console.log("apiFetch: Parsed JSON:", json);
+    return json;
   }
 
   const text = await res.text();

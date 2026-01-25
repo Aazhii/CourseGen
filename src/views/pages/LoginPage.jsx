@@ -15,6 +15,14 @@ export default function LoginPage() {
   const location = useLocation();
   const auth = useAuth();
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (auth.token) {
+      // console.log("LoginPage: Redirecting to home...");
+      navigate("/", { replace: true });
+    }
+  }, [auth.token, navigate]);
+
   // Set initial mode based on URL
   useEffect(() => {
     if (location.pathname === "/register") {
@@ -32,7 +40,8 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         // Login Logic
-        const token = await loginApi(form);
+        const res = await loginApi(form);
+        const token = res.token || res; // Handle object or string
         auth.login(token);
         navigate("/");
       } else {
@@ -43,7 +52,8 @@ export default function LoginPage() {
         // but typically we might ask them to login. 
         // For smoother UX, let's try to login immediately with the same creds
         try {
-          const token = await loginApi(form);
+          const res = await loginApi(form);
+          const token = res.token || res;
           auth.login(token);
           navigate("/");
         } catch (loginErr) {
