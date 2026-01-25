@@ -7,11 +7,14 @@ import LessonPage from "./views/pages/course/LessonPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ProtectedLayout from "./views/layouts/ProtectedLayout";
 
+import OAuthSuccessPage from "./views/pages/OAuthSuccessPage";
+
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<LoginPage />} />
+      <Route path="/oauth-success" element={<OAuthSuccessPage />} />
 
       <Route
         path="/"

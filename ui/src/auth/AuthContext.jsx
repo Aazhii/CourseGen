@@ -18,10 +18,22 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    console.warn("AuthContext: LOGOUT TRIGGERED!"); // Trace who calls this
     await apiLogout(); // Call backend
     localStorage.removeItem("token");
     setToken(null);
   };
+
+  useEffect(() => {
+    // Check for token in URL (OAuth redirect)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("token");
+    if (urlToken) {
+      login(urlToken);
+      // Remove token from URL for cleaner history
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -30,7 +42,9 @@ export function AuthProvider({ children }) {
         return;
       }
       try {
+        console.log("AuthContext: Fetching user with token", token);
         const res = await getMe();
+        console.log("AuthContext: User fetched", res);
         setUser(res.data || res);
       } catch (err) {
         console.error("Failed to fetch user", err);
