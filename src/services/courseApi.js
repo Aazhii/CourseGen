@@ -1,14 +1,14 @@
 import { apiFetch } from "./apiClient";
 
 export async function createCourse(data) {
-    return apiFetch("/api/courses/generate", {
+    return apiFetch("/api/courses/create", {
         method: "POST",
         body: JSON.stringify(data),
     });
 }
 
 export async function fetchCourses() {
-    return apiFetch("/api/courses");
+    return apiFetch("/api/courses/my-courses");
 }
 
 export async function getCourseById(id) {
