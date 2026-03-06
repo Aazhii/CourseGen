@@ -1645,7 +1645,308 @@ select:focus {
 }
 
 /* ============================================================
-   16. RESPONSIVE BREAKPOINTS
+   16. PROFILE PAGE OVERVIEW
+   ============================================================ */
+
+.profile-page .page-header {
+  margin-bottom: 2rem;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.profile-left-col,
+.profile-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Identity Card */
+.identity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.avatar-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+}
+
+.avatar-initial {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: white;
+  text-transform: uppercase;
+}
+
+.identity-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.identity-badges {
+  margin-bottom: 1rem;
+}
+
+.identity-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Learning Stats View */
+.stats-overview {
+  padding: 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stat-icon {
+  margin-bottom: 0.75rem;
+}
+.text-gold { color: #fbbf24; }
+.text-orange { color: #f97316; }
+.text-blue { color: #3b82f6; }
+.text-green { color: #10b981; }
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* ============================================================
+   17. SETTINGS PAGE
+   ============================================================ */
+
+.settings-page-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-top: 1rem;
+}
+
+.settings-page-header {
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.settings-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.settings-page-title.inline-title {
+  margin-bottom: 0;
+  margin-left: 0.5rem;
+}
+
+.settings-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.settings-back-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+.settings-page-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  color: var(--accent);
+}
+
+/* List View */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.settings-item-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.settings-item-icon {
+  color: var(--text-secondary);
+}
+
+.settings-item-label {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  min-width: 120px;
+}
+
+.settings-item-value {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.settings-item-arrow {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.settings-list-item:hover .settings-item-arrow {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.settings-list-item:hover .settings-item-icon {
+  color: var(--accent);
+}
+
+/* Edit Forms */
+.settings-form-container {
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.settings-error,
+.settings-success {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.settings-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+/* ============================================================
+   17. RESPONSIVE BREAKPOINTS
    ============================================================ */
 
 /* ── Large (≤1024px) ── */
@@ -1710,7 +2011,8 @@ select:focus {
     justify-content: center;
   }
 
-  .grid-2 {
+  .grid-2,
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1741,7 +2043,8 @@ select:focus {
     padding: 1.25rem 0.875rem;
   }
 
-  .course-grid {
+  .course-grid,
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 

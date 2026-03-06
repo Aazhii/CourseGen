@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X, Trophy } from "lucide-react";
+import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X, Trophy, User, ChevronUp } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { useSidebarController } from "../../controllers/useSidebarController";
 
@@ -11,6 +12,20 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
     const { state, actions } = useSidebarController(courses, onCourseDeleted);
     const { searchTerm, activeMenuId, editingId, tempTitle, filteredCourses, sidebarRef } = state;
     const { setSearchTerm, handleDelete, handleRenameStart, handleRenameSave, handleKeyDown, toggleMenu, setTempTitle, setEditingId } = actions;
+    
+    // User Context Menu State
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [sidebarRef]);
 
     return (
         <aside className="sidebar" ref={sidebarRef}>
@@ -129,18 +144,59 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
             </div>
 
             {/* User / Footer */}
-            <div className="sidebar-footer">
-                <div className="user-profile">
+            <div className="sidebar-footer" style={{ position: 'relative' }}>
+                <div className="user-profile" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} style={{ cursor: 'pointer', flex: 1 }}>
                     <div className="avatar">
                         {user?.username?.charAt(0).toUpperCase() || "U"}
                     </div>
                     <div className="user-info">
-                        <span className="username">{user?.username || "User"}</span>
+                        <span className="username" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', width: '100%' }}>
+                            {user?.username || "User"} 
+                            <ChevronUp size={16} style={{ color: "var(--text-secondary)", transition: "transform 0.2s", transform: isUserMenuOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                        </span>
                     </div>
                 </div>
-                <button className="logout-btn" onClick={logout} title="Logout">
-                    <LogOut size={18} />
-                </button>
+
+                {isUserMenuOpen && (
+                    <div className="user-context-menu fade-up" style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '0.75rem',
+                        right: '0.75rem',
+                        marginBottom: '0.5rem',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.5rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                        zIndex: 100,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.25rem'
+                    }}>
+                        <button 
+                          onClick={() => {
+                              navigate("/profile");
+                              setIsUserMenuOpen(false);
+                          }}
+                          className="menu-item"
+                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}
+                        >
+                            <User size={16} /> Profile Settings
+                        </button>
+                        <div style={{ height: '1px', background: 'var(--border)', margin: '0.25rem 0' }} />
+                        <button 
+                          onClick={() => {
+                              logout();
+                              setIsUserMenuOpen(false);
+                          }}
+                          className="menu-item delete"
+                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <LogOut size={16} /> Logout
+                        </button>
+                    </div>
+                )}
             </div>
         </aside>
     );
