@@ -31,7 +31,7 @@ public class UserService {
     @Autowired
     private JWTService jwtService;
 
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    private final static BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     public Users registerUser(Users user) {
         LOGGER.log(Level.INFO, "Attempting to register new user: {0}", new Object[]{user.getUsername()});
@@ -70,5 +70,9 @@ public class UserService {
                     new Object[]{user.getUsername(), e.getMessage()});
             throw e;
         }
+    }
+
+    public static BCryptPasswordEncoder getEncoder() {
+        return encoder;
     }
 }
