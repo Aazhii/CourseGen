@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { User, Lock, ChevronRight, ArrowLeft, Loader2, AlertCircle, Shield, AtSign, Calendar, Award, Zap, BookOpen, CheckCircle } from "lucide-react";
+import { User, Lock, ChevronRight, ArrowLeft, Loader2, Shield, AtSign, Calendar, Award, Zap, BookOpen, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
 import { getProfile, updateProfile, changePassword } from "../../services/aboutApi";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -20,8 +21,6 @@ export default function ProfilePage() {
     confirmPassword: ""
   });
   
-  const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,11 +42,9 @@ export default function ProfilePage() {
 
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
-    setFormError("");
-    setFormSuccess("");
 
     if (!newUsername.trim()) {
-      setFormError("Display Name cannot be empty.");
+      toast.error("Display Name cannot be empty.");
       return;
     }
 
@@ -55,10 +52,12 @@ export default function ProfilePage() {
       setSaving(true);
       const updated = await updateProfile(newUsername);
       setProfile(updated);
-      setFormSuccess("Display Name updated successfully.");
-      setTimeout(() => setFormSuccess(""), 3000);
+      toast.success("Display Name updated successfully.");
+      setTimeout(() => {
+          setCurrentView("list");
+      }, 1000);
     } catch (err) {
-      setFormError(err.message || "Failed to update Display Name.");
+      toast.error(err.message || "Failed to update Display Name.");
     } finally {
       setSaving(false);
     }
@@ -66,22 +65,22 @@ export default function ProfilePage() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setFormError("");
-    setFormSuccess("");
 
     if (pwdForm.newPassword !== pwdForm.confirmPassword) {
-      setFormError("New passwords do not match.");
+      toast.error("New passwords do not match.");
       return;
     }
 
     try {
       setSaving(true);
       await changePassword(pwdForm.currentPassword, pwdForm.newPassword, pwdForm.confirmPassword);
-      setFormSuccess("Password changed successfully.");
+      toast.success("Password changed successfully.");
       setPwdForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      setTimeout(() => setFormSuccess(""), 3000);
+      setTimeout(() => {
+          setCurrentView("list");
+      }, 1000);
     } catch (err) {
-      setFormError(err.message || "Failed to change password.");
+      toast.error(err.message || "Failed to change password.");
     } finally {
       setSaving(false);
     }
@@ -166,8 +165,6 @@ export default function ProfilePage() {
                 {currentView !== "list" ? (
                     <button className="settings-back-btn" onClick={() => {
                         setCurrentView("list");
-                        setFormError("");
-                        setFormSuccess("");
                     }}>
                     <ArrowLeft size={20} /> <span style={{marginLeft: '0.5rem'}}>Back</span>
                     </button>
@@ -193,8 +190,6 @@ export default function ProfilePage() {
                     <div 
                         className="settings-list-item" 
                         onClick={() => {
-                        setFormError("");
-                        setFormSuccess("");
                         setNewUsername(profile?.username || authUser?.username);
                         setCurrentView("edit-name");
                         }}
@@ -210,8 +205,6 @@ export default function ProfilePage() {
                     <div 
                         className="settings-list-item"
                         onClick={() => {
-                        setFormError("");
-                        setFormSuccess("");
                         setCurrentView("edit-password");
                         }}
                     >
@@ -226,9 +219,6 @@ export default function ProfilePage() {
                 ) : currentView === "edit-name" ? (
                     <div className="settings-form-container">
                         <form className="settings-form" onSubmit={handleUpdateUsername}>
-                            {formError && <div className="settings-error"><AlertCircle size={16}/> {formError}</div>}
-                            {formSuccess && <div className="settings-success">{formSuccess}</div>}
-                            
                             <div className="form-group">
                                 <label>Display Name</label>
                                 <input 
@@ -248,9 +238,6 @@ export default function ProfilePage() {
                 ) : (
                     <div className="settings-form-container">
                         <form className="settings-form" onSubmit={handleChangePassword}>
-                            {formError && <div className="settings-error"><AlertCircle size={16}/> {formError}</div>}
-                            {formSuccess && <div className="settings-success">{formSuccess}</div>}
-                            
                             <div className="form-group">
                                 <label>Current Password</label>
                                 <input 
