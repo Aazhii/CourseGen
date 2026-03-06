@@ -80,8 +80,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-container">
-      <form className="auth-card" onSubmit={handleSubmit}>
+    <div className="auth-page-wrapper">
+      <div className="auth-container">
+        <form className="auth-card" onSubmit={handleSubmit}>
         <h1 className="auth-title">{isLogin ? "Welcome Back" : "Create Account"}</h1>
 
         {error && <p className="error-text">{error}</p>}
@@ -89,6 +90,7 @@ export default function LoginPage() {
         <div className="form-group">
           <label>Username</label>
           <input
+            type="text"
             placeholder="Enter your username"
             value={form.username}
             onChange={e => setForm({ ...form, username: e.target.value })}
@@ -129,8 +131,7 @@ export default function LoginPage() {
 
         <OAuthButtons />
       </form>
-
-
+      </div>
     </div>
   );
 }

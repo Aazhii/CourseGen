@@ -41,6 +41,7 @@ export default function CreateCoursePage() {
                     <div className="form-group">
                         <label>Topic</label>
                         <input
+                            type="text"
                             placeholder="e.g. Introduction to Python, Advanced React Patterns..."
                             value={form.title}
                             onChange={e => setForm({ ...form, title: e.target.value })}

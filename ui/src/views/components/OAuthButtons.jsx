@@ -3,9 +3,9 @@ const API_BASE = "http://localhost:8080";
 export default function OAuthButtons() {
   return (
     <div className="oauth-container">
-      <div className="oauth-divider">OR</div>
+      <div className="auth-divider"><span>OR</span></div>
 
-      <div className="oauth-buttons">
+      <div className="oauth-buttons-wrapper">
         {/* Google Button - Using Wikimedia Image */}
         <a
           href={`${API_BASE}/oauth2/authorization/google`}
