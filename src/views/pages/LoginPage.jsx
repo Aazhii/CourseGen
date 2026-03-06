@@ -81,56 +81,62 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page-wrapper">
+      <div className="auth-visual">
+        <div className="auth-visual-content">
+          <h2>Accelerate Your Learning</h2>
+          <p>Join thousands mastering new skills through perfectly tailored AI-driven course generation.</p>
+        </div>
+      </div>
       <div className="auth-container">
         <form className="auth-card" onSubmit={handleSubmit}>
-        <h1 className="auth-title">{isLogin ? "Welcome Back" : "Create Account"}</h1>
+          <h1 className="auth-title">{isLogin ? "Welcome Back" : "Create Account"}</h1>
 
-        {error && <p className="error-text">{error}</p>}
+          {error && <p className="error-text">{error}</p>}
 
-        <div className="form-group">
-          <label>Username</label>
-          <input
-            type="text"
-            placeholder="Enter your username"
-            value={form.username}
-            onChange={e => setForm({ ...form, username: e.target.value })}
-            required
-          />
-        </div>
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              placeholder="Enter your username"
+              value={form.username}
+              onChange={e => setForm({ ...form, username: e.target.value })}
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            required
-            minLength={4}
-          />
-        </div>
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              required
+              minLength={4}
+            />
+          </div>
 
-        <button className="submit-btn" disabled={loading}>
-          {loading ? <Loader2 className="spin" /> : (isLogin ? "Sign In" : "Sign Up")}
-        </button>
+          <button className="submit-btn" disabled={loading}>
+            {loading ? <Loader2 className="spin" /> : (isLogin ? "Sign In" : "Sign Up")}
+          </button>
 
-        <p className="hint-text">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <span
-            onClick={toggleMode}
-            style={{
-              color: "var(--primary-color)",
-              fontWeight: "600",
-              cursor: "pointer",
-              textDecoration: "underline"
-            }}
-          >
-            {isLogin ? "Sign Up" : "Sign In"}
-          </span>
-        </p>
+          <p className="hint-text">
+            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            <span
+              onClick={toggleMode}
+              style={{
+                color: "var(--primary-color)",
+                fontWeight: "600",
+                cursor: "pointer",
+                textDecoration: "underline"
+              }}
+            >
+              {isLogin ? "Sign Up" : "Sign In"}
+            </span>
+          </p>
 
-        <OAuthButtons />
-      </form>
+          <OAuthButtons />
+        </form>
       </div>
     </div>
   );
