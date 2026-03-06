@@ -20,17 +20,11 @@ export default function LessonPage() {
             const data = await getLessonById(lessonId);
             setLesson(data);
 
-            // Automatic generation if content is missing/empty but NOT if we just generated it?
-            // Actually, better to show a "Generate" button or auto-generate if status suggests it.
-            // For now, if content is empty array or null, we can try to generate?
-            // But let's check `isEnriched`.
-            // detailed check for enrichment status
             const hasContent = data.content && Array.isArray(data.content) && data.content.length > 0;
             const isEnriched = data.enriched || data.isEnriched || hasContent;
 
-            if (data && !isEnriched && !generating) {
-                // Only generate if NOT enriched and NO content
-                handleGenerate(data);
+            if (data && !isEnriched) {
+                await handleGenerate(data); // ← awaited now
             }
         } catch (err) {
             console.error(err);

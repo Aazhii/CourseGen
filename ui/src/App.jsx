@@ -8,6 +8,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 import ProtectedLayout from "./views/layouts/ProtectedLayout";
 
 import OAuthSuccessPage from "./views/pages/OAuthSuccessPage";
+import LeaderboardPage from "./views/pages/LeaderboardPage";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="create-course" element={<CreateCoursePage />} />
         <Route path="course/:id" element={<CourseDetailsPage />} />
         <Route path="course/:title/:id" element={<CourseDetailsPage />} />

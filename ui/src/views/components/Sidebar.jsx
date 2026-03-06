@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X } from "lucide-react";
+import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X, Trophy } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { useSidebarController } from "../../controllers/useSidebarController";
 
@@ -43,6 +43,14 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
+            </div>
+
+            {/* Navigation Menus */}
+            <div className="sidebar-list" style={{ marginTop: '1rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                <Link to="/leaderboard" className={`sidebar-item ${location.pathname === '/leaderboard' ? 'active' : ''}`} style={{ marginBottom: '0.25rem' }}>
+                    <Trophy size={16} />
+                    <span>Leaderboard</span>
+                </Link>
             </div>
 
             {/* Course List (History) */}
