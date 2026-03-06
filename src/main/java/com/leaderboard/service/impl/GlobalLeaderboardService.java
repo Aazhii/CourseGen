@@ -9,9 +9,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class GlobalLeaderboardService extends AbstractLeaderboardService {
+
+    private static final long CACHE_TTL_MS = 3 * 60 * 1000L; // 3 min for leaderboard cache
+
+    private final AtomicReference<List<UserStats>> cachedLeaderboard = new AtomicReference<>(null);
+    private volatile long lastFetchedAt = 0L; // timestamp of last DB fetch
 
     public GlobalLeaderboardService(UserStatsRepository userStatsRepository) {
         super(userStatsRepository);
@@ -24,7 +30,7 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
     @Override
     public PagedLeaderboardDTO getTopGlobalUsers(int page, int size) {
-        List<UserStats> all = userStatsRepository.findAllOrderByTotalPoints();
+        List<UserStats> all = getOrLoadLeaderboard();
         return paginate(all, page, size);
     }
 
@@ -54,5 +60,24 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
         int totalPages = (int) Math.ceil((double) total / size);
         return new PagedLeaderboardDTO(paged, page, size, total, totalPages);
+    }
+
+    /**
+     * Returns leaderboard from cache if within TTL window,
+     * otherwise fetches fresh data from DB and resets the timer.
+     */
+    private List<UserStats> getOrLoadLeaderboard() {
+        Long curTime = System.currentTimeMillis();
+        List<UserStats> cachedLeaderBoard = cachedLeaderboard.get();
+
+        if (cachedLeaderBoard != null && (curTime - lastFetchedAt) < CACHE_TTL_MS) {
+            return cachedLeaderBoard;
+        }
+
+        // Cache expired or empty — fetch from DB
+        List<UserStats> newLeaderBoard = userStatsRepository.findAllOrderByTotalPoints();
+        cachedLeaderboard.set(newLeaderBoard);
+        lastFetchedAt = curTime;
+        return newLeaderBoard;
     }
 }
