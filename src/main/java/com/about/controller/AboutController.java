@@ -5,6 +5,7 @@ import com.about.pojo.ProfileResponsePojo;
 import com.about.pojo.UpdateProfileRequestPojo;
 import com.about.service.AboutService;
 import com.aicourse.model.UserPrincipal;
+import com.aicourse.service.JWT.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,9 @@ public class AboutController {
 
     @Autowired
     private AboutService aboutService;
+
+    @Autowired
+    private JWTService jwtService;
 
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(Authentication authentication) {
@@ -52,6 +56,11 @@ public class AboutController {
         }
         try {
             ProfileResponsePojo updated = aboutService.updateProfile(userId, request);
+
+            // Generate a fresh JWT with the new username so the user doesn't get logged out
+            String newToken = jwtService.generateToken(updated.getUsername());
+            updated.setToken(newToken);
+            
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             // Validation errors — send back to client as 400

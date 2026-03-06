@@ -11,6 +11,7 @@ public class ProfileResponsePojo {
     private UserRole role;
     private OffsetDateTime createdAt;
     private StatsSnapshot stats;
+    private String token;
 
     public ProfileResponsePojo() {
     }
@@ -65,6 +66,13 @@ public class ProfileResponsePojo {
         this.stats = stats;
     }
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public static class StatsSnapshot {
 
