@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import LoginPage from "./views/pages/LoginPage";
 import Dashboard from "./views/pages/Dashboard";
 import CreateCoursePage from "./views/pages/course/CreateCoursePage";
@@ -12,7 +13,20 @@ import ProfilePage from "./views/pages/ProfilePage";
 
 function App() {
   return (
-    <Routes>
+    <>
+      <Toaster 
+        position="top-center" 
+        reverseOrder={false} 
+        toastOptions={{
+          duration: 1500,
+          style: {
+            fontSize: '0.9rem',
+            padding: '8px 16px',
+            maxWidth: '400px'
+          }
+        }}
+      />
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<LoginPage />} />
       <Route path="/oauth-success" element={<OAuthSuccessPage />} />
@@ -36,7 +50,8 @@ function App() {
 
       {/* fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
 
