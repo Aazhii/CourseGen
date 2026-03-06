@@ -5,7 +5,7 @@ import { getProfile, updateProfile, changePassword } from "../../services/aboutA
 import { useAuth } from "../../auth/AuthContext";
 
 export default function ProfilePage() {
-  const { user: authUser } = useAuth(); // Has minimal info like {username, roles}
+  const { user: authUser, login } = useAuth(); // Has minimal info like {username, roles}
   
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,12 @@ export default function ProfilePage() {
     try {
       setSaving(true);
       const updated = await updateProfile(newUsername);
+      
+      // If the backend sent a fresh token for the new username, safely adopt it!
+      if (updated.token) {
+          login(updated.token);
+      }
+      
       setProfile(updated);
       toast.success("Display Name updated successfully.");
       setTimeout(() => {

@@ -6,28 +6,27 @@ import { Menu, X, LayoutDashboard } from "lucide-react";
 
 export default function ProtectedLayout() {
     const [courses, setCourses] = useState([]);
+    const [coursesLoading, setCoursesLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
 
     const loadCourses = useCallback(async () => {
         try {
+            setCoursesLoading(true);
             const data = await fetchCourses();
             setCourses(data);
         } catch (error) {
             console.error("Failed to load courses for sidebar:", error);
+        } finally {
+            setCoursesLoading(false);
         }
     }, []);
 
     useEffect(() => {
         loadCourses();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    useEffect(() => {
-        if (location.pathname === "/" || location.pathname.includes("create-course")) {
-            loadCourses();
-        }
-    }, [location.pathname]);
 
     // Close sidebar on route change (mobile)
     useEffect(() => {
@@ -64,7 +63,7 @@ export default function ProtectedLayout() {
                     </button>
                 </header>
 
-                <Outlet />
+                <Outlet context={{ courses, loadCourses, coursesLoading }} />
             </main>
         </div>
     );
