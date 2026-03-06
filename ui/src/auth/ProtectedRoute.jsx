@@ -4,42 +4,16 @@ import { useAuth } from "./AuthContext";
 import { apiFetch } from "../services/apiClient";
 
 export default function ProtectedRoute({ children }) {
-  const { token } = useAuth();
-  const [isVerified, setIsVerified] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { token, user, loading } = useAuth();
 
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    apiFetch("/api/auth/me")
-      .then(() => {
-        if (mounted) {
-          setIsVerified(true);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setIsVerified(false);
-          setLoading(false);
-        }
-      });
-
-    return () => { mounted = false; };
-  }, [token]);
-
-  // If no token, or verification failed (and finished loading)
+  // If no token at all
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Optional: You might want to allow rendering while verifying (optimistic)
-  // or wait until verified (pessimistic). The original code was pessimistic.
+  // Waiting for AuthContext to fetch the user object
   if (loading) return <div>Checking authentication...</div>;
 
-  return isVerified ? children : <Navigate to="/login" replace />;
+  // If token is invalid/expired, `user` will be null after loading finishes
+  return user ? children : <Navigate to="/login" replace />;
 }

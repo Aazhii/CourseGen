@@ -1,29 +1,44 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { fetchCourses, deleteCourse } from "../../services/courseApi";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import toast from "react-hot-toast";
+import { deleteCourse } from "../../services/courseApi";
 import CourseCard from "../components/course/CourseCard";
 import { Plus, Loader } from "lucide-react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchCourses()
-      .then(setCourses)
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { courses, loadCourses, coursesLoading } = useOutletContext();
 
   const handleDeleteCourse = async (courseId) => {
-    try {
-      await deleteCourse(courseId);
-      setCourses(courses.filter(course => course.id !== courseId));
-    } catch (error) {
-      console.error("Failed to delete course:", error);
-      alert("Failed to delete course");
-    }
+    toast((t) => (
+        <div>
+            <p style={{ margin: '0 0 10px', fontSize: '0.95rem', fontWeight: '600' }}>Delete this course?</p>
+            <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>This action cannot be undone.</p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button 
+                    style={{ padding: '6px 12px', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: '500' }}
+                    onClick={() => toast.dismiss(t.id)}
+                >
+                    Cancel
+                </button>
+                <button 
+                    style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: '600' }}
+                    onClick={async () => {
+                        toast.dismiss(t.id);
+                        try {
+                            await deleteCourse(courseId);
+                            loadCourses(); // Refresh sidebar and dashboard
+                            toast.success("Course deleted successfully.");
+                        } catch (error) {
+                            console.error("Failed to delete course:", error);
+                            toast.error("Failed to delete course");
+                        }
+                    }}
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    ), { duration: 5000 });
   };
 
   return (
@@ -39,7 +54,7 @@ export default function Dashboard() {
           </button>
         </header>
 
-        {loading ? (
+        {coursesLoading ? (
           <div className="loading-state">
             <Loader className="spin" size={32} />
           </div>

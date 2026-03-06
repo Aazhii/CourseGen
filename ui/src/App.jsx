@@ -14,42 +14,46 @@ import ProfilePage from "./views/pages/ProfilePage";
 function App() {
   return (
     <>
-      <Toaster 
-        position="top-center" 
-        reverseOrder={false} 
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
         toastOptions={{
           duration: 1500,
           style: {
             fontSize: '0.9rem',
             padding: '8px 16px',
-            maxWidth: '400px'
+            maxWidth: '400px',
+
+            background: 'var(--text-primary)',
+            color: 'var(--accent)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
           }
         }}
       />
       <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<LoginPage />} />
-      <Route path="/oauth-success" element={<OAuthSuccessPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<LoginPage />} />
+        <Route path="/oauth-success" element={<OAuthSuccessPage />} />
 
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <ProtectedLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="leaderboard" element={<LeaderboardPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="create-course" element={<CreateCoursePage />} />
-        <Route path="course/:id" element={<CourseDetailsPage />} />
-        <Route path="course/:title/:id" element={<CourseDetailsPage />} />
-        <Route path="course/:courseId/module/:moduleId/lesson/:lessonId" element={<LessonPage />} />
-      </Route>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="create-course" element={<CreateCoursePage />} />
+          <Route path="course/:id" element={<CourseDetailsPage />} />
+          <Route path="course/:title/:id" element={<CourseDetailsPage />} />
+          <Route path="course/:courseId/module/:moduleId/lesson/:lessonId" element={<LessonPage />} />
+        </Route>
 
-      {/* fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+        {/* fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
