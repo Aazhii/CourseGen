@@ -2,6 +2,7 @@ package com.aicourse.controller;
 
 import com.aicourse.model.Course;
 import com.aicourse.model.Module;
+import com.aicourse.model.UserPrincipal;
 import com.aicourse.service.courses.impl.CourseServiceImpl;
 import com.aicourse.utils.api.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ public class CourseController {
     public Course createCourse(@RequestBody Map<String, String> payload, Authentication auth) throws Exception {
         LOGGER.log(Level.INFO, "Request received to generate course: {0}", new Object[]{payload.get("title")});
         try {
-            Course course = courseServiceImpl.generateCourse(payload, auth.getName());
+            Course course = courseServiceImpl.generateCourse(payload, auth);
             LOGGER.log(Level.INFO, "Course generated successfully with ID: {0}", new Object[]{course.getId()});
             return course;
         } catch (Exception e) {
@@ -54,7 +55,9 @@ public class CourseController {
     public List<Course> getMyCourses(Authentication auth) throws Exception {
         LOGGER.log(Level.INFO, "Fetching courses for user: {0}", new Object[]{auth.getName()});
         try {
-            List<Course> courses = courseServiceImpl.getCoursesByCreator(auth.getName());
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Long userId = principal.getUser().getId();
+            List<Course> courses = courseServiceImpl.getCoursesByCreator(userId);
             LOGGER.log(Level.INFO, "Found {0} courses for user: {1}", new Object[]{courses.size(), auth.getName()});
             return courses;
         } catch (Exception e) {

@@ -4,6 +4,7 @@ import com.aicourse.geminiConnection.GeminiConnection;
 import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
+import com.aicourse.model.UserPrincipal;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.ModuleRepo;
 import com.aicourse.service.courses.CourseService;
@@ -12,6 +13,7 @@ import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -36,19 +38,22 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional
-    public Course generateCourse(Map<String, String> payload, String creator) throws Exception {
+    public Course generateCourse(Map<String, String> payload, Authentication auth) throws Exception {
 
         String title = payload.get("title");
         String difficulty = payload.getOrDefault("difficulty", "Beginner");
         String duration = payload.getOrDefault("duration", "2 Hours");
-
+        String creator = auth.getName();
         LOGGER.log(Level.INFO, "Generating course ''{0}'' for user ''{1}'' (Difficulty: {2}, Duration: {3})",
                 new Object[]{title, creator, difficulty, duration});
 
         Course course = new Course();
         course.setId(SnowflakeIdGenerator.generateId());
         course.setTitle(title);
-        course.setCreator(creator);
+
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        Long userId = principal.getUser().getId();
+        course.setCreator(userId);
 
         String prompt = """
                 Create a comprehensive course outline about "%s".
@@ -125,7 +130,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<Course> getCoursesByCreator(String creator) throws Exception {
+    public List<Course> getCoursesByCreator(Long creator) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving courses for creator: {0}", new Object[]{creator});
         return courseRepo.findByCreator(creator);
     }

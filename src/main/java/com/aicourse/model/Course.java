@@ -23,8 +23,8 @@ public class Course implements Persistable<Long> {
     private String description;
 
     // Auth0 sub
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String creator;
+    @Column(nullable = false)
+    private Long creator;
 
     @OneToMany(
             mappedBy = "course",
@@ -76,8 +76,14 @@ public class Course implements Persistable<Long> {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public String getCreator() { return creator; }
-    public void setCreator(String creator) { this.creator = creator; }
+
+    public Long getCreator() {
+        return creator;
+    }
+
+    public void setCreator(Long creator) {
+        this.creator = creator;
+    }
     public List<Module> getModules() { return modules; }
     public void setModules(List<Module> modules) { this.modules = modules; }
 }

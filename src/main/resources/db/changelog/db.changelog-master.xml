@@ -21,7 +21,7 @@
 
             <column name="description" type="TEXT"/>
 
-            <column name="creator" type="VARCHAR(255)">
+            <column name="creator" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
 
@@ -200,7 +200,7 @@
     </changeSet>
     <changeSet id="courses-text-columns-v3" author="ari">
         <modifyDataType tableName="courses" columnName="title" newDataType="TEXT"/>
-        <modifyDataType tableName="courses" columnName="creator" newDataType="TEXT"/>
+        <modifyDataType tableName="courses" columnName="creator" newDataType="BIGINT"/>
         <modifyDataType tableName="courses" columnName="description" newDataType="TEXT"/>
     </changeSet>
 
