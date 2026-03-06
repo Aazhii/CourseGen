@@ -7,4 +7,3 @@ public class LeaderboardResponseDTO extends RankScoreDTO {
         this.score = score;
     }
 }
-
