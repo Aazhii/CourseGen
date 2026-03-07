@@ -30,26 +30,28 @@ export default function ProjectsDashboard() {
                 </button>
             </div>
 
-            <div className="projects-search-bar">
-                <Search size={18} className="search-icon" />
-                <input 
-                    type="text" 
-                    placeholder="Search projects..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+            <div className="projects-filter-row">
+                <div className="projects-search-bar">
+                    <Search size={18} className="search-icon" />
+                    <input 
+                        type="text" 
+                        placeholder="Search projects..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
 
-            <div className="projects-controls">
-                <span className="sort-label">Sort by</span>
-                <select 
-                    className="projects-sort-select"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                >
-                    <option value="Activity">Activity</option>
-                    <option value="Name">Name</option>
-                </select>
+                <div className="projects-controls">
+                    <span className="sort-label">Sort by</span>
+                    <select 
+                        className="projects-sort-select"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                    >
+                        <option value="Activity">Activity</option>
+                        <option value="Name">Name</option>
+                    </select>
+                </div>
             </div>
 
             {projectsLoading ? (
