@@ -10,6 +10,8 @@ import ProtectedLayout from "./views/layouts/ProtectedLayout";
 import OAuthSuccessPage from "./views/pages/OAuthSuccessPage";
 import LeaderboardPage from "./views/pages/LeaderboardPage";
 import ProfilePage from "./views/pages/ProfilePage";
+import ProjectsDashboard from "./views/pages/ProjectsDashboard";
+import ProjectDetailsPage from "./views/pages/ProjectDetailsPage";
 
 function App() {
   return (
@@ -43,7 +45,11 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          {/* Default dashboard is now Projects */}
+          <Route index element={<ProjectsDashboard />} />
+          <Route path="project/:id" element={<ProjectDetailsPage />} />
+          
+          <Route path="legacy-dashboard" element={<Dashboard />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="create-course" element={<CreateCoursePage />} />

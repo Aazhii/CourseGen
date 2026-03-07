@@ -3,11 +3,14 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Plus, Search, LogOut, MessageSquare, LayoutDashboard, MoreHorizontal, Trash2, Edit, Share, FolderInput, Paperclip, X, Trophy, User, ChevronUp } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { useSidebarController } from "../../controllers/useSidebarController";
+import CreateProjectModal from "./CreateProjectModal";
 
-export default function Sidebar({ courses = [], onCourseDeleted }) {
+export default function Sidebar({ courses = [], onCourseDeleted, projects = [], loadProjects }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { logout, user } = useAuth();
+
+    const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
     const { state, actions } = useSidebarController(courses, onCourseDeleted);
     const { searchTerm, activeMenuId, editingId, tempTitle, filteredCourses, sidebarRef } = state;
@@ -42,7 +45,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
 
                 <button
                     className="new-chat-btn"
-                    onClick={() => navigate("/create-course")}
+                    onClick={() => setIsCreateProjectOpen(true)}
                 >
                     <Plus size={16} />
                     <span>New Project</span>
@@ -68,9 +71,38 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                 </Link>
             </div>
 
+            {/* Projects List */}
+            <div className="sidebar-list">
+                <div className="list-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Projects</span>
+                    <button className="icon-btn" onClick={() => setIsCreateProjectOpen(true)} style={{ padding: 0 }} title="New Project">
+                        <Plus size={14} />
+                    </button>
+                </div>
+                <div className="list-content">
+                    {projects.length === 0 ? (
+                        <div className="empty-sidebar-state">No projects yet</div>
+                    ) : (
+                        projects.map(project => {
+                            const isActive = location.pathname.includes(`/project/${project.id}`);
+                            return (
+                                <Link 
+                                    key={`proj-${project.id}`} 
+                                    to={`/project/${project.id}`}
+                                    className={`sidebar-item ${isActive ? "active" : ""}`}
+                                >
+                                    <FolderInput size={16} />
+                                    <span className="truncate">{project.name}</span>
+                                </Link>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+
             {/* Course List (History) */}
             <div className="sidebar-list">
-                <div className="list-label">Recents</div>
+                <div className="list-label">Legacy Courses</div>
                 <div className="list-content">
                     {filteredCourses.length === 0 ? (
                         <div className="empty-sidebar-state">No courses found</div>
@@ -198,6 +230,14 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                     </div>
                 )}
             </div>
+            
+            <CreateProjectModal 
+                isOpen={isCreateProjectOpen} 
+                onClose={() => setIsCreateProjectOpen(false)}
+                onProjectCreated={() => {
+                    if (loadProjects) loadProjects();
+                }}
+            />
         </aside>
     );
 }
