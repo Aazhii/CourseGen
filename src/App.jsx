@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoginPage from "./views/pages/LoginPage";
 import Dashboard from "./views/pages/Dashboard";
-import CreateCoursePage from "./views/pages/course/CreateCoursePage";
+import CreateCoursePage from "./views/pages/create-course/CreateCoursePage";
 import CourseDetailsPage from "./views/pages/course/CourseDetailsPage";
 import LessonPage from "./views/pages/course/LessonPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
