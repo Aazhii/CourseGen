@@ -12,7 +12,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
     const { state, actions } = useSidebarController(courses, onCourseDeleted);
     const { searchTerm, activeMenuId, editingId, tempTitle, filteredCourses, sidebarRef } = state;
     const { setSearchTerm, handleDelete, handleRenameStart, handleRenameSave, handleKeyDown, toggleMenu, setTempTitle, setEditingId } = actions;
-    
+
     // User Context Menu State
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -151,7 +151,7 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                     </div>
                     <div className="user-info">
                         <span className="username" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', width: '100%' }}>
-                            {user?.username || "User"} 
+                            {user?.username || "User"}
                             <ChevronUp size={16} style={{ color: "var(--text-secondary)", transition: "transform 0.2s", transform: isUserMenuOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
                         </span>
                     </div>
@@ -174,24 +174,24 @@ export default function Sidebar({ courses = [], onCourseDeleted }) {
                         flexDirection: 'column',
                         gap: '0.25rem'
                     }}>
-                        <button 
-                          onClick={() => {
-                              navigate("/profile");
-                              setIsUserMenuOpen(false);
-                          }}
-                          className="menu-item"
-                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}
+                        <button
+                            onClick={() => {
+                                navigate("/profile");
+                                setIsUserMenuOpen(false);
+                            }}
+                            className="menu-item"
+                            style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}
                         >
                             <User size={16} /> Profile Settings
                         </button>
                         <div style={{ height: '1px', background: 'var(--border)', margin: '0.25rem 0' }} />
-                        <button 
-                          onClick={() => {
-                              logout();
-                              setIsUserMenuOpen(false);
-                          }}
-                          className="menu-item delete"
-                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        <button
+                            onClick={() => {
+                                logout();
+                                setIsUserMenuOpen(false);
+                            }}
+                            className="menu-item delete"
+                            style={{ width: '100%', textAlign: 'left', border: 'none', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         >
                             <LogOut size={16} /> Logout
                         </button>

@@ -138,10 +138,12 @@ img {
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
     box-shadow: 0 0 0 0 var(--accent-glow);
   }
+
   50% {
     box-shadow: 0 0 20px 4px var(--accent-glow);
   }
@@ -552,13 +554,13 @@ select:focus {
 
 /* Sidebar */
 .sidebar {
-  width: var(--sidebar-w);
+  /* width: var(--sidebar-w); */
   min-width: var(--sidebar-w);
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  /* border-right: 1px solid var(--border); */
   display: flex;
   flex-direction: column;
-  padding: 1rem 0.75rem;
+  padding: 0.5rem 0.50rem;
   flex-shrink: 0;
   height: 100vh;
   overflow: hidden;
@@ -848,7 +850,7 @@ select:focus {
 }
 
 .logout-btn {
-  background: transparent;
+  /* background: transparent; */
   border: none;
   color: var(--text-secondary);
   padding: 0.45rem;
@@ -1759,10 +1761,22 @@ select:focus {
 .stat-icon {
   margin-bottom: 0.75rem;
 }
-.text-gold { color: #fbbf24; }
-.text-orange { color: #f97316; }
-.text-blue { color: #3b82f6; }
-.text-green { color: #10b981; }
+
+.text-gold {
+  color: #fbbf24;
+}
+
+.text-orange {
+  color: #f97316;
+}
+
+.text-blue {
+  color: #3b82f6;
+}
+
+.text-green {
+  color: #10b981;
+}
 
 .stat-value {
   font-size: 1.5rem;
@@ -1824,7 +1838,7 @@ select:focus {
 }
 
 .settings-back-btn:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 

@@ -19,9 +19,7 @@ export default function CourseCard({ course, onDelete }) {
               className="delete-icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                // if (window.confirm(`Are you sure you want to delete "${course.title}"? This process cannot be undone.`)) {
                 onDelete(course.id);
-                // }
               }}
               title="Delete Course"
               style={{
