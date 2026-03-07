@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CourseRepo extends JpaRepository<Course, Long> {
     List<Course> findByCreator(Long creator);
+
+    List<Course> findByProjectId(Long projectId);
 }
