@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { createCourse } from "../../../services/courseApi";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -11,6 +11,7 @@ export default function CreateCoursePage() {
     });
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { loadCourses } = useOutletContext();
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -19,6 +20,10 @@ export default function CreateCoursePage() {
             // Mapping "duration" string to something the backend might expect, or just sending as is
             // Assuming backend expects: { topic, difficulty, duration }
             const res = await createCourse(form);
+            
+            // Instantly refresh the parent layout's course list so the sidebar / dashboard catch the new entry
+            await loadCourses();
+            
             // Assuming res returns the created course object with an ID
             navigate(`/course/${encodeURIComponent(res.title)}/${res.id}`);
         } catch (err) {
