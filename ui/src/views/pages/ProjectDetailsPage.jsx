@@ -80,7 +80,7 @@ export default function ProjectDetailsPage() {
         <div className="project-details-page fade-up">
             
             {/* Header / Navigation */}
-            <button className="back-to-projects-btn" onClick={() => navigate("/")}>
+            <button className="back-to-projects-btn" onClick={() => navigate("/projects")}>
                 <ArrowLeft size={16} /> All projects
             </button>
             <div className="project-header-bar">
