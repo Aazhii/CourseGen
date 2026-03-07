@@ -45,11 +45,10 @@ function App() {
             </ProtectedRoute>
           }
         >
-          {/* Default dashboard is now Projects */}
-          <Route index element={<ProjectsDashboard />} />
+          {/* Default dashboard is now Courses */}
+          <Route index element={<Dashboard />} />
+          <Route path="projects" element={<ProjectsDashboard />} />
           <Route path="project/:id" element={<ProjectDetailsPage />} />
-          
-          <Route path="legacy-dashboard" element={<Dashboard />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="create-course" element={<CreateCoursePage />} />

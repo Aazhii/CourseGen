@@ -65,6 +65,14 @@ export default function Sidebar({ courses = [], onCourseDeleted, projects = [], 
 
             {/* Navigation Menus */}
             <div className="sidebar-list" style={{ marginTop: '1rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                <Link to="/" className={`sidebar-item ${location.pathname === '/' ? 'active' : ''}`} style={{ marginBottom: '0.25rem' }}>
+                    <LayoutDashboard size={16} />
+                    <span>Dashboard</span>
+                </Link>
+                <Link to="/projects" className={`sidebar-item ${location.pathname === '/projects' ? 'active' : ''}`} style={{ marginBottom: '0.25rem' }}>
+                    <FolderInput size={16} />
+                    <span>All Projects</span>
+                </Link>
                 <Link to="/leaderboard" className={`sidebar-item ${location.pathname === '/leaderboard' ? 'active' : ''}`} style={{ marginBottom: '0.25rem' }}>
                     <Trophy size={16} />
                     <span>Leaderboard</span>
@@ -84,15 +92,14 @@ export default function Sidebar({ courses = [], onCourseDeleted, projects = [], 
                         <div className="empty-sidebar-state">No projects yet</div>
                     ) : (
                         projects.map(project => {
-                            const isActive = location.pathname.includes(`/project/${project.id}`);
+                            const isActive = location.pathname === `/project/${project.id}`;
                             return (
                                 <Link 
                                     key={`proj-${project.id}`} 
                                     to={`/project/${project.id}`}
                                     className={`sidebar-item ${isActive ? "active" : ""}`}
                                 >
-                                    <FolderInput size={16} />
-                                    <span className="truncate">{project.name}</span>
+                                    <span className="truncate" style={{ paddingLeft: '1.5rem'}}>{project.name}</span>
                                 </Link>
                             );
                         })

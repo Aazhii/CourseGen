@@ -1721,12 +1721,26 @@ select:focus {
 ========================================= */
 
 /* Modal Overrides */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-w, 260px);
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
 .project-modal-card {
   background: #2a2a2a; /* Claude dark gray background */
   width: 100%;
-  max-width: 600px;
+  max-width: 480px;
   border-radius: var(--radius-md);
-  padding: 2.5rem;
+  padding: 2rem;
   box-shadow: 0 10px 30px rgba(0,0,0,0.8);
   border: 1px solid rgba(255,255,255,0.05);
   font-family: var(--font-primary);
@@ -1734,7 +1748,7 @@ select:focus {
 
 .project-modal-title {
   font-family: 'Times New Roman', Times, serif; /* Serifs like Claude header */
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 500;
   margin-bottom: 2rem;
   color: #f3f3f3;
