@@ -42,6 +42,9 @@ public class Course implements Persistable<Long> {
     @Transient
     private boolean isNew = true;
 
+    @Column(name = "project_id")
+    private Long projectId;
+
     // --- Persistable ---
     @Override
     public Long getId() {
@@ -86,4 +89,12 @@ public class Course implements Persistable<Long> {
     }
     public List<Module> getModules() { return modules; }
     public void setModules(List<Module> modules) { this.modules = modules; }
+
+    public Long getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
+    }
 }

@@ -28,7 +28,7 @@
             <column name="description" type="TEXT"/>
 
             <!-- Stores username string — same pattern as courses.creator -->
-            <column name="creator" type="TEXT">
+            <column name="creator" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
 
