@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { createProject } from "../../services/projectApi";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +44,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
         }
     };
 
-    return (
+    return createPortal(
         <div className="settings-modal-overlay">
             <div className="project-modal-card fade-up">
                 
@@ -96,6 +97,7 @@ export default function CreateProjectModal({ isOpen, onClose, onProjectCreated }
                 </form>
 
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
