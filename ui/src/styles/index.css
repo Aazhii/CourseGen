@@ -1154,12 +1154,16 @@ select:focus {
    ============================================================ */
 .create-course-container {
   width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 2rem 1.5rem;
 }
 
 .create-card {
+  width: 100%;
+  max-width: 680px;
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-strong);
