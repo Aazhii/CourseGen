@@ -13,13 +13,19 @@ export default function ProjectsDashboard() {
     const { projects, projectsLoading, loadProjects } = useOutletContext();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState("Activity");
-    
+
     // Modal State
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
-    const filteredProjects = projects.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProjects = projects
+        .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+            if (sortBy === "Name") {
+                return a.name.localeCompare(b.name);
+            }
+            // Fallback to "Activity" (newest first)
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
 
     return (
         <div className="projects-dashboard fade-up">
@@ -33,9 +39,9 @@ export default function ProjectsDashboard() {
             <div className="projects-filter-row">
                 <div className="projects-search-bar">
                     <Search size={18} className="search-icon" />
-                    <input 
-                        type="text" 
-                        placeholder="Search projects..." 
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -43,7 +49,7 @@ export default function ProjectsDashboard() {
 
                 <div className="projects-controls">
                     <span className="sort-label">Sort by</span>
-                    <select 
+                    <select
                         className="projects-sort-select"
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
@@ -65,8 +71,8 @@ export default function ProjectsDashboard() {
             ) : (
                 <div className="projects-grid">
                     {filteredProjects.map(project => (
-                        <div 
-                            key={project.id} 
+                        <div
+                            key={project.id}
                             className="project-card"
                             onClick={() => navigate(`/project/${project.id}`)}
                         >
@@ -83,8 +89,8 @@ export default function ProjectsDashboard() {
             )}
 
             {/* Create Project Modal */}
-            <CreateProjectModal 
-                isOpen={isCreateProjectOpen} 
+            <CreateProjectModal
+                isOpen={isCreateProjectOpen}
                 onClose={() => setIsCreateProjectOpen(false)}
                 onProjectCreated={() => {
                     if (loadProjects) loadProjects();
