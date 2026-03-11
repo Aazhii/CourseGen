@@ -1,8 +1,12 @@
 package com.project.service.impl;
 
 import com.aicourse.model.Course;
+import com.aicourse.model.UserPrincipal;
+import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
+import com.features.Feature;
+import com.features.FeatureGuard;
 import com.project.dto.CreateProjectRequest;
 import com.project.dto.ProjectResponse;
 import com.project.model.Project;
@@ -10,6 +14,7 @@ import com.project.repo.ProjectRepo;
 import com.project.service.ProjectService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,9 +34,12 @@ public class ProjectServiceImpl implements ProjectService {
     @Autowired
     private CourseRepo courseRepo;
 
+    @Autowired
+    private FeatureGuard featureGuard;
+
     @Override
     @Transactional
-    public ProjectResponse createProject(Long userId, CreateProjectRequest request) {
+    public ProjectResponse createProject(Long userId, CreateProjectRequest request, Authentication auth) {
         LOGGER.log(Level.INFO, "Creating project ''{0}'' for userId={1}",
                 new Object[]{request.getName(), userId});
 
@@ -41,6 +49,10 @@ public class ProjectServiceImpl implements ProjectService {
             throw new IllegalArgumentException(
                     "A project named '" + request.getName().trim() + "' already exists.");
         }
+        UserPrincipal userPrincipal = (UserPrincipal) auth.getPrincipal();
+        Users user = userPrincipal.getUser();
+        int existingCount = projectRepo.countByCreatorId(userId);
+        featureGuard.requireWithinLimit(Feature.PROJECT_CREATE, user.getRoles(), existingCount);
 
         Project project = new Project();
         project.setId(SnowflakeIdGenerator.generateId());

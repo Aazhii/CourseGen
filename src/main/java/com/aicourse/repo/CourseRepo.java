@@ -9,4 +9,6 @@ public interface CourseRepo extends JpaRepository<Course, Long> {
     List<Course> findByCreator(Long creator);
 
     List<Course> findByProjectId(Long projectId);
+
+    int countByCreator(Long userId);
 }

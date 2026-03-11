@@ -1,6 +1,7 @@
 package com.aicourse.utils.exception;
 
 import com.aicourse.utils.api.ApiResponse;
+import com.features.FeatureAccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,5 +27,10 @@ public class GlobalExceptionHandler {
         LOGGER.log(Level.SEVERE, "Unhandled exception: {0}", new Object[]{ex.getMessage()});
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.failure("Internal server error"));
+    }
+
+    @ExceptionHandler(FeatureAccessDeniedException.class)
+    public ResponseEntity<String> handleFeatureAccessDenied(FeatureAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 }

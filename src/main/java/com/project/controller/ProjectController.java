@@ -29,7 +29,7 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<?> createProject(@RequestBody CreateProjectRequest request, Authentication auth) {
         try {
-            ProjectResponse response = projectService.createProject(getUserId(auth), request);
+            ProjectResponse response = projectService.createProject(getUserId(auth), request, auth);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

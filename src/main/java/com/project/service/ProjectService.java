@@ -2,12 +2,13 @@ package com.project.service;
 
 import com.project.dto.CreateProjectRequest;
 import com.project.dto.ProjectResponse;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
 public interface ProjectService {
 
-    ProjectResponse createProject(Long userId, CreateProjectRequest request) throws Exception;
+    ProjectResponse createProject(Long userId, CreateProjectRequest request, Authentication auth) throws Exception;
 
     List<ProjectResponse> getProjectsByCreator(Long userId) throws Exception;
 

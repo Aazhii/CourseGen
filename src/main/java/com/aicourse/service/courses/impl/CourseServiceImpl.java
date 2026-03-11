@@ -1,16 +1,16 @@
 package com.aicourse.service.courses.impl;
 
 import com.aicourse.geminiConnection.GeminiConnection;
-import com.aicourse.model.Course;
-import com.aicourse.model.Lesson;
+import com.aicourse.model.*;
 import com.aicourse.model.Module;
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.ModuleRepo;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.features.Feature;
+import com.features.FeatureGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -36,6 +36,9 @@ public class CourseServiceImpl implements CourseService {
     @Autowired
     private GeminiConnection geminiConnection;
 
+    @Autowired
+    private FeatureGuard featureGuard;
+
     @Override
     @Transactional
     public Course generateCourse(Map<String, String> payload, Authentication auth) throws Exception {
@@ -46,13 +49,17 @@ public class CourseServiceImpl implements CourseService {
         String creator = auth.getName();
         LOGGER.log(Level.INFO, "Generating course ''{0}'' for user ''{1}'' (Difficulty: {2}, Duration: {3})",
                 new Object[]{title, creator, difficulty, duration});
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        Users curUser = principal.getUser();
+        Long userId = curUser.getId();
+
+        int existingCount = courseRepo.countByCreator(userId);
+        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, curUser.getRoles(), existingCount);
 
         Course course = new Course();
         course.setId(SnowflakeIdGenerator.generateId());
         course.setTitle(title);
 
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        Long userId = principal.getUser().getId();
         course.setCreator(userId);
 
         String prompt = """

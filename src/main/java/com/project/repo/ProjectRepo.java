@@ -17,4 +17,6 @@ public interface ProjectRepo extends JpaRepository<Project, Long> {
             nativeQuery = true
     )
     Long isProjectAlreadyExist(String name, Long creator);
+
+    int countByCreatorId(Long userId);
 }
