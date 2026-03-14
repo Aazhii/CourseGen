@@ -41,4 +41,34 @@ public class UserStatsService {
 
         userStatsRepository.save(stats);
     }
+
+    public void incrementTotalCoursesCreated(Long userId) {
+        UserStats stats = getOrCreate(userId);
+        stats.incrementTotalCoursesCreated();
+        userStatsRepository.save(stats);
+    }
+
+
+    public void incrementTotalProjectsCreated(Long userId) {
+        UserStats stats = getOrCreate(userId);
+        stats.incrementTotalProjectsCreated();
+        userStatsRepository.save(stats);
+    }
+
+    public int getTotalCoursesCreated(Long userId) {
+        return userStatsRepository.findByUserId(userId)
+                .map(UserStats::getTotalCoursesCreated)
+                .orElse(0);
+    }
+
+    public int getTotalProjectsCreated(Long userId) {
+        return userStatsRepository.findByUserId(userId)
+                .map(UserStats::getTotalProjectsCreated)
+                .orElse(0);
+    }
+
+    private UserStats getOrCreate(Long userId) {
+        return userStatsRepository.findByUserId(userId)
+                .orElseGet(() -> userStatsRepository.save(new UserStats(userId)));
+    }
 }

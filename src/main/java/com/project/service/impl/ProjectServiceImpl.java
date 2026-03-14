@@ -7,6 +7,7 @@ import com.aicourse.repo.CourseRepo;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.features.Feature;
 import com.features.FeatureGuard;
+import com.leaderboard.model.impl.UserStatsService;
 import com.project.dto.CreateProjectRequest;
 import com.project.dto.ProjectResponse;
 import com.project.model.Project;
@@ -37,6 +38,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Autowired
     private FeatureGuard featureGuard;
 
+    @Autowired
+    private UserStatsService userStatsService;
+
     @Override
     @Transactional
     public ProjectResponse createProject(Long userId, CreateProjectRequest request, Authentication auth) {
@@ -51,8 +55,8 @@ public class ProjectServiceImpl implements ProjectService {
         }
         UserPrincipal userPrincipal = (UserPrincipal) auth.getPrincipal();
         Users user = userPrincipal.getUser();
-        int existingCount = projectRepo.countByCreatorId(userId);
-        featureGuard.requireWithinLimit(Feature.PROJECT_CREATE, user.getRoles(), existingCount);
+        int lifetimeCount = userStatsService.getTotalProjectsCreated(userId);
+        featureGuard.requireWithinLimit(Feature.PROJECT_CREATE, user.getRoles(), lifetimeCount);
 
         Project project = new Project();
         project.setId(SnowflakeIdGenerator.generateId());
@@ -61,6 +65,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setCreatorId(userId);
 
         Project saved = projectRepo.save(project);
+        userStatsService.incrementTotalProjectsCreated(userId);
         LOGGER.log(Level.INFO, "Project created with ID: {0}", saved.getId());
         return toResponse(saved);
     }

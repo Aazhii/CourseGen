@@ -11,6 +11,7 @@ import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.features.Feature;
 import com.features.FeatureGuard;
+import com.leaderboard.model.impl.UserStatsService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -39,6 +40,9 @@ public class CourseServiceImpl implements CourseService {
     @Autowired
     private FeatureGuard featureGuard;
 
+    @Autowired
+    private UserStatsService userStatsService;
+
     @Override
     @Transactional
     public Course generateCourse(Map<String, String> payload, Authentication auth) throws Exception {
@@ -53,8 +57,9 @@ public class CourseServiceImpl implements CourseService {
         Users curUser = principal.getUser();
         Long userId = curUser.getId();
 
-        int existingCount = courseRepo.countByCreator(userId);
-        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, curUser.getRoles(), existingCount);
+//      int existingCount = courseRepo.countByCreator(userId);
+        int lifetimeCount = userStatsService.getTotalCoursesCreated(userId);
+        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, curUser.getRoles(), lifetimeCount);
 
         Course course = new Course();
         course.setId(SnowflakeIdGenerator.generateId());
@@ -126,6 +131,7 @@ public class CourseServiceImpl implements CourseService {
 
             course.setModules(modules);
             Course savedCourse = courseRepo.save(course);
+            userStatsService.incrementTotalCoursesCreated(userId);
             LOGGER.log(Level.INFO, "Course ''{0}'' generated and saved successfully with ID: {1}",
                     new Object[]{title, savedCourse.getId()});
             return savedCourse;

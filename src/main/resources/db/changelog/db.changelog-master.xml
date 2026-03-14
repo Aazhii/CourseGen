@@ -204,6 +204,22 @@
         <modifyDataType tableName="courses" columnName="description" newDataType="TEXT"/>
     </changeSet>
 
+    <changeSet id="userstats-add-creation-counters" author="ari">
+
+        <addColumn tableName="userstats">
+            <column name="total_courses_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="userstats">
+            <column name="total_projects_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+    </changeSet>
+
     <include file="db/changelog/db.changelog-leaderboard.xml"/>
     <include file="db/changelog/db.changelog-project.xml"/>
 <!--    <include file="db/changelog/db.changelog-populateDb.xml"/>-->

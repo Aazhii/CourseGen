@@ -2,6 +2,7 @@ package com.features;
 
 import com.aicourse.enums.UserRole;
 import com.aicourse.model.UserPrincipal;
+import com.leaderboard.model.impl.UserStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,15 +20,18 @@ public class FeatureController {
     @Autowired
     private FeatureRegistry featureRegistry;
 
+    @Autowired
+    private UserStatsService userStatsService;
+
     /**
      * Returns all feature flags and limits for the currently authenticated user.
      * Frontend calls this once after login and stores it in FeatureContext.
      * <p>
      * Response shape:
      * {
-     * "COURSE_CREATE":  { "allowed": true,  "limit": 3  },
-     * "PROJECT_CREATE": { "allowed": true,  "limit": 2  },
-     * "ADMIN_PANEL":    { "allowed": false, "limit": 0  },
+     * "COURSE_CREATE":  { "allowed": true,  "limit": 3, "usage": 1 },
+     * "PROJECT_CREATE": { "allowed": true,  "limit": 2, "usage": 0 },
+     * "ADMIN_PANEL":    { "allowed": false, "limit": 0, "usage": 0 },
      * ...
      * }
      */
@@ -39,6 +43,7 @@ public class FeatureController {
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         UserRole role = principal.getUser().getRoles();
+        Long userId = principal.getUser().getId();
 
         Map<Feature, FeatureConfig> configs = featureRegistry.getAllForRole(role);
 
@@ -48,6 +53,15 @@ public class FeatureController {
             Map<String, Object> configMap = new HashMap<>();
             configMap.put("allowed", entry.getValue().isAllowed());
             configMap.put("limit", entry.getValue().getLimit()); // -1 = unlimited
+
+            int usage = 0;
+            if (entry.getKey() == Feature.COURSE_CREATE) {
+                usage = userStatsService.getTotalCoursesCreated(userId);
+            } else if (entry.getKey() == Feature.PROJECT_CREATE) {
+                usage = userStatsService.getTotalProjectsCreated(userId);
+            }
+            configMap.put("usage", usage);
+
             response.put(entry.getKey().name(), configMap);
         }
 
