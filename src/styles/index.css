@@ -983,7 +983,7 @@ select:focus {
 /* Course Grid */
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
   gap: 1.5rem;
 }
 
@@ -1116,7 +1116,6 @@ select:focus {
 }
 
 .view-btn {
-  flex: 1;
   background: var(--accent-dim);
   color: #a5b4fc;
   border: 1px solid var(--border-accent);
@@ -1125,6 +1124,7 @@ select:focus {
   font-weight: 600;
   font-size: 0.875rem;
   transition: background 0.2s, transform 0.15s;
+  margin-top: auto;
 }
 
 .view-btn:hover {
