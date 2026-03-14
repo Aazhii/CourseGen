@@ -4,6 +4,9 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import CreateProjectModal from "../components/CreateProjectModal";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useFeature } from "../../hooks/useFeature";
+import FeatureLimitBanner from "../components/FeatureLimitBanner";
+import FeatureRestrictedButton from "../components/FeatureRestrictedButton";
 
 // Enable relative time for "Updated X days ago"
 dayjs.extend(relativeTime);
@@ -13,6 +16,10 @@ export default function ProjectsDashboard() {
     const { projects, projectsLoading, loadProjects } = useOutletContext();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState("Activity");
+    
+    // Feature Limit Flag
+    const { allowed, limit, isUnlimited, loading: featureLoading } = useFeature("PROJECT_CREATE");
+    const atLimit = !isUnlimited && projects.length >= limit;
 
     // Modal State
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -31,10 +38,23 @@ export default function ProjectsDashboard() {
         <div className="projects-dashboard fade-up">
             <div className="projects-dashboard-header">
                 <h1 className="projects-title">Projects</h1>
-                <button className="new-project-btn" onClick={() => setIsCreateProjectOpen(true)}>
+                <FeatureRestrictedButton 
+                    className="new-project-btn" 
+                    onClick={() => setIsCreateProjectOpen(true)}
+                    allowed={allowed}
+                    atLimit={atLimit}
+                    loading={featureLoading}
+                >
                     <Plus size={16} /> New project
-                </button>
+                </FeatureRestrictedButton>
             </div>
+
+            <FeatureLimitBanner 
+                limit={limit} 
+                isUnlimited={isUnlimited} 
+                currentCount={projects.length} 
+                featureName="project" 
+            />
 
             <div className="projects-filter-row">
                 <div className="projects-search-bar">
