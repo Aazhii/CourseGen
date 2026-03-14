@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Search, Plus, Loader2, Trash2 } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import CreateProjectModal from "../components/CreateProjectModal";
 import dayjs from "dayjs";
@@ -7,6 +7,9 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { useFeature } from "../../hooks/useFeature";
 import FeatureLimitBanner from "../components/FeatureLimitBanner";
 import FeatureRestrictedButton from "../components/FeatureRestrictedButton";
+import { deleteProject } from "../../services/projectApi";
+import { confirmDelete } from "../../utils/confirmDelete";
+import toast from "react-hot-toast";
 
 // Enable relative time for "Updated X days ago"
 dayjs.extend(relativeTime);
@@ -20,6 +23,22 @@ export default function ProjectsDashboard() {
     // Feature Limit Flag
     const { allowed, limit, usage, isUnlimited, atLimit, loading: featureLoading } = useFeature("PROJECT_CREATE");
 
+    const handleDeleteProject = (projectId, projectName) => {
+        confirmDelete({
+            title: `Delete "${projectName}"?`,
+            description: "This action cannot be undone.",
+            onConfirm: async () => {
+                try {
+                    await deleteProject(projectId);
+                    toast.success(`"${projectName}" deleted.`);
+                    if (loadProjects) loadProjects();
+                } catch {
+                    toast.error("Failed to delete project.");
+                }
+            },
+        });
+    };
+
     // Modal State
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
 
@@ -29,7 +48,6 @@ export default function ProjectsDashboard() {
             if (sortBy === "Name") {
                 return a.name.localeCompare(b.name);
             }
-            // Fallback to "Activity" (newest first)
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
@@ -95,7 +113,19 @@ export default function ProjectsDashboard() {
                             className="project-card"
                             onClick={() => navigate(`/project/${project.id}`)}
                         >
-                            <h3 className="project-card-name" title={project.name}>{project.name}</h3>
+                            <div className="project-card-header">
+                                <h3 className="project-card-name" title={project.name}>{project.name}</h3>
+                                <button
+                                    className="project-card-delete-btn"
+                                    title="Delete project"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteProject(project.id, project.name);
+                                    }}
+                                >
+                                    <Trash2 size={15} />
+                                </button>
+                            </div>
                             {project.description && (
                                 <p className="project-card-desc">{project.description}</p>
                             )}

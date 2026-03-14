@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Upload, Loader2, Play } from "lucide-react";
-import { getProjectById } from "../../services/projectApi";
+import { ArrowLeft, Plus, Loader2, Play, Trash2 } from "lucide-react";
+import { getProjectById, deleteProject } from "../../services/projectApi";
 import { createCourse } from "../../services/courseApi";
-import CourseCard from "../components/course/CourseCard";
+import { confirmDelete } from "../../utils/confirmDelete";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import toast from "react-hot-toast";
 
 // Enable relative time
 dayjs.extend(relativeTime);
@@ -14,12 +15,9 @@ export default function ProjectDetailsPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     
-    // Using global states from context is better, but fetching locally first
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
-    
-    // Generator State
     const [topic, setTopic] = useState("");
 
     useEffect(() => {
@@ -30,7 +28,6 @@ export default function ProjectDetailsPage() {
         try {
             setLoading(true);
             const data = await getProjectById(id);
-            // Expected to return { id, name, description, courses: [{course}] }
             setProject(data);
         } catch (error) {
             console.error("Failed to load project details:", error);
@@ -42,19 +39,15 @@ export default function ProjectDetailsPage() {
     const handleGenerateCourse = async (e) => {
         e.preventDefault();
         if (!topic.trim()) return;
-
         try {
             setGenerating(true);
-            // Assume we pass projectId to tie the new course to this project
             const payload = { 
                 topic, 
                 difficulty: "Medium", 
                 duration: "2-4 Hours",
                 projectId: id 
             };
-            const res = await createCourse(payload);
-            
-            // Reload project specifically to see the newly seeded course
+            await createCourse(payload);
             await loadProjectDetails();
             setTopic("");
         } catch (err) {
@@ -62,6 +55,22 @@ export default function ProjectDetailsPage() {
         } finally {
             setGenerating(false);
         }
+    };
+
+    const handleDeleteProject = () => {
+        confirmDelete({
+            title: `Delete "${project?.name}"?`,
+            description: "This action cannot be undone.",
+            onConfirm: async () => {
+                try {
+                    await deleteProject(id);
+                    toast.success(`"${project?.name}" deleted.`);
+                    navigate("/projects");
+                } catch {
+                    toast.error("Failed to delete project.");
+                }
+            },
+        });
     };
 
     if (loading) {
@@ -79,19 +88,23 @@ export default function ProjectDetailsPage() {
     return (
         <div className="project-details-page fade-up">
             
-            {/* Header / Navigation */}
             <button className="back-to-projects-btn" onClick={() => navigate("/projects")}>
                 <ArrowLeft size={16} /> All projects
             </button>
             <div className="project-header-bar">
                 <h1 className="project-details-name">{project.name}</h1>
                 <div className="project-header-actions">
-                    <button className="icon-btn"><span className="dots-icon">•••</span></button>
-                    <button className="icon-btn">☆</button>
+                    <button
+                        className="course-delete-btn"
+                        onClick={handleDeleteProject}
+                        title="Delete project"
+                    >
+                        <Trash2 size={15} />
+                        Delete project
+                    </button>
                 </div>
             </div>
 
-            {/* Course Generator Input Block (Claude Style) */}
             <div className="project-generator-block">
                 <form onSubmit={handleGenerateCourse}>
                     <textarea 
@@ -110,7 +123,6 @@ export default function ProjectDetailsPage() {
                         <button type="button" className="toolbar-icon-btn">
                             <Plus size={18} />
                         </button>
-                        
                         <div className="toolbar-right">
                             <span className="model-selector">AI CourseGen v1 <span className="chevron">⌄</span></span>
                             <button 
@@ -125,7 +137,6 @@ export default function ProjectDetailsPage() {
                 </form>
             </div>
 
-            {/* Course List */}
             <div className="project-course-list">
                 {project.courses && project.courses.length > 0 ? (
                     project.courses.map((courseSummary, index) => (
@@ -146,7 +157,6 @@ export default function ProjectDetailsPage() {
                     </div>
                 )}
             </div>
-
         </div>
     );
 }
