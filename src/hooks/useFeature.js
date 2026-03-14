@@ -11,18 +11,24 @@ export function useFeature(featureKey) {
     const { features, featuresLoading } = useFeatureContext();
 
     if (featuresLoading) {
-        return { allowed: false, limit: 0, isUnlimited: false, loading: true };
+        return { allowed: false, limit: 0, usage: 0, isUnlimited: false, atLimit: false, loading: true };
     }
 
     const config = features[featureKey];
     if (!config) {
-        return { allowed: false, limit: 0, isUnlimited: false, loading: false };
+        return { allowed: false, limit: 0, usage: 0, isUnlimited: false, atLimit: false, loading: false };
     }
+
+    const isUnlimited = config.limit === -1;
+    const usage = config.usage || 0;
+    const atLimit = !isUnlimited && usage >= config.limit;
 
     return {
         allowed: config.allowed,
         limit: config.limit,
-        isUnlimited: config.limit === -1,
+        usage,
+        isUnlimited,
+        atLimit,
         loading: false
     };
 }

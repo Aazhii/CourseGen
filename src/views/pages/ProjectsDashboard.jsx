@@ -18,8 +18,7 @@ export default function ProjectsDashboard() {
     const [sortBy, setSortBy] = useState("Activity");
     
     // Feature Limit Flag
-    const { allowed, limit, isUnlimited, loading: featureLoading } = useFeature("PROJECT_CREATE");
-    const atLimit = !isUnlimited && projects.length >= limit;
+    const { allowed, limit, usage, isUnlimited, atLimit, loading: featureLoading } = useFeature("PROJECT_CREATE");
 
     // Modal State
     const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -52,7 +51,7 @@ export default function ProjectsDashboard() {
             <FeatureLimitBanner 
                 limit={limit} 
                 isUnlimited={isUnlimited} 
-                currentCount={projects.length} 
+                currentCount={usage} 
                 featureName="project" 
             />
 

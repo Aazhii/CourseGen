@@ -20,8 +20,7 @@ export default function CreateCoursePage() {
     const { courses = [], loadCourses } = useOutletContext();
     
     // Feature Limit Flag
-    const { allowed, limit, isUnlimited, loading: featureLoading } = useFeature("COURSE_CREATE");
-    const atLimit = !isUnlimited && courses.length >= limit;
+    const { allowed, limit, usage, isUnlimited, atLimit, loading: featureLoading } = useFeature("COURSE_CREATE");
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -58,7 +57,7 @@ export default function CreateCoursePage() {
                 <FeatureLimitBanner 
                     limit={limit} 
                     isUnlimited={isUnlimited} 
-                    currentCount={courses.length} 
+                    currentCount={usage} 
                     featureName="course" 
                 />
 
