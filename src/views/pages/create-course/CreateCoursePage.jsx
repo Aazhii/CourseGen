@@ -7,6 +7,8 @@ import { createCourse } from "../../../services/courseApi";
 import CourseBasicInfo from "./components/CourseBasicInfo";
 import CourseSettings from "./components/CourseSettings";
 import CourseSubmitAction from "./components/CourseSubmitAction";
+import { useFeature } from "../../../hooks/useFeature";
+import FeatureLimitBanner from "../../components/FeatureLimitBanner";
 
 export default function CreateCoursePage() {
     const [topic, setTopic] = useState("");
@@ -15,7 +17,11 @@ export default function CreateCoursePage() {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { loadCourses } = useOutletContext();
+    const { courses = [], loadCourses } = useOutletContext();
+    
+    // Feature Limit Flag
+    const { allowed, limit, isUnlimited, loading: featureLoading } = useFeature("COURSE_CREATE");
+    const atLimit = !isUnlimited && courses.length >= limit;
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -49,13 +55,25 @@ export default function CreateCoursePage() {
                 </h1>
                 <p className="page-subtitle">Enter a topic and let AI generate a curriculum for you.</p>
 
+                <FeatureLimitBanner 
+                    limit={limit} 
+                    isUnlimited={isUnlimited} 
+                    currentCount={courses.length} 
+                    featureName="course" 
+                />
+
                 <form onSubmit={handleSubmit}>
                     <CourseBasicInfo topic={topic} setTopic={setTopic} />
                     <CourseSettings 
                         difficulty={difficulty} setDifficulty={setDifficulty} 
                         duration={duration} setDuration={setDuration} 
                     />
-                    <CourseSubmitAction loading={loading} />
+                    <CourseSubmitAction 
+                        loading={loading} 
+                        atLimit={atLimit} 
+                        allowed={allowed} 
+                        featureLoading={featureLoading} 
+                    />
                 </form>
             </div>
         </div>
