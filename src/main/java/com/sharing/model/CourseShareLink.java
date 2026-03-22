@@ -1,5 +1,6 @@
 package com.sharing.model;
 
+import com.aicourse.utils.id.SnowflakeIdGenerator;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
@@ -9,13 +10,12 @@ import java.time.OffsetDateTime;
 public class CourseShareLink {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
     private Long courseId;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "token", nullable = false, unique = true)
     private String shareToken;
 
     @Column(nullable = false)
@@ -45,6 +45,7 @@ public class CourseShareLink {
     }
 
     public CourseShareLink(Long courseId, String shareToken, Long createdBy, ShareLinkType linkType) {
+        this.id = SnowflakeIdGenerator.generateId();
         this.courseId = courseId;
         this.shareToken = shareToken;
         this.createdBy = createdBy;
@@ -52,6 +53,22 @@ public class CourseShareLink {
         this.isActive = true;
         this.currentEnrollments = 0;
         this.createdAt = OffsetDateTime.now();
+    }
+
+    @PrePersist
+    private void prePersist() {
+        if (id == null) {
+            id = SnowflakeIdGenerator.generateId();
+        }
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+        if (isActive == null) {
+            isActive = true;
+        }
+        if (currentEnrollments == null) {
+            currentEnrollments = 0;
+        }
     }
 
     // --- Getters and Setters ---
@@ -150,4 +167,3 @@ public class CourseShareLink {
         return true;
     }
 }
-

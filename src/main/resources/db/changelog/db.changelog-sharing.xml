@@ -194,4 +194,16 @@
         </createIndex>
     </changeSet>
 
+    <!--
+         5. Repair schema drift caused by previous ddl-auto updates
+         - drop accidental non-null column `a`
+         - drop legacy duplicated token column `share_token`
+    -->
+    <changeSet id="course-share-links-repair-drift-v1" author="ari">
+        <sql>
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS a;
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS share_token;
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>

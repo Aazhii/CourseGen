@@ -1,5 +1,6 @@
 package com.sharing.model;
 
+import com.aicourse.utils.id.SnowflakeIdGenerator;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
@@ -11,7 +12,6 @@ import java.time.OffsetDateTime;
 public class CourseEnrollment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -38,12 +38,29 @@ public class CourseEnrollment {
     }
 
     public CourseEnrollment(Long courseId, Long userId, Long shareLinkId) {
+        this.id = SnowflakeIdGenerator.generateId();
         this.courseId = courseId;
         this.userId = userId;
         this.shareLinkId = shareLinkId;
         this.status = EnrollmentStatus.ACTIVE;
         this.progressPercentage = 0.0;
         this.enrolledAt = OffsetDateTime.now();
+    }
+
+    @PrePersist
+    private void prePersist() {
+        if (id == null) {
+            id = SnowflakeIdGenerator.generateId();
+        }
+        if (enrolledAt == null) {
+            enrolledAt = OffsetDateTime.now();
+        }
+        if (status == null) {
+            status = EnrollmentStatus.ACTIVE;
+        }
+        if (progressPercentage == null) {
+            progressPercentage = 0.0;
+        }
     }
 
     // --- Getters and Setters ---
@@ -103,4 +120,3 @@ public class CourseEnrollment {
         this.progressPercentage = progressPercentage;
     }
 }
-

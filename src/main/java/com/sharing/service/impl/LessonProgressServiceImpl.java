@@ -45,9 +45,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         LOGGER.log(Level.INFO, "Marking lesson {0} complete for user {1}", new Object[]{lessonId, userId});
 
         try {
-            // Verify user is enrolled in the course
-            CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User is not enrolled in this course"));
+            // Ensure enrollment exists; creators are auto-enrolled on first progress interaction.
+            getOrCreateEnrollment(courseId, userId);
 
             // Get or create lesson progress
             Optional<LessonProgress> existingProgress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId);
@@ -106,8 +105,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         LOGGER.log(Level.INFO, "Fetching course progress for user {0} in course {1}", new Object[]{userId, courseId});
 
         try {
-            CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User is not enrolled in this course"));
+            CourseEnrollment enrollment = getOrCreateEnrollment(courseId, userId);
 
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
@@ -272,6 +270,24 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     }
 
     // --- Helper methods ---
+    private CourseEnrollment getOrCreateEnrollment(Long courseId, Long userId) {
+        Optional<CourseEnrollment> existing = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+        // Allow the course creator to track own progress without manual self-enrollment.
+        if (course.getCreator().equals(userId)) {
+            CourseEnrollment creatorEnrollment = new CourseEnrollment(courseId, userId, null);
+            return courseEnrollmentRepo.save(creatorEnrollment);
+        }
+
+        throw new IllegalArgumentException("User is not enrolled in this course");
+    }
+
     private void updateEnrollmentProgress(Long courseId, Long userId) throws Exception {
         CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Enrollment not found"));
@@ -284,5 +300,3 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         courseEnrollmentRepo.save(enrollment);
     }
 }
-
-
