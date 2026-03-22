@@ -222,5 +222,6 @@
 
     <include file="db/changelog/db.changelog-leaderboard.xml"/>
     <include file="db/changelog/db.changelog-project.xml"/>
+    <include file="db/changelog/db.changelog-sharing.xml"/>
 <!--    <include file="db/changelog/db.changelog-populateDb.xml"/>-->
 </databaseChangeLog>
