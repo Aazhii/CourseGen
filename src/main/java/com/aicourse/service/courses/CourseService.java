@@ -13,6 +13,8 @@ public interface CourseService {
 
     List<Course> getCoursesByCreator(Long creator) throws Exception;
 
+    List<Course> getCoursesSharedByCreator(Long creator) throws Exception;
+
     Course getCourseById(Long id) throws Exception;
 
     List<Module> getModulesByCourseName(String courseName) throws Exception;

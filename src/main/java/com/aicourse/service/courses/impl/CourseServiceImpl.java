@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.features.Feature;
 import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;
+import com.sharing.repo.CourseShareLinkRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -42,6 +43,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Autowired
     private UserStatsService userStatsService;
+
+    @Autowired
+    private CourseShareLinkRepo courseShareLinkRepo;
 
     @Override
     @Transactional
@@ -146,6 +150,16 @@ public class CourseServiceImpl implements CourseService {
     public List<Course> getCoursesByCreator(Long creator) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving courses for creator: {0}", new Object[]{creator});
         return courseRepo.findByCreator(creator);
+    }
+
+    @Override
+    public List<Course> getCoursesSharedByCreator(Long creator) throws Exception {
+        LOGGER.log(Level.FINE, "Retrieving courses shared by creator: {0}", new Object[]{creator});
+        List<Long> courseIds = courseShareLinkRepo.findDistinctCourseIdsByCreatedBy(creator);
+        if (courseIds.isEmpty()) {
+            return List.of();
+        }
+        return courseRepo.findAllById(courseIds);
     }
 
     @Override

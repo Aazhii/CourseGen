@@ -67,6 +67,23 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/shared-by-me")
+    public List<Course> getCoursesSharedByMe(Authentication auth) throws Exception {
+        LOGGER.log(Level.INFO, "Fetching courses shared by user: {0}", new Object[]{auth.getName()});
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Long userId = principal.getUser().getId();
+            List<Course> courses = courseServiceImpl.getCoursesSharedByCreator(userId);
+            LOGGER.log(Level.INFO, "Found {0} shared courses for user: {1}",
+                    new Object[]{courses.size(), auth.getName()});
+            return courses;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching shared courses for user: {0}: {1}",
+                    new Object[]{auth.getName(), e.getMessage()});
+            throw e;
+        }
+    }
+
     @GetMapping("/{id}")
     public Course getCourse(@PathVariable Long id) throws Exception {
         LOGGER.log(Level.INFO, "Fetching course details for ID: {0}", new Object[]{id});
