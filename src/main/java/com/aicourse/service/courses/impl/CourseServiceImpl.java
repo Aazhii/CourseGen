@@ -154,7 +154,7 @@ public class CourseServiceImpl implements CourseService {
         return courseRepo.findById(id)
                 .orElseThrow(() -> {
                     LOGGER.log(Level.SEVERE, "Course not found with ID: {0}", new Object[]{id});
-                    return new RuntimeException("Course not found");
+                    return new IllegalArgumentException("Course not found with id: " + id);
                 });
     }
 
@@ -180,7 +180,7 @@ public class CourseServiceImpl implements CourseService {
         LOGGER.log(Level.INFO, "Updating course with ID: {0}", new Object[]{courseID});
         Course course = courseRepo.findById(courseID).orElseThrow(() -> {
             LOGGER.log(Level.SEVERE, "Cannot update course. Course not found with ID: {0}", new Object[]{courseID});
-            return new RuntimeException("Course not found");
+            return new IllegalArgumentException("Course not found with id: " + courseID);
         });
 
         if (courseDO.getTitle() != null) {
