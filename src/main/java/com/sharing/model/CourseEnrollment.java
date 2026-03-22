@@ -26,6 +26,16 @@ public class CourseEnrollment {
     @Column(name = "share_link_id")
     private Long shareLinkId;
 
+    // Legacy sharing schema columns still required by DB constraints.
+    @Column(name = "invited_by")
+    private Long invitedBy;
+
+    @Column(name = "invite_type", nullable = false)
+    private String inviteType;
+
+    @Column(name = "status", nullable = false)
+    private String inviteStatus;
+
     @Column(name = "enrollment_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private EnrollmentStatus status;
@@ -42,6 +52,8 @@ public class CourseEnrollment {
         this.courseId = courseId;
         this.userId = userId;
         this.shareLinkId = shareLinkId;
+        this.inviteType = "LINK";
+        this.inviteStatus = "ACCEPTED";
         this.status = EnrollmentStatus.ACTIVE;
         this.progressPercentage = 0.0;
         this.enrolledAt = OffsetDateTime.now();
@@ -57,6 +69,12 @@ public class CourseEnrollment {
         }
         if (status == null) {
             status = EnrollmentStatus.ACTIVE;
+        }
+        if (inviteType == null) {
+            inviteType = "LINK";
+        }
+        if (inviteStatus == null) {
+            inviteStatus = "ACCEPTED";
         }
         if (progressPercentage == null) {
             progressPercentage = 0.0;
@@ -102,6 +120,30 @@ public class CourseEnrollment {
 
     public void setShareLinkId(Long shareLinkId) {
         this.shareLinkId = shareLinkId;
+    }
+
+    public Long getInvitedBy() {
+        return invitedBy;
+    }
+
+    public void setInvitedBy(Long invitedBy) {
+        this.invitedBy = invitedBy;
+    }
+
+    public String getInviteType() {
+        return inviteType;
+    }
+
+    public void setInviteType(String inviteType) {
+        this.inviteType = inviteType;
+    }
+
+    public String getInviteStatus() {
+        return inviteStatus;
+    }
+
+    public void setInviteStatus(String inviteStatus) {
+        this.inviteStatus = inviteStatus;
     }
 
     public EnrollmentStatus getStatus() {

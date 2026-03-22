@@ -116,4 +116,3 @@ public class ShareLinkResponse {
         this.shareUrl = shareUrl;
     }
 }
-
