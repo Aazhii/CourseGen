@@ -139,6 +139,10 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             return enrollments.stream()
                     .map(enrollment -> {
                         try {
+                            Course course = courseRepo.findById(enrollment.getCourseId()).orElse(null);
+                            if (course != null && course.getCreator().equals(userId)) {
+                                return null; // Exclude courses created by the user from "Shared With Me"
+                            }
                             return getUserCourseProgress(enrollment.getCourseId(), userId);
                         } catch (Exception e) {
                             LOGGER.log(Level.SEVERE, "Error fetching progress for course {0}: {1}",
@@ -220,6 +224,10 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            if (course.getCreator().equals(userId)) {
+                throw new IllegalArgumentException("You are the creator of this course and already have full access.");
+            }
 
             // Create new enrollment
             CourseEnrollment enrollment = new CourseEnrollment(courseId, userId, shareLinkId);
