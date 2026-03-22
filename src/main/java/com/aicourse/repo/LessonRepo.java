@@ -27,4 +27,10 @@ public interface LessonRepo extends JpaRepository<Lesson, Long> {
                 AND l.isEnriched = false
             """)
     long countUnenrichedLessonsByCourseId(@Param("courseId") Long courseId);
+
+    @Query("""
+                SELECT COUNT(l) FROM Lesson l
+                WHERE l.module.course.id = :courseId
+            """)
+    long countByCourseId(@Param("courseId") Long courseId);
 }
