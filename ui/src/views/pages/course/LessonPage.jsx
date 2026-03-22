@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getLessonById, generateLessonContent } from "../../../services/courseApi";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { markLessonComplete, markLessonIncomplete, getCourseProgress } from "../../../services/progressApi";
+import { ChevronLeft, Loader2, CheckCircle, Circle } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function LessonPage() {
     const { courseId, moduleId, lessonId } = useParams();
@@ -9,6 +11,8 @@ export default function LessonPage() {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState(null);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [updatingProgress, setUpdatingProgress] = useState(false);
 
     useEffect(() => {
         loadLesson();
@@ -22,6 +26,8 @@ export default function LessonPage() {
 
             const hasContent = data.content && Array.isArray(data.content) && data.content.length > 0;
             const isEnriched = data.enriched || data.isEnriched || hasContent;
+            
+            setIsCompleted(data.isCompleted || data.completed || false);
 
             if (data && !isEnriched) {
                 await handleGenerate(data); // ← awaited now
@@ -31,6 +37,25 @@ export default function LessonPage() {
             setError("Failed to load lesson.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleComplete = async () => {
+        setUpdatingProgress(true);
+        try {
+            if (isCompleted) {
+                await markLessonIncomplete(lessonId, courseId);
+                setIsCompleted(false);
+                toast.success("Lesson marked as incomplete");
+            } else {
+                await markLessonComplete(lessonId, courseId);
+                setIsCompleted(true);
+                toast.success("Lesson marked as completed");
+            }
+        } catch (err) {
+            toast.error("Failed to update progress.");
+        } finally {
+            setUpdatingProgress(false);
         }
     };
 
@@ -73,8 +98,28 @@ export default function LessonPage() {
                     </p>
                 </div>
             ) : (
-                <div className="lesson-content">
+                <div className="lesson-content" style={{ paddingBottom: "4rem" }}>
                     {renderContent(lesson.content)}
+
+                    <div style={{ marginTop: "3rem", paddingTop: "2rem", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "center" }}>
+                        <button 
+                            className={`auth-btn ${isCompleted ? 'outline' : ''}`} 
+                            onClick={toggleComplete}
+                            disabled={updatingProgress}
+                            style={{ 
+                                display: "flex", 
+                                alignItems: "center", 
+                                gap: "0.5rem", 
+                                padding: "12px 24px", 
+                                background: isCompleted ? "transparent" : "#10b981",
+                                borderColor: isCompleted ? "#10b981" : "transparent",
+                                color: isCompleted ? "#10b981" : "white"
+                            }}
+                        >
+                            {updatingProgress ? <Loader2 size={20} className="spin" /> : (isCompleted ? <CheckCircle size={20} /> : <Circle size={20} />)}
+                            {isCompleted ? "Completed" : "Mark as Complete"}
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
