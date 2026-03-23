@@ -114,23 +114,48 @@
 .notification-item {
   display: flex;
   padding: 16px;
-  border-bottom: 1px solid var(--border-color, #f1f5f9);
+  border-bottom: 1px solid var(--border-color, #1e293b);
+  border-left: 4px solid transparent;
   gap: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   position: relative;
 }
 
 .notification-item:hover {
-  background-color: var(--hover-color, #f8fafc);
+  background-color: #fdfaf3; /* Lite cream color */
+  border-left-color: var(--accent, #3b82f6);
+}
+
+/* Ensure text is readable on the cream background */
+.notification-item:hover .notification-text,
+.notification-item:hover .notif-course,
+.notification-item:hover .btn-decline {
+  color: #1e293b !important;
+}
+
+.notification-item:hover .notification-time {
+  color: #475569 !important;
 }
 
 .notification-item.unread {
-  background-color: #f0fdf4; /* Light green tint or whatever brand color implies new */
+  background-color: #fefce8; /* Slightly more tinted cream for unread */
+  border-left-color: var(--accent, #3b82f6);
+}
+
+.notification-item.unread .notification-text,
+.notification-item.unread .notif-course,
+.notification-item.unread .btn-decline {
+  color: #1e293b !important;
+}
+
+.notification-item.unread .notification-time {
+  color: #475569 !important;
 }
 
 .notification-item.unread:hover {
-  background-color: #dcfce7;
+  background-color: #fdfaf3;
+  border-left-color: var(--accent, #3b82f6);
 }
 
 .notification-avatar {
@@ -184,6 +209,7 @@
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
+  transition: all 0.2s;
 }
 
 .btn-accept {
@@ -192,17 +218,17 @@
 }
 
 .btn-accept:hover {
-  background-color: #2563eb;
+  filter: brightness(1.1);
 }
 
 .btn-decline {
   background-color: transparent;
-  color: var(--text-secondary, #64748b);
-  border-color: var(--border-color, #e2e8f0);
+  color: var(--text-primary, #e2e8f0);
+  border-color: var(--border-color, #334155);
 }
 
 .btn-decline:hover {
-  background-color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .status-text {
