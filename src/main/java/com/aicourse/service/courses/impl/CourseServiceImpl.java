@@ -215,4 +215,32 @@ public class CourseServiceImpl implements CourseService {
         courseRepo.save(course);
         LOGGER.log(Level.INFO, "Course with ID: {0} updated successfully", new Object[]{courseID});
     }
+
+    @Override
+    @Transactional
+    public void deactivateCourse(Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Deactivating course with ID: {0}", new Object[]{courseId});
+        Course course = courseRepo.findById(courseId).orElseThrow(() -> {
+            LOGGER.log(Level.SEVERE, "Cannot deactivate course. Course not found with ID: {0}", new Object[]{courseId});
+            return new IllegalArgumentException("Course not found with id: " + courseId);
+        });
+
+        course.setActive(false);
+        courseRepo.save(course);
+        LOGGER.log(Level.INFO, "Course with ID: {0} deactivated successfully", new Object[]{courseId});
+    }
+
+    @Override
+    @Transactional
+    public void activateCourse(Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Activating course with ID: {0}", new Object[]{courseId});
+        Course course = courseRepo.findById(courseId).orElseThrow(() -> {
+            LOGGER.log(Level.SEVERE, "Cannot activate course. Course not found with ID: {0}", new Object[]{courseId});
+            return new IllegalArgumentException("Course not found with id: " + courseId);
+        });
+
+        course.setActive(true);
+        courseRepo.save(course);
+        LOGGER.log(Level.INFO, "Course with ID: {0} activated successfully", new Object[]{courseId});
+    }
 }

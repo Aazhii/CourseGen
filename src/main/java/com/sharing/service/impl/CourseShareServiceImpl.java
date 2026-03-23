@@ -112,6 +112,15 @@ public class CourseShareServiceImpl implements CourseShareService {
                 throw new IllegalArgumentException("Share link is no longer valid");
             }
 
+            // ✅ CHECK: Course must be active
+            Course course = courseRepo.findById(shareLink.getCourseId())
+                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            if (!course.isActive()) {
+                LOGGER.log(Level.WARNING, "Share link resolution failed: Course {0} is deactivated", shareLink.getCourseId());
+                throw new IllegalArgumentException("This course has been deactivated and is no longer available");
+            }
+
             return mapToResponse(shareLink);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching share link: {0}", e.getMessage());

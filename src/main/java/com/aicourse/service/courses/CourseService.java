@@ -23,4 +23,8 @@ public interface CourseService {
 
     void updateCourse(Long courseID, Course courseDO) throws Exception;
 
+    void deactivateCourse(Long courseId) throws Exception;
+
+    void activateCourse(Long courseId) throws Exception;
+
 }

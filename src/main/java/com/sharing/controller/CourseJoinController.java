@@ -34,6 +34,10 @@ public class CourseJoinController {
         LOGGER.log(Level.INFO, "Request received to resolve share token");
         try {
             ShareLinkResponse response = courseShareService.getShareLinkByToken(token);
+
+            // ✅ CHECK: Course must be active
+            // This check will be done in the service layer
+            
             LOGGER.log(Level.INFO, "Share token resolved successfully");
             return ResponseEntity.ok(ApiResponse.success("Share token resolved successfully", response));
         } catch (Exception e) {

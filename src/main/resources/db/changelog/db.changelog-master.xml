@@ -220,6 +220,14 @@
 
     </changeSet>
 
+    <changeSet id="courses-add-is-active-field" author="ari">
+        <addColumn tableName="courses">
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
     <include file="db/changelog/db.changelog-leaderboard.xml"/>
     <include file="db/changelog/db.changelog-project.xml"/>
     <include file="db/changelog/db.changelog-sharing.xml"/>

@@ -45,6 +45,15 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         LOGGER.log(Level.INFO, "Marking lesson {0} complete for user {1}", new Object[]{lessonId, userId});
 
         try {
+            // ✅ CHECK: Course must be active
+            Course course = courseRepo.findById(courseId)
+                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            if (!course.isActive() && !course.getCreator().equals(userId)) {
+                LOGGER.log(Level.WARNING, "Cannot mark lesson complete: Course {0} is deactivated", courseId);
+                throw new IllegalArgumentException("This course has been deactivated and is no longer accessible");
+            }
+
             // Ensure enrollment exists; creators are auto-enrolled on first progress interaction.
             getOrCreateEnrollment(courseId, userId);
 
@@ -109,6 +118,12 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            // ✅ CHECK: Course must be active (unless user is creator)
+            if (!course.isActive() && !course.getCreator().equals(userId)) {
+                LOGGER.log(Level.WARNING, "Access denied: Course {0} is deactivated", courseId);
+                throw new IllegalArgumentException("This course has been deactivated and is no longer accessible");
+            }
 
             int totalLessons = getTotalLessonsInCourse(courseId);
             int completedLessons = getCompletedLessonsCount(courseId, userId);
@@ -225,6 +240,12 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            // ✅ CHECK: Course must be active
+            if (!course.isActive()) {
+                LOGGER.log(Level.WARNING, "Cannot enroll: Course {0} is deactivated", courseId);
+                throw new IllegalArgumentException("This course has been deactivated and cannot accept new enrollments");
+            }
 
             if (course.getCreator().equals(userId)) {
                 throw new IllegalArgumentException("You are the creator of this course and already have full access.");

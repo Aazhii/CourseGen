@@ -45,6 +45,9 @@ public class Course implements Persistable<Long> {
     @Column(name = "project_id")
     private Long projectId;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
     // --- Persistable ---
     @Override
     public Long getId() {
@@ -96,5 +99,13 @@ public class Course implements Persistable<Long> {
 
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 }
