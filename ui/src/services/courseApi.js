@@ -34,6 +34,18 @@ export async function deleteCourse(id) {
     });
 }
 
+export async function activateCourse(id) {
+    return apiFetch(`/api/courses/${id}/activate`, {
+        method: "PUT",
+    });
+}
+
+export async function deactivateCourse(id) {
+    return apiFetch(`/api/courses/${id}/deactivate`, {
+        method: "PUT",
+    });
+}
+
 // --- New Lesson Endpoints ---
 
 export async function generateLessonContent(courseId, moduleId, lessonId) {
