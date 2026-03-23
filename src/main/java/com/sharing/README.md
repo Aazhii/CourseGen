@@ -1,6 +1,6 @@
 # 📚 com.sharing Module - Complete Documentation
 
-**Version:** 1.0
+**Version:** 1.1
 **Last Updated:** March 22, 2026
 
 ---
@@ -45,9 +45,9 @@ com.sharing/ (23 Java classes)
 
 ---
 
-## 📡 API ENDPOINTS (22 TOTAL)
+## 📡 API ENDPOINTS (Sharing & Progress)
 
-### SHARE MANAGEMENT (6 endpoints)
+### SHARE MANAGEMENT (Share Links + Direct Invites)
 
 #### 1. Create Share Link ⭐
 
@@ -333,6 +333,347 @@ com.sharing/ (23 Java classes)
 
 ---
 
+---
+
+## 🔔 INVITES & NOTIFICATIONS (CURRENT BEHAVIOR)
+
+These endpoints power the **Notifications** / **Shared Courses** UI for the current implementation:
+
+- "Courses shared *with* me" (incoming direct invites only)
+- "Courses shared *by* me" (outgoing direct invites you sent)
+- Notification badge count for **unread & pending** direct invites
+- Accept / decline direct invites (also marks them read)
+- Mark one or all invites as read without changing invite status
+
+Underlying data lives in the `course_enrollments` table and is populated when a direct invite is created:
+
+- `invite_type` (STRING) – always `"DIRECT"` for notifications (link enrollments stay as `"LINK"`)
+- `invite_status` (STRING) – `"PENDING"` on creation, becomes `"ACCEPTED"` or `"DECLINED"`
+- `status` (ENUM) – enrollment status (`SUSPENDED` for pending, `ACTIVE` after accept, `DROPPED` after decline)
+- `invited_by` (LONG) – user ID of the inviter (course creator)
+- `is_read` (BOOLEAN) – whether the invite notification has been read in the UI
+
+> Note: Link-based enrollments (`invite_type = "LINK"`) are **not** treated as notifications.
+
+### 1. Get Invites Shared With Me (Incoming)
+
+**Endpoint:** `GET /api/sharing/invites/shared-with-me`
+
+**Auth:** ✅ Required  
+**Purpose:** List all courses that have been **directly shared** with the current user.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invites shared with me fetched successfully",
+  "data": [
+    {
+      "id": 690903828077219840,
+      "courseId": 688090884410970112,
+      "userId": 690900585221722112,
+      "status": "SUSPENDED",
+      "enrolledAt": "2026-03-22T18:15:08.986456+05:30",
+      "progressPercentage": 0.0,
+      "courseName": "Intro to Spring Boot"
+    }
+  ]
+}
+```
+
+**❌ ERROR (400 Bad Request):**
+
+```json
+{
+  "success": false,
+  "message": "Error fetching invites shared with me: <details>",
+  "data": null
+}
+```
+
+> Frontend: Use this to populate the **Notifications** list or "Shared with me" tab.
+
+---
+
+### 2. Get Invites Shared By Me (Outgoing)
+
+**Endpoint:** `GET /api/sharing/invites/shared-by-me`
+
+**Auth:** ✅ Required  
+**Purpose:** As a course creator, see who you have invited to your courses.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invites shared by me fetched successfully",
+  "data": [
+    {
+      "id": 690903828077219840,
+      "courseId": 688090884410970112,
+      "userId": 690900585221722112,
+      "status": "SUSPENDED",
+      "enrolledAt": "2026-03-22T18:15:08.986456+05:30",
+      "progressPercentage": 0.0,
+      "courseName": "Intro to Spring Boot"
+    }
+  ]
+}
+```
+
+**❌ ERROR (400 Bad Request):**
+
+```json
+{
+  "success": false,
+  "message": "Error fetching invites shared by me: <details>",
+  "data": null
+}
+```
+
+> Frontend: Use this to implement a **"Shared by me"** tab that only lists courses and invites created by the logged-in
+> user.
+
+---
+
+### 3. Get Invite Summary (Notification Badge Count)
+
+**Endpoint:** `GET /api/sharing/invites/summary`
+
+**Auth:** ✅ Required  
+**Purpose:** Return the **pending invite count** for the current user. This is ideal for a small badge on the
+Notifications tab.
+
+The backend counts rows where:
+
+- `user_id = currentUserId`
+- `invite_type = "DIRECT"`
+- `invite_status = "PENDING"`
+- `is_read` is `false` or `null`
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invite summary fetched successfully",
+  "data": {
+    "pendingInvitesCount": 3
+  }
+}
+```
+
+**❌ ERROR (400 Bad Request):**
+
+```json
+{
+  "success": false,
+  "message": "Error fetching invite summary: <details>",
+  "data": null
+}
+```
+
+> Frontend: Call this after login and after accept/decline/mark-all-read to keep the badge count in sync.
+
+---
+
+### 4. Mark a Single Invite As Read
+
+**Endpoint:** `PUT /api/sharing/invites/{inviteId}/read`
+
+**Auth:** ✅ Required \\
+**Purpose:** Mark one direct invite as read without changing its accept/decline state.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invite marked as read",
+  "data": {
+    "id": 690903828077219840,
+    "courseId": 688090884410970112,
+    "userId": 690900585221722112,
+    "status": "SUSPENDED",
+    "enrolledAt": "2026-03-22T18:15:08.986456+05:30",
+    "progressPercentage": 0.0,
+    "courseName": "Intro to Spring Boot"
+  }
+}
+```
+
+**❌ Possible Errors:**
+
+- 404: Invite not found
+- 403: Invite not owned by current user
+- 400: Invite type is not `DIRECT`
+
+> Frontend: Use this when a notification item is opened. Re-fetch `/api/sharing/invites/summary` after marking.
+
+---
+
+### 5. Accept a Direct Invite
+
+**Endpoint:** `PUT /api/sharing/invites/{inviteId}/accept`
+
+**Auth:** ✅ Required  
+**Purpose:** Accept a **DIRECT** course invite that was sent to the current user.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invite accepted successfully",
+  "data": {
+    "id": 690903828077219840,
+    "courseId": 688090884410970112,
+    "userId": 690900585221722112,
+    "status": "ACTIVE",
+    "enrolledAt": "2026-03-22T18:15:08.986456+05:30",
+    "progressPercentage": 0.0,
+    "courseName": "Intro to Spring Boot"
+  }
+}
+```
+
+**🔁 Idempotent case (already accepted):**
+
+```json
+{
+  "success": true,
+  "message": "Invite already accepted",
+  "data": {
+    /* same EnrollmentResponse */
+  }
+}
+```
+
+**❌ Possible Errors:**
+
+- Invite not found:
+
+```json
+{
+  "success": false,
+  "message": "Error accepting invite: Invite not found",
+  "data": null
+}
+```
+
+- Invite not owned by current user (403):
+
+```json
+{
+  "success": false,
+  "message": "You are not allowed to act on this invite",
+  "data": null
+}
+```
+
+- Wrong invite type (not DIRECT):
+
+```json
+{
+  "success": false,
+  "message": "Only DIRECT invites can be accepted via this endpoint",
+  "data": null
+}
+```
+
+> Backend side effect: sets `invite_status = "ACCEPTED"`, `enrollment_status = ACTIVE`, and `is_read = true` for that
+> row.
+> Frontend: After a successful accept, refresh `/api/sharing/invites/summary` to clear the badge.
+
+---
+
+### 6. Decline a Direct Invite
+
+**Endpoint:** `PUT /api/sharing/invites/{inviteId}/decline`
+
+**Auth:** ✅ Required  
+**Purpose:** Decline a **DIRECT** course invite.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Invite declined successfully",
+  "data": {
+    "id": 690903828077219840,
+    "courseId": 688090884410970112,
+    "userId": 690900585221722112,
+    "status": "DROPPED",
+    "enrolledAt": "2026-03-22T18:15:08.986456+05:30",
+    "progressPercentage": 0.0,
+    "courseName": "Intro to Spring Boot"
+  }
+}
+```
+
+**🔁 Idempotent case (already declined):**
+
+```json
+{
+  "success": true,
+  "message": "Invite already declined",
+  "data": {
+    /* same EnrollmentResponse */
+  }
+}
+```
+
+Error responses mirror the Accept API (invite not found, wrong user, wrong invite type).
+
+> Backend side effect: sets `invite_status = "DECLINED"`, `enrollment_status = DROPPED`, and `is_read = true`.
+> Frontend: After a successful decline, refresh `/api/sharing/invites/summary` to clear the badge.
+
+---
+
+### 7. Mark All Invites As Read
+
+**Endpoint:** `PUT /api/sharing/invites/mark-all-read`
+
+**Auth:** ✅ Required  
+**Purpose:** Mark **all** direct invites for the current user as read in the UI without changing their acceptance
+status.
+
+**Backend behavior:**
+
+- For the current user, update all rows where:
+  - `invite_type = "DIRECT"`
+  - `is_read = false`
+- Set `is_read = true`.
+
+**✅ SUCCESS (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "All invites marked as read",
+  "data": {
+    "updatedCount": 5
+  }
+}
+```
+
+**❌ ERROR (400 Bad Request):**
+
+```json
+{
+  "success": false,
+  "message": "Error marking invites as read: <details>",
+  "data": null
+}
+```
+
+> Frontend: After calling this, re-fetch `/api/sharing/invites/summary` to clear the notification badge.
+
+---
+
 ## 🔑 Authentication
 
 ### Headers Required:
@@ -490,4 +831,4 @@ curl -X GET http://localhost:8080/api/progress/my-progress \
 
 ---
 
-**Status:** ✅|**Version:** 1.0 | **Last Updated:** March 22, 2026
+**Status:** ✅|**Version:** 1.1 | **Last Updated:** March 22, 2026
