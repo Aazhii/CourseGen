@@ -1,6 +1,6 @@
 import { useNavigate, useOutletContext } from "react-router-dom";
 import toast from "react-hot-toast";
-import { deleteCourse } from "../../services/courseApi";
+import { deleteCourse, fetchCoursesSharedByMe } from "../../services/courseApi";
 import { getMyProgress } from "../../services/progressApi";
 import CourseCard from "../components/course/CourseCard";
 import { confirmDelete } from "../../utils/confirmDelete";
@@ -13,10 +13,14 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("my-courses");
   const [sharedCourses, setSharedCourses] = useState([]);
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [sharedByMeCourses, setSharedByMeCourses] = useState([]);
+  const [sharedByMeLoading, setSharedByMeLoading] = useState(false);
 
   useEffect(() => {
     if (activeTab === "shared") {
       loadSharedCourses();
+    } else if (activeTab === "shared-by-me") {
+      loadSharedByMeCourses();
     }
   }, [activeTab]);
 
@@ -26,9 +30,21 @@ export default function Dashboard() {
       const data = await getMyProgress();
       setSharedCourses(data || []);
     } catch (err) {
-      toast.error("Failed to load shared courses.");
+      toast.error("Failed to load shared with me courses.");
     } finally {
       setSharedLoading(false);
+    }
+  };
+
+  const loadSharedByMeCourses = async () => {
+    setSharedByMeLoading(true);
+    try {
+      const data = await fetchCoursesSharedByMe();
+      setSharedByMeCourses(data || []);
+    } catch (err) {
+      toast.error("Failed to load courses shared by me.");
+    } finally {
+      setSharedByMeLoading(false);
     }
   };
 
@@ -62,10 +78,10 @@ export default function Dashboard() {
         </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1rem" }}>
-          <button 
+          <button
             onClick={() => setActiveTab("my-courses")}
-            style={{ 
-              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer", 
+            style={{
+              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer",
               fontWeight: activeTab === "my-courses" ? "bold" : "normal",
               color: activeTab === "my-courses" ? "var(--accent)" : "var(--text-secondary)",
               display: "flex", alignItems: "center", gap: "0.5rem"
@@ -73,16 +89,27 @@ export default function Dashboard() {
           >
             <BookOpen size={18} /> My Courses
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("shared")}
-            style={{ 
-              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer", 
+            style={{
+              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer",
               fontWeight: activeTab === "shared" ? "bold" : "normal",
               color: activeTab === "shared" ? "var(--accent)" : "var(--text-secondary)",
               display: "flex", alignItems: "center", gap: "0.5rem"
             }}
           >
             <Users size={18} /> Shared With Me
+          </button>
+          <button 
+            onClick={() => setActiveTab("shared-by-me")}
+            style={{ 
+              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer", 
+              fontWeight: activeTab === "shared-by-me" ? "bold" : "normal",
+              color: activeTab === "shared-by-me" ? "var(--accent)" : "var(--text-secondary)",
+              display: "flex", alignItems: "center", gap: "0.5rem"
+            }}
+          >
+            <Users size={18} /> Shared By Me
           </button>
         </div>
 
@@ -110,7 +137,7 @@ export default function Dashboard() {
               )}
             </>
           )
-        ) : (
+        ) : activeTab === "shared" ? (
           sharedLoading ? (
             <div className="loading-state">
               <Loader className="spin" size={32} />
@@ -127,7 +154,7 @@ export default function Dashboard() {
                   {sharedCourses.map(progress => (
                     <div key={progress.courseId} className="course-card" onClick={() => navigate(`/course/${progress.courseId}`)} style={{ cursor: "pointer" }}>
                       <div className="course-card-content">
-                        <span className="difficulty-tag bg-blue-500 text-white">Shared</span>
+                        <span className="difficulty-tag bg-blue-500 text-white">Shared With Me</span>
                         <h3 className="course-title" style={{ marginTop: "1rem" }}>{progress.courseName}</h3>
                         <div style={{ marginTop: "1rem" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
@@ -140,6 +167,27 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          sharedByMeLoading ? (
+            <div className="loading-state">
+              <Loader className="spin" size={32} />
+            </div>
+          ) : (
+            <>
+              {sharedByMeCourses.length === 0 ? (
+                <div className="empty-dashboard">
+                  <h2>You haven't shared any courses</h2>
+                  <p>Use the "Share Course" button inside a course to invite students.</p>
+                </div>
+              ) : (
+                <div className="course-grid">
+                  {sharedByMeCourses.map(course => (
+                    <CourseCard key={`sharedbyme-${course.id}`} course={course} onDelete={handleDeleteCourse} />
                   ))}
                 </div>
               )}
