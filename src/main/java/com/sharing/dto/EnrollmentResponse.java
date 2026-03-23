@@ -12,6 +12,10 @@ public class EnrollmentResponse {
     private OffsetDateTime enrolledAt;
     private Double progressPercentage;
     private String courseName;
+    private Boolean isRead;
+    private String inviteStatus;
+    private Long invitedBy;
+    private String invitedByName;
 
     // --- Constructors ---
     public EnrollmentResponse() {
@@ -26,6 +30,22 @@ public class EnrollmentResponse {
         this.enrolledAt = enrolledAt;
         this.progressPercentage = progressPercentage;
         this.courseName = courseName;
+    }
+
+    public EnrollmentResponse(Long id, Long courseId, Long userId, EnrollmentStatus status,
+                              OffsetDateTime enrolledAt, Double progressPercentage, String courseName,
+                              Boolean isRead, String inviteStatus, Long invitedBy, String invitedByName) {
+        this.id = id;
+        this.courseId = courseId;
+        this.userId = userId;
+        this.status = status;
+        this.enrolledAt = enrolledAt;
+        this.progressPercentage = progressPercentage;
+        this.courseName = courseName;
+        this.isRead = isRead;
+        this.inviteStatus = inviteStatus;
+        this.invitedBy = invitedBy;
+        this.invitedByName = invitedByName;
     }
 
     // --- Getters and Setters ---
@@ -83,6 +103,38 @@ public class EnrollmentResponse {
 
     public void setCourseName(String courseName) {
         this.courseName = courseName;
+    }
+
+    public Boolean getIsRead() {
+        return isRead;
+    }
+
+    public void setIsRead(Boolean isRead) {
+        this.isRead = isRead;
+    }
+
+    public String getInviteStatus() {
+        return inviteStatus;
+    }
+
+    public void setInviteStatus(String inviteStatus) {
+        this.inviteStatus = inviteStatus;
+    }
+
+    public Long getInvitedBy() {
+        return invitedBy;
+    }
+
+    public void setInvitedBy(Long invitedBy) {
+        this.invitedBy = invitedBy;
+    }
+
+    public String getInvitedByName() {
+        return invitedByName;
+    }
+
+    public void setInvitedByName(String invitedByName) {
+        this.invitedByName = invitedByName;
     }
 }
 

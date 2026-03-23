@@ -218,7 +218,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
         try {
             // Check if already enrolled
-            if (courseEnrollmentRepo.countByCourseIdAndUserId(courseId, userId) > 0) {
+            if (courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId).isPresent()) {
                 throw new IllegalArgumentException("User is already enrolled in this course");
             }
 

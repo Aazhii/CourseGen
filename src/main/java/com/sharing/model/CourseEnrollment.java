@@ -43,6 +43,10 @@ public class CourseEnrollment {
     @Column(name = "progress_percentage")
     private Double progressPercentage;
 
+    // Whether the invite/notification has been read by the user (for DIRECT invites)
+    @Column(name = "is_read")
+    private Boolean isRead;
+
     // --- Constructors ---
     public CourseEnrollment() {
     }
@@ -78,6 +82,9 @@ public class CourseEnrollment {
         }
         if (progressPercentage == null) {
             progressPercentage = 0.0;
+        }
+        if (isRead == null) {
+            isRead = Boolean.FALSE;
         }
     }
 
@@ -160,5 +167,13 @@ public class CourseEnrollment {
 
     public void setProgressPercentage(Double progressPercentage) {
         this.progressPercentage = progressPercentage;
+    }
+
+    public Boolean getIsRead() {
+        return isRead;
+    }
+
+    public void setIsRead(Boolean isRead) {
+        this.isRead = isRead;
     }
 }

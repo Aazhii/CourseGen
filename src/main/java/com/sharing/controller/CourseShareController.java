@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -179,9 +180,22 @@ public class CourseShareController {
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
 
             @SuppressWarnings("unchecked")
-            List<String> emails = (List<String>) payload.get("emails");
+            List<String> identifiers = new ArrayList<>();
+            Object emailsPayload = payload.get("emails");
+            if (emailsPayload instanceof List<?> emailList) {
+                for (Object raw : emailList) {
+                    if (raw != null) {
+                        identifiers.add(String.valueOf(raw));
+                    }
+                }
+            }
 
-            courseShareService.sendDirectInvite(courseId, principal.getUser().getId(), emails);
+            Object identifier = payload.get("identifier");
+            if (identifier != null) {
+                identifiers.add(String.valueOf(identifier));
+            }
+
+            courseShareService.sendDirectInvite(courseId, principal.getUser().getId(), identifiers);
 
             LOGGER.log(Level.INFO, "Direct invites sent successfully");
             return ResponseEntity.ok(ApiResponse.success("Direct invites sent successfully", null));

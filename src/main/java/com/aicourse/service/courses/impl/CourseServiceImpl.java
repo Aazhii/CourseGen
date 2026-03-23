@@ -12,15 +12,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.features.Feature;
 import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;
+import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.CourseShareLinkRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +45,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Autowired
     private CourseShareLinkRepo courseShareLinkRepo;
+
+    @Autowired
+    private CourseEnrollmentRepo courseEnrollmentRepo;
 
     @Override
     @Transactional
@@ -155,7 +157,8 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public List<Course> getCoursesSharedByCreator(Long creator) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving courses shared by creator: {0}", new Object[]{creator});
-        List<Long> courseIds = courseShareLinkRepo.findDistinctCourseIdsByCreatedBy(creator);
+        Set<Long> courseIds = new LinkedHashSet<>(courseShareLinkRepo.findDistinctCourseIdsByCreatedBy(creator));
+        courseIds.addAll(courseEnrollmentRepo.findDistinctCourseIdsByInvitedByAndInviteType(creator, "DIRECT"));
         if (courseIds.isEmpty()) {
             return List.of();
         }

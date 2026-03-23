@@ -1,10 +1,15 @@
 package com.sharing.service.impl;
 
 import com.aicourse.model.Course;
+import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
+import com.aicourse.repo.UserRepo;
 import com.sharing.dto.ShareLinkResponse;
+import com.sharing.model.CourseEnrollment;
 import com.sharing.model.CourseShareLink;
+import com.sharing.model.EnrollmentStatus;
 import com.sharing.model.ShareLinkType;
+import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.CourseShareLinkRepo;
 import com.sharing.service.CourseShareService;
 import jakarta.transaction.Transactional;
@@ -13,8 +18,10 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -30,6 +37,12 @@ public class CourseShareServiceImpl implements CourseShareService {
 
     @Autowired
     private CourseRepo courseRepo;
+
+    @Autowired
+    private CourseEnrollmentRepo courseEnrollmentRepo;
+
+    @Autowired
+    private UserRepo userRepo;
 
     @Override
     @Transactional
@@ -142,14 +155,61 @@ public class CourseShareServiceImpl implements CourseShareService {
                 throw new IllegalArgumentException("User is not authorized to send invites for this course");
             }
 
+            if (userEmails == null || userEmails.isEmpty()) {
+                throw new IllegalArgumentException("At least one username/email identifier is required");
+            }
+
             // Generate a private share link for direct invites
             String shareToken = generateUniqueToken();
             CourseShareLink inviteLink = new CourseShareLink(courseId, shareToken, creatorId, ShareLinkType.DIRECT_INVITE);
-            courseShareLinkRepo.save(inviteLink);
+            CourseShareLink savedInviteLink = courseShareLinkRepo.save(inviteLink);
+
+            List<String> invalidIdentifiers = new ArrayList<>();
+            int invitesPrepared = 0;
+
+            for (String identifier : userEmails) {
+                String normalized = identifier == null ? null : identifier.trim();
+                if (normalized == null || normalized.isBlank()) {
+                    continue;
+                }
+
+                Users targetUser = resolveUser(normalized);
+                if (targetUser == null) {
+                    invalidIdentifiers.add(normalized);
+                    continue;
+                }
+
+                if (Objects.equals(targetUser.getId(), creatorId)) {
+                    continue;
+                }
+
+                CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, targetUser.getId())
+                        .orElseGet(CourseEnrollment::new);
+
+                enrollment.setCourseId(courseId);
+                enrollment.setUserId(targetUser.getId());
+                enrollment.setShareLinkId(savedInviteLink.getId());
+                enrollment.setInvitedBy(creatorId);
+                enrollment.setInviteType("DIRECT");
+                enrollment.setInviteStatus("PENDING");
+                enrollment.setStatus(EnrollmentStatus.SUSPENDED);
+                enrollment.setIsRead(Boolean.FALSE);
+
+                courseEnrollmentRepo.save(enrollment);
+                invitesPrepared++;
+            }
+
+            if (invitesPrepared == 0) {
+                throw new IllegalArgumentException("No valid users found to invite");
+            }
+
+            if (!invalidIdentifiers.isEmpty()) {
+                throw new IllegalArgumentException("Some users were not found: " + String.join(", ", invalidIdentifiers));
+            }
 
             // TODO: Send email invites using email service
             // For now, just log the invites
-            LOGGER.log(Level.INFO, "Direct invites prepared for {0} users", userEmails.size());
+            LOGGER.log(Level.INFO, "Direct invites prepared for {0} users", invitesPrepared);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error sending direct invites: {0}", e.getMessage());
             throw e;
@@ -213,6 +273,21 @@ public class CourseShareServiceImpl implements CourseShareService {
         byte[] tokenBytes = new byte[TOKEN_LENGTH];
         random.nextBytes(tokenBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
+    private Users resolveUser(String identifier) {
+        Users user = userRepo.findByUsername(identifier);
+        if (user != null) {
+            return user;
+        }
+
+        // If email-like identifier is provided, try local-part as username fallback.
+        int atIdx = identifier.indexOf('@');
+        if (atIdx > 0) {
+            String localPart = identifier.substring(0, atIdx);
+            return userRepo.findByUsername(localPart);
+        }
+        return null;
     }
 
     private ShareLinkResponse mapToResponse(CourseShareLink shareLink) {
