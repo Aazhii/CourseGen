@@ -74,10 +74,10 @@ export default function Dashboard() {
             <p className="subtitle">Manage courses you've created or enrolled in.</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <NotificationBell />
             <button className="create-btn" onClick={() => navigate("/create-course")}>
               <Plus size={20} /> Create New Course
             </button>
+            <NotificationBell />
           </div>
         </header>
 
