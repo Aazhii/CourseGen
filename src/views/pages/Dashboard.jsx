@@ -6,6 +6,7 @@ import CourseCard from "../components/course/CourseCard";
 import { confirmDelete } from "../../utils/confirmDelete";
 import { Plus, Loader, Users, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
+import NotificationBell from "../components/notification/NotificationBell";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -67,14 +68,17 @@ export default function Dashboard() {
   return (
     <>
       <div className="dashboard-content" style={{ marginTop: '1rem' }}>
-        <header className="dashboard-header">
+        <header className="dashboard-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1>Courses Dashboard</h1>
             <p className="subtitle">Manage courses you've created or enrolled in.</p>
           </div>
-          <button className="create-btn" onClick={() => navigate("/create-course")}>
-            <Plus size={20} /> Create New Course
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NotificationBell />
+            <button className="create-btn" onClick={() => navigate("/create-course")}>
+              <Plus size={20} /> Create New Course
+            </button>
+          </div>
         </header>
 
         <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1rem" }}>
@@ -100,10 +104,10 @@ export default function Dashboard() {
           >
             <Users size={18} /> Shared With Me
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("shared-by-me")}
-            style={{ 
-              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer", 
+            style={{
+              background: "transparent", border: "none", fontSize: "1.1rem", cursor: "pointer",
               fontWeight: activeTab === "shared-by-me" ? "bold" : "normal",
               color: activeTab === "shared-by-me" ? "var(--accent)" : "var(--text-secondary)",
               display: "flex", alignItems: "center", gap: "0.5rem"
