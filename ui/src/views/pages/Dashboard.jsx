@@ -160,6 +160,9 @@ export default function Dashboard() {
                       <div className="course-card-content">
                         <span className="difficulty-tag bg-blue-500 text-white">Shared With Me</span>
                         <h3 className="course-title" style={{ marginTop: "1rem" }}>{progress.courseName}</h3>
+                        <p className="course-info" style={{ marginTop: "0.5rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", color: "var(--text-secondary)" }}>
+                          {progress.courseDescription || "No description provided."}
+                        </p>
                         <div style={{ marginTop: "1rem" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                             <span>Progress</span>
