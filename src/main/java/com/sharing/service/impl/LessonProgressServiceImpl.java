@@ -117,6 +117,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             return new CourseProgressResponse(
                     courseId,
                     course.getTitle(),
+                    course.getDescription(),
                     progress,
                     totalLessons,
                     completedLessons,

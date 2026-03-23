@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 public class CourseProgressResponse {
     private Long courseId;
     private String courseName;
+    private String courseDescription;
     private Double courseProgress;
     private Integer totalLessons;
     private Integer completedLessons;
@@ -15,11 +16,12 @@ public class CourseProgressResponse {
     public CourseProgressResponse() {
     }
 
-    public CourseProgressResponse(Long courseId, String courseName, Double courseProgress,
+    public CourseProgressResponse(Long courseId, String courseName, String courseDescription, Double courseProgress,
                                   Integer totalLessons, Integer completedLessons,
                                   OffsetDateTime enrolledAt, OffsetDateTime lastAccessedAt) {
         this.courseId = courseId;
         this.courseName = courseName;
+        this.courseDescription = courseDescription;
         this.courseProgress = courseProgress;
         this.totalLessons = totalLessons;
         this.completedLessons = completedLessons;
@@ -42,6 +44,14 @@ public class CourseProgressResponse {
 
     public void setCourseName(String courseName) {
         this.courseName = courseName;
+    }
+
+    public String getCourseDescription() {
+        return courseDescription;
+    }
+
+    public void setCourseDescription(String courseDescription) {
+        this.courseDescription = courseDescription;
     }
 
     public Double getCourseProgress() {
