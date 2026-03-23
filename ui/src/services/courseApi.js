@@ -11,6 +11,10 @@ export async function fetchCourses() {
     return apiFetch("/api/courses/my-courses");
 }
 
+export async function fetchCoursesSharedByMe() {
+    return apiFetch("/api/courses/shared-by-me");
+}
+
 export async function getCourseById(id) {
     return apiFetch(`/api/courses/${id}`);
 }
