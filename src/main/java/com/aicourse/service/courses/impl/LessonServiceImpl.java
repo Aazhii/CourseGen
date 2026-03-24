@@ -8,6 +8,7 @@ import com.aicourse.service.courses.LessonService;
 import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.leaderboard.model.impl.UserStatsService;
+import com.sharing.service.SharedCourseAccessGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,18 @@ public class LessonServiceImpl implements LessonService {
     @Autowired
     private UserStatsService userStatsService;
 
+    @Autowired
+    private SharedCourseAccessGuard sharedCourseAccessGuard;
+
     @Override
     @Transactional
     public Lesson generateLessonContent(Long courseId, Long moduleId, Long lessonId, Long userId) throws Exception {
         LOGGER.log(Level.INFO, "Generating content for Lesson ID: {0} (Module ID: {1}, Course ID: {2})",
                 new Object[]{lessonId, moduleId, courseId});
+
+        if (userId != null) {
+            sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        }
 
         Lesson lesson = lessonRepo.findById(lessonId)
                 .orElseThrow(() -> {
@@ -141,5 +149,12 @@ public class LessonServiceImpl implements LessonService {
                     LOGGER.log(Level.SEVERE, "Lesson not found with id: {0}", new Object[]{lessonId});
                     return new RuntimeException("Lesson not found with id: " + lessonId);
                 });
+    }
+
+    public Lesson getLessonForUser(Long lessonId, Long userId) throws Exception {
+        Lesson lesson = getLesson(lessonId);
+        Long courseId = lesson.getModule().getCourse().getId();
+        sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        return lesson;
     }
 }

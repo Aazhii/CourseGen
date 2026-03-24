@@ -44,10 +44,15 @@ public class LessonController {
     }
 
     @GetMapping("/lessons/{id}")
-    public ResponseEntity<Lesson> getLesson(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Lesson> getLesson(@PathVariable Long id, Authentication authentication) throws Exception {
         LOGGER.log(Level.INFO, "Fetching lesson details for ID: {0}", new Object[]{id});
         try {
-            Lesson lesson = lessonServiceImpl.getLesson(id);
+            if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
+            Lesson lesson = lessonServiceImpl.getLessonForUser(id, userId);
             LOGGER.log(Level.INFO, "Lesson details retrieved for ID: {0}", new Object[]{id});
             return ResponseEntity.ok(lesson);
         } catch (Exception e) {

@@ -11,6 +11,7 @@ import com.sharing.model.LessonProgress;
 import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.LessonProgressRepo;
 import com.sharing.service.LessonProgressService;
+import com.sharing.service.SharedCourseAccessGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,20 +40,16 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     @Autowired
     private LessonRepo lessonRepo;
 
+    @Autowired
+    private SharedCourseAccessGuard sharedCourseAccessGuard;
+
     @Override
     @Transactional
     public void markLessonComplete(Long lessonId, Long courseId, Long userId) throws Exception {
         LOGGER.log(Level.INFO, "Marking lesson {0} complete for user {1}", new Object[]{lessonId, userId});
 
         try {
-            // ✅ CHECK: Course must be active
-            Course course = courseRepo.findById(courseId)
-                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
-
-            if (!course.isActive() && !course.getCreator().equals(userId)) {
-                LOGGER.log(Level.WARNING, "Cannot mark lesson complete: Course {0} is deactivated", courseId);
-                throw new IllegalArgumentException("This course has been deactivated and is no longer accessible");
-            }
+            sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
 
             // Ensure enrollment exists; creators are auto-enrolled on first progress interaction.
             getOrCreateEnrollment(courseId, userId);
@@ -89,6 +86,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         LOGGER.log(Level.INFO, "Marking lesson {0} incomplete for user {1}", new Object[]{lessonId, userId});
 
         try {
+            sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+
             Optional<LessonProgress> lessonProgress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId);
 
             if (lessonProgress.isPresent()) {
@@ -129,6 +128,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             int completedLessons = getCompletedLessonsCount(courseId, userId);
             double progress = totalLessons > 0 ? (completedLessons * 100.0 / totalLessons) : 0.0;
 
+            SharedCourseAccessGuard.ContentLockState lockState =
+                    sharedCourseAccessGuard.getContentLockState(courseId, userId);
+
             return new CourseProgressResponse(
                     courseId,
                     course.getTitle(),
@@ -137,7 +139,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     totalLessons,
                     completedLessons,
                     enrollment.getEnrolledAt(),
-                    null // TODO: Get last accessed timestamp
+                    null, // TODO: Get last accessed timestamp
+                    lockState.locked(),
+                    lockState.reason()
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching course progress: {0}", e.getMessage());

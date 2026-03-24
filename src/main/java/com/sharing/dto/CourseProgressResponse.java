@@ -11,6 +11,8 @@ public class CourseProgressResponse {
     private Integer completedLessons;
     private OffsetDateTime enrolledAt;
     private OffsetDateTime lastAccessedAt;
+    private Boolean contentLocked;
+    private String lockReason;
 
     // --- Constructors ---
     public CourseProgressResponse() {
@@ -27,6 +29,22 @@ public class CourseProgressResponse {
         this.completedLessons = completedLessons;
         this.enrolledAt = enrolledAt;
         this.lastAccessedAt = lastAccessedAt;
+    }
+
+    public CourseProgressResponse(Long courseId, String courseName, String courseDescription, Double courseProgress,
+                                  Integer totalLessons, Integer completedLessons,
+                                  OffsetDateTime enrolledAt, OffsetDateTime lastAccessedAt,
+                                  Boolean contentLocked, String lockReason) {
+        this.courseId = courseId;
+        this.courseName = courseName;
+        this.courseDescription = courseDescription;
+        this.courseProgress = courseProgress;
+        this.totalLessons = totalLessons;
+        this.completedLessons = completedLessons;
+        this.enrolledAt = enrolledAt;
+        this.lastAccessedAt = lastAccessedAt;
+        this.contentLocked = contentLocked;
+        this.lockReason = lockReason;
     }
 
     // --- Getters and Setters ---
@@ -92,6 +110,22 @@ public class CourseProgressResponse {
 
     public void setLastAccessedAt(OffsetDateTime lastAccessedAt) {
         this.lastAccessedAt = lastAccessedAt;
+    }
+
+    public Boolean getContentLocked() {
+        return contentLocked;
+    }
+
+    public void setContentLocked(Boolean contentLocked) {
+        this.contentLocked = contentLocked;
+    }
+
+    public String getLockReason() {
+        return lockReason;
+    }
+
+    public void setLockReason(String lockReason) {
+        this.lockReason = lockReason;
     }
 }
 

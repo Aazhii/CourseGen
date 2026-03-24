@@ -85,10 +85,11 @@ public class CourseController {
     }
 
     @GetMapping("/{id}")
-    public Course getCourse(@PathVariable Long id) throws Exception {
+    public Course getCourse(@PathVariable Long id, Authentication auth) throws Exception {
         LOGGER.log(Level.INFO, "Fetching course details for ID: {0}", new Object[]{id});
         try {
-            Course course = courseServiceImpl.getCourseById(id);
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Course course = courseServiceImpl.getCourseById(id, principal.getUser().getId());
             LOGGER.log(Level.INFO, "Course details retrieved for ID: {0}", new Object[]{id});
             return course;
         } catch (Exception e) {

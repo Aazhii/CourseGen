@@ -4,9 +4,11 @@ import com.aicourse.model.UserPrincipal;
 import com.aicourse.utils.api.ApiResponse;
 import com.sharing.dto.CourseProgressResponse;
 import com.sharing.dto.EnrollmentResponse;
+import com.sharing.exception.SharedCourseContentLockedException;
 import com.sharing.model.EnrollmentStatus;
 import com.sharing.service.LessonProgressService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +43,10 @@ public class LessonProgressController {
 
             LOGGER.log(Level.INFO, "Lesson marked as complete successfully");
             return ResponseEntity.ok(ApiResponse.success("Lesson marked as complete", null));
+        } catch (SharedCourseContentLockedException e) {
+            LOGGER.log(Level.INFO, "Content access locked while marking lesson complete: {0}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error marking lesson complete: {0}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -64,6 +70,10 @@ public class LessonProgressController {
 
             LOGGER.log(Level.INFO, "Lesson marked as incomplete successfully");
             return ResponseEntity.ok(ApiResponse.success("Lesson marked as incomplete", null));
+        } catch (SharedCourseContentLockedException e) {
+            LOGGER.log(Level.INFO, "Content access locked while marking lesson incomplete: {0}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error marking lesson incomplete: {0}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -86,6 +96,10 @@ public class LessonProgressController {
 
             LOGGER.log(Level.INFO, "Course progress fetched successfully");
             return ResponseEntity.ok(ApiResponse.success("Course progress fetched successfully", response));
+        } catch (SharedCourseContentLockedException e) {
+            LOGGER.log(Level.INFO, "Content access locked while fetching course progress: {0}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching course progress: {0}", e.getMessage());
             return ResponseEntity.badRequest()

@@ -14,6 +14,7 @@ import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;
 import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.CourseShareLinkRepo;
+import com.sharing.service.SharedCourseAccessGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -48,6 +49,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Autowired
     private CourseEnrollmentRepo courseEnrollmentRepo;
+
+    @Autowired
+    private SharedCourseAccessGuard sharedCourseAccessGuard;
 
     @Override
     @Transactional
@@ -166,13 +170,12 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public Course getCourseById(Long id) throws Exception {
+    public Course getCourseById(Long id, Long requesterId) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving course by ID: {0}", new Object[]{id});
-        return courseRepo.findById(id)
-                .orElseThrow(() -> {
-                    LOGGER.log(Level.SEVERE, "Course not found with ID: {0}", new Object[]{id});
-                    return new IllegalArgumentException("Course not found with id: " + id);
-                });
+        Course course = sharedCourseAccessGuard.assertCourseShellAccess(id, requesterId);
+        LOGGER.log(Level.FINE, "Course access granted for user {0} and course {1}",
+                new Object[]{requesterId, id});
+        return course;
     }
 
     @Override
