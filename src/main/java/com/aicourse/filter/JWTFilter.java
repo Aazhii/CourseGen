@@ -2,6 +2,8 @@ package com.aicourse.filter;
 
 import com.aicourse.service.JWT.JWTService;
 import com.aicourse.service.UserDetailService;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,7 +47,25 @@ public class JWTFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7).trim();
         LOGGER.log(Level.FINE, "JWTFilter: Extracted Token: [{0}...]",
                 new Object[]{token.substring(0, Math.min(token.length(), 10))});
-        String username = jwtService.extractUserName(token);
+        String username;
+
+        try {
+            username = jwtService.extractUserName(token);
+        } catch (ExpiredJwtException e) {
+            LOGGER.log(Level.INFO, "JWTFilter: Token expired: {0}", new Object[]{e.getMessage()});
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"JWT expired. Please login again.\"}");
+            return;
+        } catch (JwtException | IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, "JWTFilter: Invalid token: {0}", new Object[]{e.getMessage()});
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Invalid JWT token.\"}");
+            return;
+        }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 

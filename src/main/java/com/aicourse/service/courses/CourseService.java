@@ -13,12 +13,18 @@ public interface CourseService {
 
     List<Course> getCoursesByCreator(Long creator) throws Exception;
 
-    Course getCourseById(Long id) throws Exception;
+    List<Course> getCoursesSharedByCreator(Long creator) throws Exception;
+
+    Course getCourseById(Long id, Long requesterId) throws Exception;
 
     List<Module> getModulesByCourseName(String courseName) throws Exception;
 
     void deleteCourse(Long courseId) throws Exception;
 
     void updateCourse(Long courseID, Course courseDO) throws Exception;
+
+    void deactivateCourse(Long courseId) throws Exception;
+
+    void activateCourse(Long courseId) throws Exception;
 
 }

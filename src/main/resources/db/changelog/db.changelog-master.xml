@@ -204,7 +204,32 @@
         <modifyDataType tableName="courses" columnName="description" newDataType="TEXT"/>
     </changeSet>
 
+    <changeSet id="userstats-add-creation-counters" author="ari">
+
+        <addColumn tableName="userstats">
+            <column name="total_courses_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="userstats">
+            <column name="total_projects_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+    </changeSet>
+
+    <changeSet id="courses-add-is-active-field" author="ari">
+        <addColumn tableName="courses">
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
     <include file="db/changelog/db.changelog-leaderboard.xml"/>
     <include file="db/changelog/db.changelog-project.xml"/>
+    <include file="db/changelog/db.changelog-sharing.xml"/>
 <!--    <include file="db/changelog/db.changelog-populateDb.xml"/>-->
 </databaseChangeLog>

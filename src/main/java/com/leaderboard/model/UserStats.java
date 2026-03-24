@@ -32,6 +32,12 @@ public class UserStats {
     @Column(name = "current_streak", nullable = false)
     private Integer currentStreak;
 
+    @Column(name = "total_courses_created", nullable = false)
+    private Integer totalCoursesCreated;
+
+    @Column(name = "total_projects_created", nullable = false)
+    private Integer totalProjectsCreated;
+
     protected UserStats() {
     }
 
@@ -43,6 +49,8 @@ public class UserStats {
         this.coursesCompleted = 0;
         this.lessonsCompleted = 0;
         this.currentStreak = 0;
+        this.totalCoursesCreated = 0;
+        this.totalProjectsCreated = 0;
     }
 
     public void addPoints(int points) {
@@ -68,6 +76,14 @@ public class UserStats {
 
     public void resetStreak() {
         this.currentStreak = 0;
+    }
+
+    public void incrementTotalCoursesCreated() {
+        this.totalCoursesCreated++;
+    }
+
+    public void incrementTotalProjectsCreated() {
+        this.totalProjectsCreated++;
     }
 
     public Long getUserstateId() {
@@ -97,4 +113,13 @@ public class UserStats {
     public Integer getCurrentStreak() {
         return currentStreak;
     }
+
+    public Integer getTotalCoursesCreated() {
+        return totalCoursesCreated;
+    }
+
+    public Integer getTotalProjectsCreated() {
+        return totalProjectsCreated;
+    }
+
 }

@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- ══════════════════════════════════════════════
+         1. Add visibility column to courses
+         Default PRIVATE — all existing courses unaffected
+    ══════════════════════════════════════════════ -->
+    <changeSet id="courses-add-visibility" author="ari">
+        <addColumn tableName="courses">
+            <column name="visibility" type="VARCHAR(20)" defaultValue="PRIVATE">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ══════════════════════════════════════════════
+         2. course_share_links
+    ══════════════════════════════════════════════ -->
+    <changeSet id="course-share-links-table" author="ari">
+        <createTable tableName="course_share_links">
+
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" primaryKeyName="pk_course_share_links" nullable="false"/>
+            </column>
+
+            <column name="course_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_by" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- the random token that goes in /join/{token} -->
+            <column name="token" type="VARCHAR(64)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_share_link_token"/>
+            </column>
+
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueDate="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- nullable — null means never expires -->
+            <column name="expires_at" type="TIMESTAMP WITH TIME ZONE"/>
+
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="course_share_links" baseColumnNames="course_id"
+                constraintName="fk_share_links_course"
+                referencedTableName="courses" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                baseTableName="course_share_links" baseColumnNames="created_by"
+                constraintName="fk_share_links_user"
+                referencedTableName="users" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_share_links_course_id" tableName="course_share_links">
+            <column name="course_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ══════════════════════════════════════════════
+         3. course_enrollments
+    ══════════════════════════════════════════════ -->
+    <changeSet id="course-enrollments-table" author="ari">
+        <createTable tableName="course_enrollments">
+
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" primaryKeyName="pk_course_enrollments" nullable="false"/>
+            </column>
+
+            <column name="course_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- who sent the invite — nullable for LINK type -->
+            <column name="invited_by" type="BIGINT"/>
+
+            <!-- LINK or DIRECT -->
+            <column name="invite_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- PENDING | ACCEPTED | DECLINED -->
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="enrolled_at" type="TIMESTAMP WITH TIME ZONE" defaultValueDate="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <!-- one enrollment per user per course -->
+        <addUniqueConstraint
+                tableName="course_enrollments"
+                columnNames="course_id, user_id"
+                constraintName="uk_enrollment_course_user"/>
+
+        <addForeignKeyConstraint
+                baseTableName="course_enrollments" baseColumnNames="course_id"
+                constraintName="fk_enrollments_course"
+                referencedTableName="courses" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                baseTableName="course_enrollments" baseColumnNames="user_id"
+                constraintName="fk_enrollments_user"
+                referencedTableName="users" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_enrollments_user_id" tableName="course_enrollments">
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_enrollments_course_id" tableName="course_enrollments">
+            <column name="course_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ══════════════════════════════════════════════
+         4. lesson_progress
+    ══════════════════════════════════════════════ -->
+    <changeSet id="lesson-progress-table" author="ari">
+        <createTable tableName="lesson_progress">
+
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" primaryKeyName="pk_lesson_progress" nullable="false"/>
+            </column>
+
+            <column name="lesson_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- denormalized for fast per-course queries -->
+            <column name="course_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="completed_at" type="TIMESTAMP WITH TIME ZONE" defaultValueDate="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <!-- one completion per user per lesson -->
+        <addUniqueConstraint
+                tableName="lesson_progress"
+                columnNames="lesson_id, user_id"
+                constraintName="uk_lesson_progress_lesson_user"/>
+
+        <addForeignKeyConstraint
+                baseTableName="lesson_progress" baseColumnNames="lesson_id"
+                constraintName="fk_lesson_progress_lesson"
+                referencedTableName="lessons" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                baseTableName="lesson_progress" baseColumnNames="course_id"
+                constraintName="fk_lesson_progress_course"
+                referencedTableName="courses" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                baseTableName="lesson_progress" baseColumnNames="user_id"
+                constraintName="fk_lesson_progress_user"
+                referencedTableName="users" referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_lesson_progress_course_user" tableName="lesson_progress">
+            <column name="course_id"/>
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!--
+         5. Repair schema drift caused by previous ddl-auto updates
+         - drop accidental non-null column `a`
+         - drop legacy duplicated token column `share_token`
+    -->
+    <changeSet id="course-share-links-repair-drift-v1" author="ari">
+        <sql>
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS a;
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS share_token;
+        </sql>
+    </changeSet>
+
+    <!--
+         6. Repair drift v2 for environments that already executed v1
+         - re-apply column cleanup safely
+         - align token/share_token naming
+         - ensure enrollment invite columns exist and are backfilled
+    -->
+    <changeSet id="course-sharing-repair-drift-v2-rename-token" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <columnExists tableName="course_share_links" columnName="share_token"/>
+                <not>
+                    <columnExists tableName="course_share_links" columnName="token"/>
+                </not>
+            </and>
+        </preConditions>
+        <renameColumn tableName="course_share_links"
+                      oldColumnName="share_token"
+                      newColumnName="token"
+                      columnDataType="VARCHAR(64)"/>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-cleanup" author="ari">
+        <sql>
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS a;
+            ALTER TABLE course_share_links DROP COLUMN IF EXISTS share_token;
+        </sql>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-invited-by" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="invited_by"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="invited_by" type="BIGINT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-invite-type" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="invite_type"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="invite_type" type="VARCHAR(20)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-status" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="status"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="status" type="VARCHAR(20)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-is-read" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="is_read"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="is_read" type="BOOLEAN"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-enrollment-status" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="enrollment_status"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="enrollment_status" type="VARCHAR(20)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-progress-percentage" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="progress_percentage"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="progress_percentage" type="DOUBLE PRECISION"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-add-share-link-id" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_enrollments" columnName="share_link_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_enrollments">
+            <column name="share_link_id" type="BIGINT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-sharing-repair-drift-v2-backfill" author="ari">
+        <sql>
+            UPDATE course_enrollments SET invite_type = 'LINK' WHERE invite_type IS NULL;
+            UPDATE course_enrollments SET status = 'ACCEPTED' WHERE status IS NULL;
+            UPDATE course_enrollments SET enrollment_status = 'ACTIVE' WHERE enrollment_status IS NULL;
+            UPDATE course_enrollments SET is_read = FALSE WHERE is_read IS NULL;
+            UPDATE course_enrollments SET progress_percentage = 0 WHERE progress_percentage IS NULL;
+
+            ALTER TABLE course_enrollments ALTER COLUMN invite_type SET NOT NULL;
+            ALTER TABLE course_enrollments ALTER COLUMN status SET NOT NULL;
+            ALTER TABLE course_enrollments ALTER COLUMN enrollment_status SET NOT NULL;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

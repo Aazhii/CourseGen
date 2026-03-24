@@ -67,11 +67,29 @@ public class CourseController {
         }
     }
 
+    @GetMapping("/shared-by-me")
+    public List<Course> getCoursesSharedByMe(Authentication auth) throws Exception {
+        LOGGER.log(Level.INFO, "Fetching courses shared by user: {0}", new Object[]{auth.getName()});
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Long userId = principal.getUser().getId();
+            List<Course> courses = courseServiceImpl.getCoursesSharedByCreator(userId);
+            LOGGER.log(Level.INFO, "Found {0} shared courses for user: {1}",
+                    new Object[]{courses.size(), auth.getName()});
+            return courses;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching shared courses for user: {0}: {1}",
+                    new Object[]{auth.getName(), e.getMessage()});
+            throw e;
+        }
+    }
+
     @GetMapping("/{id}")
-    public Course getCourse(@PathVariable Long id) throws Exception {
+    public Course getCourse(@PathVariable Long id, Authentication auth) throws Exception {
         LOGGER.log(Level.INFO, "Fetching course details for ID: {0}", new Object[]{id});
         try {
-            Course course = courseServiceImpl.getCourseById(id);
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Course course = courseServiceImpl.getCourseById(id, principal.getUser().getId());
             LOGGER.log(Level.INFO, "Course details retrieved for ID: {0}", new Object[]{id});
             return course;
         } catch (Exception e) {
@@ -103,6 +121,32 @@ public class CourseController {
             return ResponseEntity.ok(ApiResponse.success("Course deleted successfully", null));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error deleting course ID: {0}: {1}", new Object[]{courseId, e.getMessage()});
+            throw e;
+        }
+    }
+
+    @PutMapping("/{courseId}/deactivate")
+    public ResponseEntity<ApiResponse<Void>> deactivateCourse(@PathVariable Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Request received to deactivate course ID: {0}", new Object[]{courseId});
+        try {
+            courseServiceImpl.deactivateCourse(courseId);
+            LOGGER.log(Level.INFO, "Course ID: {0} deactivated successfully", new Object[]{courseId});
+            return ResponseEntity.ok(ApiResponse.success("Course deactivated successfully", null));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error deactivating course ID: {0}: {1}", new Object[]{courseId, e.getMessage()});
+            throw e;
+        }
+    }
+
+    @PutMapping("/{courseId}/activate")
+    public ResponseEntity<ApiResponse<Void>> activateCourse(@PathVariable Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Request received to activate course ID: {0}", new Object[]{courseId});
+        try {
+            courseServiceImpl.activateCourse(courseId);
+            LOGGER.log(Level.INFO, "Course ID: {0} activated successfully", new Object[]{courseId});
+            return ResponseEntity.ok(ApiResponse.success("Course activated successfully", null));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error activating course ID: {0}: {1}", new Object[]{courseId, e.getMessage()});
             throw e;
         }
     }

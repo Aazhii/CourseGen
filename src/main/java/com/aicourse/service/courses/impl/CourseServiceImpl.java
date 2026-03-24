@@ -1,24 +1,26 @@
 package com.aicourse.service.courses.impl;
 
 import com.aicourse.geminiConnection.GeminiConnection;
-import com.aicourse.model.Course;
-import com.aicourse.model.Lesson;
+import com.aicourse.model.*;
 import com.aicourse.model.Module;
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.ModuleRepo;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.features.Feature;
+import com.features.FeatureGuard;
+import com.leaderboard.model.impl.UserStatsService;
+import com.sharing.repo.CourseEnrollmentRepo;
+import com.sharing.repo.CourseShareLinkRepo;
+import com.sharing.service.SharedCourseAccessGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +38,21 @@ public class CourseServiceImpl implements CourseService {
     @Autowired
     private GeminiConnection geminiConnection;
 
+    @Autowired
+    private FeatureGuard featureGuard;
+
+    @Autowired
+    private UserStatsService userStatsService;
+
+    @Autowired
+    private CourseShareLinkRepo courseShareLinkRepo;
+
+    @Autowired
+    private CourseEnrollmentRepo courseEnrollmentRepo;
+
+    @Autowired
+    private SharedCourseAccessGuard sharedCourseAccessGuard;
+
     @Override
     @Transactional
     public Course generateCourse(Map<String, String> payload, Authentication auth) throws Exception {
@@ -46,13 +63,18 @@ public class CourseServiceImpl implements CourseService {
         String creator = auth.getName();
         LOGGER.log(Level.INFO, "Generating course ''{0}'' for user ''{1}'' (Difficulty: {2}, Duration: {3})",
                 new Object[]{title, creator, difficulty, duration});
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        Users curUser = principal.getUser();
+        Long userId = curUser.getId();
+
+//      int existingCount = courseRepo.countByCreator(userId);
+        int lifetimeCount = userStatsService.getTotalCoursesCreated(userId);
+        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, curUser.getRoles(), lifetimeCount);
 
         Course course = new Course();
         course.setId(SnowflakeIdGenerator.generateId());
         course.setTitle(title);
 
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        Long userId = principal.getUser().getId();
         course.setCreator(userId);
 
         String prompt = """
@@ -119,6 +141,7 @@ public class CourseServiceImpl implements CourseService {
 
             course.setModules(modules);
             Course savedCourse = courseRepo.save(course);
+            userStatsService.incrementTotalCoursesCreated(userId);
             LOGGER.log(Level.INFO, "Course ''{0}'' generated and saved successfully with ID: {1}",
                     new Object[]{title, savedCourse.getId()});
             return savedCourse;
@@ -136,13 +159,23 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public Course getCourseById(Long id) throws Exception {
+    public List<Course> getCoursesSharedByCreator(Long creator) throws Exception {
+        LOGGER.log(Level.FINE, "Retrieving courses shared by creator: {0}", new Object[]{creator});
+        Set<Long> courseIds = new LinkedHashSet<>(courseShareLinkRepo.findDistinctCourseIdsByCreatedBy(creator));
+        courseIds.addAll(courseEnrollmentRepo.findDistinctCourseIdsByInvitedByAndInviteType(creator, "DIRECT"));
+        if (courseIds.isEmpty()) {
+            return List.of();
+        }
+        return courseRepo.findAllById(courseIds);
+    }
+
+    @Override
+    public Course getCourseById(Long id, Long requesterId) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving course by ID: {0}", new Object[]{id});
-        return courseRepo.findById(id)
-                .orElseThrow(() -> {
-                    LOGGER.log(Level.SEVERE, "Course not found with ID: {0}", new Object[]{id});
-                    return new RuntimeException("Course not found");
-                });
+        Course course = sharedCourseAccessGuard.assertCourseShellAccess(id, requesterId);
+        LOGGER.log(Level.FINE, "Course access granted for user {0} and course {1}",
+                new Object[]{requesterId, id});
+        return course;
     }
 
     @Override
@@ -167,7 +200,7 @@ public class CourseServiceImpl implements CourseService {
         LOGGER.log(Level.INFO, "Updating course with ID: {0}", new Object[]{courseID});
         Course course = courseRepo.findById(courseID).orElseThrow(() -> {
             LOGGER.log(Level.SEVERE, "Cannot update course. Course not found with ID: {0}", new Object[]{courseID});
-            return new RuntimeException("Course not found");
+            return new IllegalArgumentException("Course not found with id: " + courseID);
         });
 
         if (courseDO.getTitle() != null) {
@@ -184,5 +217,35 @@ public class CourseServiceImpl implements CourseService {
         }
         courseRepo.save(course);
         LOGGER.log(Level.INFO, "Course with ID: {0} updated successfully", new Object[]{courseID});
+    }
+
+    @Override
+    @Transactional
+    public void deactivateCourse(Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Deactivating course with ID: {0}", new Object[]{courseId});
+        Course course = courseRepo.findById(courseId).orElseThrow(() -> {
+            LOGGER.log(Level.SEVERE, "Cannot deactivate course. Course not found with ID: {0}", new Object[]{courseId});
+            return new IllegalArgumentException("Course not found with id: " + courseId);
+        });
+
+        course.setActive(false);
+        courseRepo.save(course);
+
+        LOGGER.log(Level.INFO, "Course with ID: {0} deactivated successfully", new Object[]{courseId});
+    }
+
+    @Override
+    @Transactional
+    public void activateCourse(Long courseId) throws Exception {
+        LOGGER.log(Level.INFO, "Activating course with ID: {0}", new Object[]{courseId});
+        Course course = courseRepo.findById(courseId).orElseThrow(() -> {
+            LOGGER.log(Level.SEVERE, "Cannot activate course. Course not found with ID: {0}", new Object[]{courseId});
+            return new IllegalArgumentException("Course not found with id: " + courseId);
+        });
+
+        course.setActive(true);
+        courseRepo.save(course);
+
+        LOGGER.log(Level.INFO, "Course with ID: {0} activated successfully", new Object[]{courseId});
     }
 }
