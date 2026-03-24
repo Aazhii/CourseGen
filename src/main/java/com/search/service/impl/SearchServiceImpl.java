@@ -51,6 +51,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         Set<ResultType> typeFilter = new HashSet<>(request.getTypes());
+        Set<Long> excludeUsers = new HashSet<>(request.getExcludeUserIds());
 
         lock.readLock().lock();
         try {
@@ -72,6 +73,9 @@ public class SearchServiceImpl implements SearchService {
                 }
                 if (!typeFilter.isEmpty() && !typeFilter.contains(doc.getType())) {
                     continue;
+                }
+                if (doc.getType() == ResultType.USER && excludeUsers.contains(doc.getId())) {
+                    continue; // skip users that were already picked
                 }
                 double score = computeScore(doc, tokens, now);
                 scored.add(new SearchResultItem(doc.getId(), doc.getType(), doc.getTitle(), doc.getDescription(), score));
@@ -98,14 +102,14 @@ public class SearchServiceImpl implements SearchService {
     }
 
     @Override
-    public AutocompleteResponse autocomplete(String prefix, List<ResultType> types, int limit) {
+    public AutocompleteResponse autocomplete(String prefix, List<ResultType> types, int limit, Set<Long> excludeUserIds) {
         int resolvedLimit = Math.max(1, Math.min(limit, 20));
         Set<ResultType> typeFilter = types == null ? Collections.emptySet() : new HashSet<>(types);
 
         lock.readLock().lock();
         try {
             List<String> suggestions = trie.suggest(prefix, resolvedLimit);
-            SearchRequest quickRequest = new SearchRequest(prefix, new ArrayList<>(typeFilter), 0, resolvedLimit);
+            SearchRequest quickRequest = new SearchRequest(prefix, new ArrayList<>(typeFilter), 0, resolvedLimit, excludeUserIds);
             SearchResponse quickResults = search(quickRequest);
             return new AutocompleteResponse(suggestions, quickResults.results());
         } finally {

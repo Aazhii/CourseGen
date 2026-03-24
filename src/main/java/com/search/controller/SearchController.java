@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -31,10 +29,11 @@ public class SearchController {
             @RequestParam("q") String query,
             @RequestParam(value = "types", required = false) String types,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "excludeIds", required = false) String excludeIds) {
 
         List<ResultType> resolvedTypes = parseTypes(types);
-        SearchRequest request = new SearchRequest(query, resolvedTypes, offset, limit);
+        SearchRequest request = new SearchRequest(query, resolvedTypes, offset, limit, parseIds(excludeIds));
         SearchResponse response = searchService.search(request);
         return ResponseEntity.ok(response);
     }
@@ -43,10 +42,11 @@ public class SearchController {
     public ResponseEntity<AutocompleteResponse> autocomplete(
             @RequestParam("q") String prefix,
             @RequestParam(value = "types", required = false) String types,
-            @RequestParam(value = "limit", defaultValue = "8") int limit) {
+            @RequestParam(value = "limit", defaultValue = "8") int limit,
+            @RequestParam(value = "excludeIds", required = false) String excludeIds) {
 
         List<ResultType> resolvedTypes = parseTypes(types);
-        AutocompleteResponse response = searchService.autocomplete(prefix, resolvedTypes, limit);
+        AutocompleteResponse response = searchService.autocomplete(prefix, resolvedTypes, limit, parseIds(excludeIds));
         return ResponseEntity.ok(response);
     }
 
@@ -67,6 +67,20 @@ public class SearchController {
                 })
                 .filter(type -> type != null)
                 .collect(Collectors.toList());
+    }
+
+    private Set<Long> parseIds(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Collections.emptySet();
+        }
+        Set<Long> ids = new HashSet<>();
+        for (String part : raw.split(",")) {
+            try {
+                ids.add(Long.parseLong(part.trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return ids;
     }
 }
 
