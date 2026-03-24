@@ -37,10 +37,6 @@ public class SharedCourseAccessGuard {
             throw new IllegalArgumentException("Enrollment is not active for this course");
         }
 
-        if (!course.isActive()) {
-            throw new IllegalArgumentException("This course has been deactivated and is no longer accessible");
-        }
-
         return course;
     }
 
@@ -49,6 +45,11 @@ public class SharedCourseAccessGuard {
 
         if (course.getCreator().equals(userId)) {
             return;
+        }
+
+        if (!course.isActive()) {
+            throw new SharedCourseContentLockedException(
+                    "Course content is locked because this course was deactivated by the owner");
         }
 
         CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)

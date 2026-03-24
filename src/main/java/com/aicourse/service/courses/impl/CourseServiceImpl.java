@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.features.Feature;
 import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;
+import com.sharing.model.CourseShareLink;
 import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.CourseShareLinkRepo;
 import com.sharing.service.SharedCourseAccessGuard;
@@ -230,6 +231,13 @@ public class CourseServiceImpl implements CourseService {
 
         course.setActive(false);
         courseRepo.save(course);
+
+        List<CourseShareLink> links = courseShareLinkRepo.findByCourseId(courseId);
+        for (CourseShareLink link : links) {
+            link.setIsActive(false);
+        }
+        courseShareLinkRepo.saveAll(links);
+
         LOGGER.log(Level.INFO, "Course with ID: {0} deactivated successfully", new Object[]{courseId});
     }
 
@@ -244,6 +252,13 @@ public class CourseServiceImpl implements CourseService {
 
         course.setActive(true);
         courseRepo.save(course);
+
+        List<CourseShareLink> links = courseShareLinkRepo.findByCourseId(courseId);
+        for (CourseShareLink link : links) {
+            link.setIsActive(true);
+        }
+        courseShareLinkRepo.saveAll(links);
+
         LOGGER.log(Level.INFO, "Course with ID: {0} activated successfully", new Object[]{courseId});
     }
 }
