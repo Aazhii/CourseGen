@@ -2995,6 +2995,90 @@ select:focus {
   outline-offset: 2px;
 }
 
+.invite-multi-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.65rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  min-height: 3rem;
+  cursor: text;
+}
+
+.invite-multi-input input {
+  flex: 1;
+  min-width: 160px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.invite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #e0e7ff;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-size: 0.85rem;
+}
+
+.invite-chip button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0 0.1rem;
+}
+
+.invite-suggestions {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.65rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.invite-suggestion-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.invite-suggestion-item:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.invite-suggestion-label {
+  font-weight: 600;
+}
+
+.invite-suggestion-desc {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 480px) {
   .delete-modal-card {
     padding: 2rem 1.25rem 1.5rem;

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, deactivateAllShareLinks, activateAllShareLinks, sendDirectInvite } from "../../services/shareApi";
+import { autocompleteUsers } from "../../services/searchApi";
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
 import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
@@ -18,9 +19,14 @@ export default function SharingPage() {
     const [maxEnrollments, setMaxEnrollments] = useState("");
     const [expiryDays, setExpiryDays] = useState("");
 
-    // Email invite form
-    const [emails, setEmails] = useState("");
+    // Email/user invite form
+    const [userQuery, setUserQuery] = useState("");
+    const [userSuggestions, setUserSuggestions] = useState([]);
+    const [userSearchLoading, setUserSearchLoading] = useState(false);
+    const [selectedRecipients, setSelectedRecipients] = useState([]);
     const [sendingInvite, setSendingInvite] = useState(false);
+    const searchDebounceRef = useRef(null);
+    const inviteInputRef = useRef(null);
 
     // Newly generated link
     const [newlyGeneratedLink, setNewlyGeneratedLink] = useState(null);
@@ -178,18 +184,109 @@ export default function SharingPage() {
         }
     };
 
+    const normalizeUserSuggestions = (resp) => {
+        if (!resp) return [];
+        const seen = new Set();
+        const items = [];
+        (resp.topResults || []).forEach((item) => {
+            if (item.type === "USER" && item.label) {
+                const key = `${item.id || item.label}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    items.push({ id: item.id || item.label, label: item.label, description: item.description });
+                }
+            }
+        });
+        (resp.suggestions || []).forEach((label) => {
+            const key = `s-${label}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                items.push({ id: key, label });
+            }
+        });
+        return items;
+    };
+
+    const fetchUserSuggestions = async (value) => {
+        const term = value.trim();
+        if (!term || term.length < 2) {
+            setUserSuggestions([]);
+            return;
+        }
+        setUserSearchLoading(true);
+        try {
+            const resp = await autocompleteUsers(term, 8);
+            setUserSuggestions(normalizeUserSuggestions(resp));
+        } catch (err) {
+            console.error("Failed to search users", err);
+            toast.error("Search is unavailable right now.");
+        } finally {
+            setUserSearchLoading(false);
+        }
+    };
+
+    const handleUserQueryChange = (e) => {
+        const value = e.target.value;
+        setUserQuery(value);
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        searchDebounceRef.current = setTimeout(() => fetchUserSuggestions(value), 250);
+    };
+
+    useEffect(() => () => {
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+    }, []);
+
+    const handleSelectUser = (user) => {
+        if (!user || !user.label) return;
+        setSelectedRecipients((prev) => {
+            if (prev.some((r) => r.label.toLowerCase() === user.label.toLowerCase())) {
+                return prev;
+            }
+            return [...prev, user];
+        });
+        setUserQuery("");
+        setUserSuggestions([]);
+    };
+
+    const handleRemoveRecipient = (idOrLabel) => {
+        setSelectedRecipients((prev) => prev.filter((r) => (r.id || r.label) !== idOrLabel));
+    };
+
+    const handleAddFreeformRecipient = () => {
+        const value = userQuery.trim();
+        if (!value) return;
+        handleSelectUser({ id: `manual-${value}`, label: value });
+    };
+
+    const handleInviteKeyDown = (e) => {
+        if ((e.key === "Enter" || e.key === ",") && userQuery.trim()) {
+            e.preventDefault();
+            handleAddFreeformRecipient();
+        }
+        if (e.key === "Backspace" && !userQuery && selectedRecipients.length > 0) {
+            handleRemoveRecipient(selectedRecipients[selectedRecipients.length - 1].id || selectedRecipients[selectedRecipients.length - 1].label);
+        }
+    };
+
     const handleSendInvite = async (e) => {
         e.preventDefault();
-        if (!emails.trim()) return;
-        
-        const emailList = emails.split(',').map(e => e.trim()).filter(e => e);
-        if (emailList.length === 0) return;
+        const emailList = selectedRecipients.map((r) => r.label).filter(Boolean);
+        if (emailList.length === 0) {
+            toast.error("Add at least one recipient.");
+            return;
+        }
 
         setSendingInvite(true);
         try {
             await sendDirectInvite(courseId, emailList);
             toast.success(`Invites sent to ${emailList.length} recipients`);
-            setEmails("");
+            setSelectedRecipients([]);
+            setUserQuery("");
+            setUserSuggestions([]);
         } catch (err) {
             toast.error("Failed to send invites.");
         } finally {
@@ -325,22 +422,57 @@ export default function SharingPage() {
                         <Mail size={20} className="text-accent" /> Direct Email Invite
                     </h2>
                     <p className="text-muted" style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
-                        Send course invitations directly to users' email addresses. Separate multiple emails with commas.
+                        Search users as you type, pick multiple recipients, and remove them before sending.
                     </p>
                     <form onSubmit={handleSendInvite} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                        <div>
-                            <textarea 
-                                placeholder="e.g. user1@example.com, user2@example.com"
-                                value={emails}
-                                onChange={(e) => setEmails(e.target.value)}
-                                rows="3"
-                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)", resize: "vertical" }}
+                        <div className="invite-multi-input" onClick={() => inviteInputRef.current?.focus()}>
+                            {selectedRecipients.map((r) => (
+                                <span key={r.id || r.label} className="invite-chip">
+                                    {r.label}
+                                    <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                            <input
+                                ref={inviteInputRef}
+                                type="text"
+                                value={userQuery}
+                                onChange={handleUserQueryChange}
+                                onKeyDown={handleInviteKeyDown}
+                                placeholder="Type a user name or email"
+                                aria-label="Search users to invite"
+                                autoComplete="off"
                             />
+                            {userSearchLoading ? <Loader2 size={16} className="spin" /> : null}
                         </div>
-                        <button 
+                        {userSuggestions.length > 0 && (
+                            <div className="invite-suggestions">
+                                {userSuggestions.map((user) => (
+                                    <button
+                                        key={user.id || user.label}
+                                        type="button"
+                                        className="invite-suggestion-item"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleSelectUser(user);
+                                        }}
+                                    >
+                                        <span className="invite-suggestion-label">{user.label}</span>
+                                        {user.description ? (
+                                            <span className="invite-suggestion-desc">{user.description}</span>
+                                        ) : null}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: "-0.25rem" }}>
+                            Press Enter to add a free-form email/username when no suggestion is shown.
+                        </p>
+                        <button
                             type="submit" 
                             className="auth-btn" 
-                            disabled={sendingInvite || !emails.trim()}
+                            disabled={sendingInvite || selectedRecipients.length === 0}
                             style={{ marginTop: "auto", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
                         >
                             {sendingInvite ? <Loader2 className="spin" size={18} /> : null}
