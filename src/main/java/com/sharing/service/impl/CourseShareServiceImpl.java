@@ -152,6 +152,28 @@ public class CourseShareServiceImpl implements CourseShareService {
 
     @Override
     @Transactional
+    public void activateShareLink(Long shareLinkId, Long creatorId) throws Exception {
+        LOGGER.log(Level.INFO, "Activating share link ID: {0}", shareLinkId);
+
+        try {
+            CourseShareLink shareLink = courseShareLinkRepo.findById(shareLinkId)
+                    .orElseThrow(() -> new IllegalArgumentException("Share link not found"));
+
+            if (!shareLink.getCreatedBy().equals(creatorId)) {
+                throw new IllegalArgumentException("User is not authorized to activate this share link");
+            }
+
+            shareLink.setIsActive(true);
+            courseShareLinkRepo.save(shareLink);
+            LOGGER.log(Level.INFO, "Share link activated successfully");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error activating share link: {0}", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
     public void sendDirectInvite(Long courseId, Long creatorId, List<String> userEmails) throws Exception {
         LOGGER.log(Level.INFO, "Sending direct invites for course ID: {0}", courseId);
 

@@ -109,6 +109,29 @@ public class CourseShareController {
     }
 
     /**
+     * Activate a share link
+     */
+    @PutMapping("/links/{shareLinkId}/activate")
+    public ResponseEntity<ApiResponse<Void>> activateShareLink(
+            @PathVariable Long courseId,
+            @PathVariable Long shareLinkId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to activate share link: {0}", shareLinkId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            courseShareService.activateShareLink(shareLinkId, principal.getUser().getId());
+
+            LOGGER.log(Level.INFO, "Share link activated successfully");
+            return ResponseEntity.ok(ApiResponse.success("Share link activated successfully", null));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error activating share link: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error activating share link: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Revoke a share link (delete it)
      */
     @DeleteMapping("/links/{shareLinkId}")

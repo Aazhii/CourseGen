@@ -30,6 +30,11 @@ public interface CourseShareService {
     void deactivateShareLink(Long shareLinkId, Long creatorId) throws Exception;
 
     /**
+     * Activate a share link
+     */
+    void activateShareLink(Long shareLinkId, Long creatorId) throws Exception;
+
+    /**
      * Send direct invitation to users
      */
     void sendDirectInvite(Long courseId, Long creatorId, List<String> userEmails) throws Exception;
