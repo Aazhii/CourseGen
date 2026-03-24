@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
  *
  * @param {{ title?: string, description?: string, onConfirm: () => Promise<void> }} options
  */
-export function confirmDelete({ title = "Delete this item?", description = "This action cannot be undone.", onConfirm }) {
+export function confirmDelete({ title = "Delete this item?", description = "This action cannot be undone.", confirmText = "Delete", confirmColor = "#ef4444", onConfirm }) {
     toast((t) => (
         <div style={{ width: "100%", maxWidth: "900px", margin: "0 auto", textAlign: "center", padding: "0 35px" }}>
             <p style={{ margin: "0 0 10px", fontSize: "0.95rem", fontWeight: "600" }}>
@@ -22,13 +22,13 @@ export function confirmDelete({ title = "Delete this item?", description = "This
                     Cancel
                 </button>
                 <button
-                    style={{ padding: "6px 12px", background: "#ef4444", color: "white", border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer", fontWeight: "600" }}
+                    style={{ padding: "6px 12px", background: confirmColor, color: "white", border: "none", borderRadius: "var(--radius-sm)", cursor: "pointer", fontWeight: "600" }}
                     onClick={async () => {
                         toast.dismiss(t.id);
                         await onConfirm();
                     }}
                 >
-                    Delete
+                    {confirmText}
                 </button>
             </div>
         </div>

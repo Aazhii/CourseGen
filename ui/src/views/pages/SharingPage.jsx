@@ -4,6 +4,7 @@ import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShar
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
 import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import { confirmDelete } from "../../utils/confirmDelete";
 
 export default function SharingPage() {
     const { id: courseId } = useParams();
@@ -98,28 +99,45 @@ export default function SharingPage() {
     };
 
     const handleRevoke = async (linkId) => {
-        if (!window.confirm("Are you sure you want to delete this link?")) return;
-        try {
-            await revokeShareLink(courseId, linkId);
-            toast.success("Link deleted");
-            setLinks(links.filter(l => l.id !== linkId));
-        } catch (err) {
-            toast.error("Failed to delete link");
-        }
+        confirmDelete({
+            title: "Delete this link?",
+            description: "Are you sure you want to delete this link?",
+            onConfirm: async () => {
+                try {
+                    await revokeShareLink(courseId, linkId);
+                    toast.success("Link deleted");
+                    setLinks(prev => prev.filter(l => l.id !== linkId));
+                } catch (err) {
+                    toast.error("Failed to delete link");
+                }
+            }
+        });
     };
 
     const handleToggleCourseAccess = async () => {
         if (!course) return;
         try {
             if (course.active !== false) {
-                if (!window.confirm("Are you sure you want to deactivate this course? Shared users will lose access.")) return;
-                await deactivateCourse(courseId);
-                toast.success("Course access deactivated.");
+                confirmDelete({
+                    title: "Deactivate this course?",
+                    description: "Shared users will lose access.",
+                    confirmText: "Deactivate",
+                    confirmColor: "#f59e0b",
+                    onConfirm: async () => {
+                        try {
+                            await deactivateCourse(courseId);
+                            toast.success("Course access deactivated.");
+                            loadData();
+                        } catch (err) {
+                            toast.error("Failed to update course access status.");
+                        }
+                    }
+                });
             } else {
                 await activateCourse(courseId);
                 toast.success("Course access restored.");
+                loadData();
             }
-            loadData();
         } catch (err) {
             toast.error("Failed to update course access status.");
         }
