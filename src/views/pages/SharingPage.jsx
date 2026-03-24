@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, sendDirectInvite } from "../../services/shareApi";
+import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, deactivateAllShareLinks, activateAllShareLinks, sendDirectInvite } from "../../services/shareApi";
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
 import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
@@ -126,6 +126,7 @@ export default function SharingPage() {
                     onConfirm: async () => {
                         try {
                             await deactivateCourse(courseId);
+                            await deactivateAllShareLinks(courseId);
                             toast.success("Course access deactivated.");
                             loadData();
                         } catch (err) {
@@ -135,6 +136,7 @@ export default function SharingPage() {
                 });
             } else {
                 await activateCourse(courseId);
+                await activateAllShareLinks(courseId);
                 toast.success("Course access restored.");
                 loadData();
             }
