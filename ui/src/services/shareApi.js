@@ -20,6 +20,13 @@ export const deactivateShareLink = async (courseId, shareLinkId) => {
     return res.data;
 };
 
+export const activateShareLink = async (courseId, shareLinkId) => {
+    const res = await apiFetch(`/api/courses/${courseId}/share/links/${shareLinkId}/activate`, {
+        method: "PUT"
+    });
+    return res.data;
+};
+
 export const revokeShareLink = async (courseId, shareLinkId) => {
     const res = await apiFetch(`/api/courses/${courseId}/share/links/${shareLinkId}`, {
         method: "DELETE"
