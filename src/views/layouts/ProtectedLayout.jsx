@@ -66,20 +66,22 @@ export default function ProtectedLayout() {
             </div>
 
             {/* Main area */}
-            <main className="main-content-area">
+            <main className="main-content-area" style={{ position: "relative" }}>
                 {/* Mobile sticky top bar */}
                 <header className="mobile-header">
                     <div className="mobile-header-brand">
                         <LayoutDashboard size={18} style={{ color: "var(--accent)" }} />
                         <span>AI CourseGen</span>
                     </div>
-                    <button
-                        className="hamburger-btn"
-                        onClick={() => setSidebarOpen(prev => !prev)}
-                        aria-label="Toggle sidebar"
-                    >
-                        {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <button
+                            className="hamburger-btn"
+                            onClick={() => setSidebarOpen(prev => !prev)}
+                            aria-label="Toggle sidebar"
+                        >
+                            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
+                    </div>
                 </header>
 
                 <Outlet context={{ courses, loadCourses, coursesLoading, projects, loadProjects, projectsLoading }} />

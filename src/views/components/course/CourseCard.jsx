@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, BarChart, X } from "lucide-react";
+import { BookOpen, BarChart, Trash2 } from "lucide-react";
 
 export default function CourseCard({ course, onDelete }) {
   const navigate = useNavigate();
@@ -16,24 +16,14 @@ export default function CourseCard({ course, onDelete }) {
           )}
           {onDelete && (
             <button
-              className="delete-icon-btn"
+              className="project-card-delete-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(course.id);
               }}
               title="Delete Course"
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "#ff4d4f",
-                padding: "2px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
             >
-              <X size={20} className="hover:scale-110 transition-transform" />
+              <Trash2 size={16} />
             </button>
           )}
         </div>
@@ -57,3 +47,4 @@ export default function CourseCard({ course, onDelete }) {
     </div>
   );
 }
+
