@@ -12,6 +12,8 @@ import LeaderboardPage from "./views/pages/LeaderboardPage";
 import ProfilePage from "./views/pages/ProfilePage";
 import ProjectsDashboard from "./views/pages/ProjectsDashboard";
 import ProjectDetailsPage from "./views/pages/ProjectDetailsPage";
+import CourseJoinPage from "./views/pages/CourseJoinPage";
+import SharingPage from "./views/pages/SharingPage";
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<LoginPage />} />
         <Route path="/oauth-success" element={<OAuthSuccessPage />} />
+        <Route path="/join/:token" element={<CourseJoinPage />} />
 
         <Route
           path="/"
@@ -53,6 +56,7 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="create-course" element={<CreateCoursePage />} />
           <Route path="course/:id" element={<CourseDetailsPage />} />
+          <Route path="course/:id/sharing" element={<SharingPage />} />
           <Route path="course/:title/:id" element={<CourseDetailsPage />} />
           <Route path="course/:courseId/module/:moduleId/lesson/:lessonId" element={<LessonPage />} />
         </Route>

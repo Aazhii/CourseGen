@@ -11,6 +11,10 @@ export async function fetchCourses() {
     return apiFetch("/api/courses/my-courses");
 }
 
+export async function fetchCoursesSharedByMe() {
+    return apiFetch("/api/courses/shared-by-me");
+}
+
 export async function getCourseById(id) {
     return apiFetch(`/api/courses/${id}`);
 }
@@ -27,6 +31,18 @@ export async function updateCourse(id, data) {
 export async function deleteCourse(id) {
     return apiFetch(`/api/courses/${id}`, {
         method: "DELETE",
+    });
+}
+
+export async function activateCourse(id) {
+    return apiFetch(`/api/courses/${id}/activate`, {
+        method: "PUT",
+    });
+}
+
+export async function deactivateCourse(id) {
+    return apiFetch(`/api/courses/${id}/deactivate`, {
+        method: "PUT",
     });
 }
 
