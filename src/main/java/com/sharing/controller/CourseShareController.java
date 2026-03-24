@@ -113,6 +113,60 @@ public class CourseShareController {
     }
 
     /**
+     * Deactivate all share link
+     */
+    @PutMapping("/links/deactivate-all")
+    public ResponseEntity<ApiResponse<Void>> deactivateAllShareLink(
+            @PathVariable Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to deactivate all share links for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+            List<ShareLinkResponse> links = courseShareService.getCourseShareLinks(courseId, principal.getUser().getId());
+            for (ShareLinkResponse link : links) {
+                courseShareService.deactivateShareLink(link.getId(), principal.getUser().getId());
+            }
+
+            LOGGER.log(Level.INFO, "All share links deactivated successfully for course: {0}", courseId);
+            return ResponseEntity.ok(ApiResponse.success("All share links deactivated successfully", null));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error deactivating all share links for course {0}: {1}",
+                    new Object[]{courseId, e.getMessage()});
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error deactivating all share links: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Activate all share link
+     */
+    @PutMapping("/links/activate-all")
+    public ResponseEntity<ApiResponse<Void>> activateAllShareLink(
+            @PathVariable Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to activate all share links for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+            List<ShareLinkResponse> links = courseShareService.getCourseShareLinks(courseId, principal.getUser().getId());
+            for (ShareLinkResponse link : links) {
+                courseShareService.activateShareLink(link.getId(), principal.getUser().getId());
+            }
+
+            LOGGER.log(Level.INFO, "All share links activated successfully for course: {0}", courseId);
+            return ResponseEntity.ok(ApiResponse.success("All share links activated successfully", null));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error activating all share links for course {0}: {1}",
+                    new Object[]{courseId, e.getMessage()});
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error activating all share links: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Activate a share link
      */
     @PutMapping("/links/{shareLinkId}/activate")
@@ -235,6 +289,7 @@ public class CourseShareController {
                     .body(ApiResponse.failure("Error sending direct invites: " + e.getMessage()));
         }
     }
+
 }
 
 
