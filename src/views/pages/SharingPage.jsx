@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, sendDirectInvite } from "../../services/shareApi";
-import { getCourseById } from "../../services/courseApi";
+import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
 import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -107,6 +107,23 @@ export default function SharingPage() {
         }
     };
 
+    const handleToggleCourseAccess = async () => {
+        if (!course) return;
+        try {
+            if (course.active !== false) {
+                if (!window.confirm("Are you sure you want to deactivate this course? Shared users will lose access.")) return;
+                await deactivateCourse(courseId);
+                toast.success("Course access deactivated.");
+            } else {
+                await activateCourse(courseId);
+                toast.success("Course access restored.");
+            }
+            loadData();
+        } catch (err) {
+            toast.error("Failed to update course access status.");
+        }
+    };
+
     const handleSendInvite = async (e) => {
         e.preventDefault();
         if (!emails.trim()) return;
@@ -134,10 +151,38 @@ export default function SharingPage() {
                 <ChevronLeft size={20} /> Back to Course
             </Link>
 
-            <header style={{ marginBottom: "2rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1rem" }}>
-                <h1 className="course-title-large">Share: {course?.title}</h1>
-                <p className="text-muted">Manage access and share links for your course.</p>
+            <header style={{ marginBottom: "2rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                    <h1 className="course-title-large">Share: {course?.title}</h1>
+                    <p className="text-muted">Manage access and share links for your course.</p>
+                </div>
+                {course && (
+                    <button 
+                        className="auth-btn"
+                        style={{ 
+                            background: course.active !== false ? "var(--bg-secondary)" : "#ef4444", 
+                            color: course.active !== false ? "var(--text-primary)" : "white",
+                            border: course.active !== false ? "1px solid var(--border-color)" : "none",
+                            display: "flex", alignItems: "center", gap: "8px" 
+                        }}
+                        onClick={handleToggleCourseAccess}
+                        title={course.active !== false ? "Click to lock the course and prevent shared users from viewing it" : "Click to unlock"}
+                    >
+                        {course.active !== false ? <Power size={18} /> : <PowerOff size={18} />}
+                        {course.active !== false ? "Deactivate Course" : "Activate Course"}
+                    </button>
+                )}
             </header>
+
+            {course?.active === false && (
+                <div style={{ padding: "1rem", marginBottom: "2rem", background: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", borderRadius: "0.5rem", color: "#ef4444", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <PowerOff size={20} />
+                    <div>
+                        <strong>Course Access Deactivated.</strong> 
+                        <span style={{ display: "block", fontSize: "0.9rem", marginTop: "4px", color: "rgba(239, 68, 68, 0.8)" }}>Shared users cannot access this course until you activate it again.</span>
+                    </div>
+                </div>
+            )}
 
             {newlyGeneratedLink && (
                 <div style={{ marginBottom: "2rem", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", borderRadius: "0.5rem", padding: "1.5rem" }}>
