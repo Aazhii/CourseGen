@@ -1,6 +1,8 @@
 package com.sharing.controller;
 
+import com.aicourse.model.Course;
 import com.aicourse.model.UserPrincipal;
+import com.aicourse.repo.CourseRepo;
 import com.aicourse.utils.api.ApiResponse;
 import com.sharing.dto.ShareLinkResponse;
 import com.sharing.model.ShareLinkType;
@@ -25,6 +27,8 @@ public class CourseShareController {
 
     @Autowired
     private CourseShareService courseShareService;
+    @Autowired
+    private CourseRepo courseRepo;
 
     /**
      * Generate a new share link for the course
@@ -120,6 +124,9 @@ public class CourseShareController {
         LOGGER.log(Level.INFO, "Request received to activate share link: {0}", shareLinkId);
         try {
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            Course curCourse = courseRepo.findById(courseId)
+                    .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId + " for activating share link"));
+            if (!curCourse.isActive()) curCourse.setActive(true);
             courseShareService.activateShareLink(shareLinkId, principal.getUser().getId());
 
             LOGGER.log(Level.INFO, "Share link activated successfully");
