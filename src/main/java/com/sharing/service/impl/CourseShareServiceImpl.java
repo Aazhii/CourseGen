@@ -140,7 +140,9 @@ public class CourseShareServiceImpl implements CourseShareService {
             if (!shareLink.getCreatedBy().equals(creatorId)) {
                 throw new IllegalArgumentException("User is not authorized to deactivate this share link");
             }
-
+            if (shareLink.getIsActive() == Boolean.FALSE) {
+                return;
+            }
             shareLink.setIsActive(false);
             courseShareLinkRepo.save(shareLink);
             LOGGER.log(Level.INFO, "Share link deactivated successfully");
@@ -162,7 +164,9 @@ public class CourseShareServiceImpl implements CourseShareService {
             if (!shareLink.getCreatedBy().equals(creatorId)) {
                 throw new IllegalArgumentException("User is not authorized to activate this share link");
             }
-
+            if (shareLink.getIsActive() == Boolean.TRUE) {
+                return;
+            }
             shareLink.setIsActive(true);
             courseShareLinkRepo.save(shareLink);
             LOGGER.log(Level.INFO, "Share link activated successfully");
