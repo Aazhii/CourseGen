@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, sendDirectInvite } from "../../services/shareApi";
+import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, sendDirectInvite } from "../../services/shareApi";
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
 import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
@@ -84,15 +84,16 @@ export default function SharingPage() {
 
     const handleToggleStatus = async (linkId, isActive) => {
         try {
-            if (!isActive) {
-                 toast.error("Link is already inactive or expired.");
-                 return;
+            if (isActive) {
+                await deactivateShareLink(courseId, linkId);
+                toast.success("Link deactivated");
+            } else {
+                await activateShareLink(courseId, linkId);
+                toast.success("Link activated");
             }
-            await deactivateShareLink(courseId, linkId);
-            toast.success("Link deactivated");
             loadData(); // Reload to get updated status
         } catch (err) {
-            toast.error("Failed to update status");
+            toast.error(isActive ? "Failed to deactivate link" : "Failed to activate link");
         }
     };
 
@@ -354,9 +355,8 @@ export default function SharingPage() {
                                             </button>
                                             <button 
                                                 onClick={() => handleToggleStatus(link.id, link.isActive)}
-                                                style={{ background: "transparent", border: "none", color: link.isActive ? "#f59e0b" : "var(--text-secondary)", cursor: link.isActive ? "pointer" : "not-allowed", padding: "0.25rem" }}
-                                                title="Deactivate"
-                                                disabled={!link.isActive}
+                                                style={{ background: "transparent", border: "none", color: link.isActive ? "#f59e0b" : "#10b981", cursor: "pointer", padding: "0.25rem" }}
+                                                title={link.isActive ? "Deactivate" : "Activate"}
                                             >
                                                 <Power size={18} />
                                             </button>
