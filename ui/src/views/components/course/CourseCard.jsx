@@ -1,13 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, BarChart, Trash2, Eye, EyeOff } from "lucide-react";
+import { BookOpen, BarChart, Trash2 } from "lucide-react";
 
-export default function CourseCard({ course, onDelete, onToggleStatus }) {
+export default function CourseCard({ course, onDelete }) {
   const navigate = useNavigate();
 
-  const isDeactivated = course.active === false;
-
   return (
-    <div className="course-card" style={isDeactivated ? { opacity: 0.7 } : {}}>
+    <div className="course-card">
       <div className="course-card-header">
         <h3 className="course-title">{course.title || "Untitled Course"}</h3>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -15,24 +13,6 @@ export default function CourseCard({ course, onDelete, onToggleStatus }) {
             <span className={`difficulty-badge ${course.difficulty?.toLowerCase()}`}>
               {course.difficulty}
             </span>
-          )}
-          {isDeactivated && (
-            <span className="difficulty-tag bg-red-500 text-white" style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem", borderRadius: "4px" }}>
-              Deactivated
-            </span>
-          )}
-          {onToggleStatus && (
-            <button
-              className="project-card-delete-btn"
-              style={{ color: isDeactivated ? "#10b981" : "#f59e0b" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleStatus(course.id, !isDeactivated);
-              }}
-              title={isDeactivated ? "Activate Course" : "Deactivate Course"}
-            >
-              {isDeactivated ? <Eye size={16} /> : <EyeOff size={16} />}
-            </button>
           )}
           {onDelete && (
             <button

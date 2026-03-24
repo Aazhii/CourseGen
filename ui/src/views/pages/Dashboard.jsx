@@ -1,6 +1,6 @@
 import { useNavigate, useOutletContext } from "react-router-dom";
 import toast from "react-hot-toast";
-import { deleteCourse, fetchCoursesSharedByMe, activateCourse, deactivateCourse } from "../../services/courseApi";
+import { deleteCourse, fetchCoursesSharedByMe } from "../../services/courseApi";
 import { getMyProgress } from "../../services/progressApi";
 import CourseCard from "../components/course/CourseCard";
 import { confirmDelete } from "../../utils/confirmDelete";
@@ -63,26 +63,6 @@ export default function Dashboard() {
         }
       },
     });
-  };
-
-  const handleToggleStatus = async (courseId, currentActiveStatus) => {
-    try {
-      if (currentActiveStatus) {
-        await deactivateCourse(courseId);
-        toast.success("Course deactivated successfully.");
-      } else {
-        await activateCourse(courseId);
-        toast.success("Course activated successfully.");
-      }
-      
-      if (activeTab === "my-courses") {
-        loadCourses();
-      } else if (activeTab === "shared-by-me") {
-        loadSharedByMeCourses();
-      }
-    } catch (err) {
-      toast.error(currentActiveStatus ? "Failed to deactivate course." : "Failed to activate course.");
-    }
   };
 
   return (
@@ -155,7 +135,7 @@ export default function Dashboard() {
               ) : (
                 <div className="course-grid">
                   {courses.map(course => (
-                    <CourseCard key={course.id} course={course} onDelete={handleDeleteCourse} onToggleStatus={handleToggleStatus} />
+                    <CourseCard key={course.id} course={course} onDelete={handleDeleteCourse} />
                   ))}
                 </div>
               )}
@@ -214,7 +194,7 @@ export default function Dashboard() {
               ) : (
                 <div className="course-grid">
                   {sharedByMeCourses.map(course => (
-                    <CourseCard key={`sharedbyme-${course.id}`} course={course} onDelete={handleDeleteCourse} onToggleStatus={handleToggleStatus} />
+                    <CourseCard key={`sharedbyme-${course.id}`} course={course} onDelete={handleDeleteCourse} />
                   ))}
                 </div>
               )}
