@@ -88,11 +88,32 @@ export default function SharingPage() {
             if (isActive) {
                 await deactivateShareLink(courseId, linkId);
                 toast.success("Link deactivated");
+                loadData();
             } else {
-                await activateShareLink(courseId, linkId);
-                toast.success("Link activated");
+                if (course && course.active === false) {
+                    confirmDelete({
+                        title: "Course is Deactivated",
+                        description: "To activate this link, the course must also be active. Do you want to activate both the course and this specific link?",
+                        confirmText: "Activate Both",
+                        confirmColor: "#10b981",
+                        onConfirm: async () => {
+                            try {
+                                await activateCourse(courseId);
+                                await activateShareLink(courseId, linkId);
+                                toast.success("Course and link activated!");
+                                loadData();
+                            } catch (err) {
+                                toast.error("Failed to activate link and course");
+                            }
+                        }
+                    });
+                    return;
+                } else {
+                    await activateShareLink(courseId, linkId);
+                    toast.success("Link activated");
+                    loadData();
+                }
             }
-            loadData(); // Reload to get updated status
         } catch (err) {
             toast.error(isActive ? "Failed to deactivate link" : "Failed to activate link");
         }
@@ -135,10 +156,22 @@ export default function SharingPage() {
                     }
                 });
             } else {
-                await activateCourse(courseId);
-                await activateAllShareLinks(courseId);
-                toast.success("Course access restored.");
-                loadData();
+                confirmDelete({
+                    title: "Activate all access?",
+                    description: "This restores access to all previously shared links.",
+                    confirmText: "Activate All",
+                    confirmColor: "#10b981",
+                    onConfirm: async () => {
+                        try {
+                            await activateCourse(courseId);
+                            await activateAllShareLinks(courseId);
+                            toast.success("Course and all share links restored.");
+                            loadData();
+                        } catch (err) {
+                            toast.error("Failed to restore course access.");
+                        }
+                    }
+                });
             }
         } catch (err) {
             toast.error("Failed to update course access status.");
@@ -166,6 +199,12 @@ export default function SharingPage() {
 
     if (loading) return <div className="loading center"><Loader2 className="spin" size={40} /> Loading sharing settings...</div>;
 
+    const courseIsActive = course?.active !== false;
+    const courseAccessActionLabel = courseIsActive ? "Deactivate" : "Activate";
+    const courseAccessHint = courseIsActive
+        ? "Course is active. Deactivate access for all shared users"
+        : "Course is inactive. Activate access for all shared users";
+
     return (
         <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "2rem" }}>
             <Link to={`/course/${courseId}`} className="back-link" style={{ marginBottom: "2rem", display: "inline-flex" }}>
@@ -179,18 +218,13 @@ export default function SharingPage() {
                 </div>
                 {course && (
                     <button 
-                        className="auth-btn"
-                        style={{ 
-                            background: course.active !== false ? "var(--bg-secondary)" : "#ef4444", 
-                            color: course.active !== false ? "var(--text-primary)" : "white",
-                            border: course.active !== false ? "1px solid var(--border-color)" : "none",
-                            display: "flex", alignItems: "center", gap: "8px" 
-                        }}
+                        className={`share-access-icon-btn ${courseIsActive ? "" : "is-inactive"}`}
                         onClick={handleToggleCourseAccess}
-                        title={course.active !== false ? "Click to lock the course and prevent shared users from viewing it" : "Click to unlock"}
+                        title={courseAccessHint}
+                        aria-label={courseAccessHint}
                     >
-                        {course.active !== false ? <Power size={18} /> : <PowerOff size={18} />}
-                        {course.active !== false ? "Deactivate Course" : "Activate Course"}
+                        {courseIsActive ? <PowerOff size={18} /> : <Power size={18} />}
+                        <span>{courseAccessActionLabel}</span>
                     </button>
                 )}
             </header>
@@ -368,22 +402,26 @@ export default function SharingPage() {
                                         <td style={{ padding: "1rem", display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                                             <button 
                                                 onClick={() => handleCopy(link.shareToken || link.token)}
-                                                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "0.25rem" }}
+                                                className="share-link-action-btn icon-only"
                                                 title="Copy Link"
+                                                aria-label="Copy link"
                                             >
                                                 <Copy size={18} />
                                             </button>
                                             <button 
                                                 onClick={() => handleToggleStatus(link.id, link.isActive)}
-                                                style={{ background: "transparent", border: "none", color: link.isActive ? "#f59e0b" : "#10b981", cursor: "pointer", padding: "0.25rem" }}
-                                                title={link.isActive ? "Deactivate" : "Activate"}
+                                                className={`share-link-action-btn ${link.isActive ? "warn" : "success"}`}
+                                                title={link.isActive ? "Link is active. Deactivate" : "Link is inactive. Activate"}
+                                                aria-label={link.isActive ? "Deactivate link" : "Activate link"}
                                             >
-                                                <Power size={18} />
+                                                {link.isActive ? <PowerOff size={18} /> : <Power size={18} />}
+                                                <span className="share-link-action-label">{link.isActive ? "Deactivate" : "Activate"}</span>
                                             </button>
                                             <button 
                                                 onClick={() => handleRevoke(link.id)}
-                                                style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.25rem" }}
+                                                className="share-link-action-btn danger icon-only"
                                                 title="Delete"
+                                                aria-label="Delete link"
                                             >
                                                 <Trash2 size={18} />
                                             </button>
