@@ -425,15 +425,21 @@ export default function SharingPage() {
                         Search users as you type, pick multiple recipients, and remove them before sending.
                     </p>
                     <form onSubmit={handleSendInvite} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div className="invite-selected-chips" onClick={() => inviteInputRef.current?.focus()}>
+                            {selectedRecipients.length === 0 ? (
+                                <span className="invite-chip-empty">No recipients selected</span>
+                            ) : (
+                                selectedRecipients.map((r) => (
+                                    <span key={r.id || r.label} className="invite-chip">
+                                        {r.label}
+                                        <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                            ×
+                                        </button>
+                                    </span>
+                                ))
+                            )}
+                        </div>
                         <div className="invite-multi-input" onClick={() => inviteInputRef.current?.focus()}>
-                            {selectedRecipients.map((r) => (
-                                <span key={r.id || r.label} className="invite-chip">
-                                    {r.label}
-                                    <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
                             <input
                                 ref={inviteInputRef}
                                 type="text"

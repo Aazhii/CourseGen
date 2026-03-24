@@ -2995,27 +2995,16 @@ select:focus {
   outline-offset: 2px;
 }
 
-.invite-multi-input {
+.invite-selected-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-  padding: 0.65rem;
+  gap: 0.45rem;
+  padding: 0.6rem;
   border-radius: 0.65rem;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
-  min-height: 3rem;
+  min-height: 2.75rem;
   cursor: text;
-}
-
-.invite-multi-input input {
-  flex: 1;
-  min-width: 160px;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  outline: none;
-  font-size: 0.95rem;
 }
 
 .invite-chip {
@@ -3030,6 +3019,11 @@ select:focus {
   font-size: 0.85rem;
 }
 
+.invite-chip-empty {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 .invite-chip button {
   background: transparent;
   border: none;
@@ -3038,6 +3032,27 @@ select:focus {
   font-size: 0.95rem;
   line-height: 1;
   padding: 0 0.1rem;
+}
+
+.invite-multi-input {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.65rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  min-height: 3rem;
+  cursor: text;
+}
+
+.invite-multi-input input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  font-size: 0.95rem;
 }
 
 .invite-suggestions {
