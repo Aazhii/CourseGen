@@ -28,6 +28,13 @@ export default function SharingPage() {
     const searchDebounceRef = useRef(null);
     const inviteInputRef = useRef(null);
 
+    const [allowlistQuery, setAllowlistQuery] = useState("");
+    const [allowlistSuggestions, setAllowlistSuggestions] = useState([]);
+    const [allowlistSearchLoading, setAllowlistSearchLoading] = useState(false);
+    const [allowlistedUsers, setAllowlistedUsers] = useState([]);
+    const allowlistDebounceRef = useRef(null);
+    const allowlistInputRef = useRef(null);
+
     // Newly generated link
     const [newlyGeneratedLink, setNewlyGeneratedLink] = useState(null);
 
@@ -65,7 +72,8 @@ export default function SharingPage() {
             const payload = {
                 linkType,
                 maxEnrollments: null, // Temporarily disabled
-                expiresAt
+                expiresAt,
+                allowedUsers: linkType === "RESTRICTED" ? allowlistedUsers.map((u) => u.label) : []
             };
 
             const newLink = await generateShareLink(courseId, payload);
@@ -75,6 +83,9 @@ export default function SharingPage() {
             
             // Reset form
             setExpiryDays("");
+            setAllowlistedUsers([]);
+            setAllowlistQuery("");
+            setAllowlistSuggestions([]);
         } catch (err) {
             toast.error("Failed to generate link.");
         } finally {
@@ -206,21 +217,21 @@ export default function SharingPage() {
         return items;
     };
 
-    const fetchUserSuggestions = async (value) => {
+    const fetchSuggestions = async (value, setSuggestions, setLoading) => {
         const term = value.trim();
         if (!term || term.length < 2) {
-            setUserSuggestions([]);
+            setSuggestions([]);
             return;
         }
-        setUserSearchLoading(true);
+        setLoading(true);
         try {
             const resp = await autocompleteUsers(term, 8);
-            setUserSuggestions(normalizeUserSuggestions(resp));
+            setSuggestions(normalizeUserSuggestions(resp));
         } catch (err) {
             console.error("Failed to search users", err);
             toast.error("Search is unavailable right now.");
         } finally {
-            setUserSearchLoading(false);
+            setLoading(false);
         }
     };
 
@@ -230,12 +241,15 @@ export default function SharingPage() {
         if (searchDebounceRef.current) {
             clearTimeout(searchDebounceRef.current);
         }
-        searchDebounceRef.current = setTimeout(() => fetchUserSuggestions(value), 250);
+        searchDebounceRef.current = setTimeout(() => fetchSuggestions(value, setUserSuggestions, setUserSearchLoading), 250);
     };
 
     useEffect(() => () => {
         if (searchDebounceRef.current) {
             clearTimeout(searchDebounceRef.current);
+        }
+        if (allowlistDebounceRef.current) {
+            clearTimeout(allowlistDebounceRef.current);
         }
     }, []);
 
@@ -271,22 +285,60 @@ export default function SharingPage() {
         }
     };
 
+    const handleAllowlistQueryChange = (e) => {
+        const value = e.target.value;
+        setAllowlistQuery(value);
+        if (allowlistDebounceRef.current) {
+            clearTimeout(allowlistDebounceRef.current);
+        }
+        allowlistDebounceRef.current = setTimeout(() => fetchSuggestions(value, setAllowlistSuggestions, setAllowlistSearchLoading), 250);
+    };
+
+    const handleSelectAllowlistUser = (user) => {
+        if (!user || !user.label) return;
+        setAllowlistedUsers((prev) => {
+            if (prev.some((r) => r.label.toLowerCase() === user.label.toLowerCase())) {
+                return prev;
+            }
+            return [...prev, user];
+        });
+        setAllowlistQuery("");
+        setAllowlistSuggestions([]);
+    };
+
+    const handleRemoveAllowlistUser = (idOrLabel) => {
+        setAllowlistedUsers((prev) => prev.filter((r) => (r.id || r.label) !== idOrLabel));
+    };
+
+    const handleAddAllowlistFreeform = () => {
+        const value = allowlistQuery.trim();
+        if (!value) return;
+        handleSelectAllowlistUser({ id: `manual-${value}`, label: value });
+    };
+
+    const handleAllowlistKeyDown = (e) => {
+        if ((e.key === "Enter" || e.key === ",") && allowlistQuery.trim()) {
+            e.preventDefault();
+            handleAddAllowlistFreeform();
+        }
+        if (e.key === "Backspace" && !allowlistQuery && allowlistedUsers.length > 0) {
+            handleRemoveAllowlistUser(allowlistedUsers[allowlistedUsers.length - 1].id || allowlistedUsers[allowlistedUsers.length - 1].label);
+        }
+    };
+
     const handleSendInvite = async (e) => {
         e.preventDefault();
-        const emailList = selectedRecipients.map((r) => r.label).filter(Boolean);
-        if (emailList.length === 0) {
-            toast.error("Add at least one recipient.");
-            return;
-        }
-
+        if (selectedRecipients.length === 0) return;
         setSendingInvite(true);
         try {
-            await sendDirectInvite(courseId, emailList);
-            toast.success(`Invites sent to ${emailList.length} recipients`);
+            const emails = selectedRecipients.map((r) => r.label);
+            await sendDirectInvite(courseId, emails);
+            toast.success("Invites sent!");
             setSelectedRecipients([]);
             setUserQuery("");
             setUserSuggestions([]);
         } catch (err) {
+            console.error("Failed to send invites", err);
             toast.error("Failed to send invites.");
         } finally {
             setSendingInvite(false);
@@ -404,7 +456,60 @@ export default function SharingPage() {
                             />
                         </div>
 
-                        <button 
+                        {linkType === "RESTRICTED" && (
+                            <div>
+                                <label style={{ display: "block", marginBottom: "0.35rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Allowed Users</label>
+                                <p className="text-muted" style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+                                    Add usernames/emails that can use this link. You can pick multiple and remove them before generating.
+                                </p>
+                                <div className="invite-multi-input" onClick={() => allowlistInputRef.current?.focus()}>
+                                    {allowlistedUsers.length === 0 && !allowlistQuery ? (
+                                        <span className="invite-chip-empty">Type to search users</span>
+                                    ) : null}
+                                    {allowlistedUsers.map((r) => (
+                                        <span key={r.id || r.label} className="invite-chip">
+                                            {r.label}
+                                            <button type="button" onClick={() => handleRemoveAllowlistUser(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                    <input
+                                        ref={allowlistInputRef}
+                                        type="text"
+                                        value={allowlistQuery}
+                                        onChange={handleAllowlistQueryChange}
+                                        onKeyDown={handleAllowlistKeyDown}
+                                        placeholder="Search users"
+                                        aria-label="Search users for allowlist"
+                                        autoComplete="off"
+                                    />
+                                    {allowlistSearchLoading ? <Loader2 size={16} className="spin" /> : null}
+                                </div>
+                                {allowlistSuggestions.length > 0 && (
+                                    <div className="invite-suggestions">
+                                        {allowlistSuggestions.map((user) => (
+                                            <button
+                                                key={user.id || user.label}
+                                                type="button"
+                                                className="invite-suggestion-item"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectAllowlistUser(user);
+                                                }}
+                                            >
+                                                <span className="invite-suggestion-label">{user.label}</span>
+                                                {user.description ? (
+                                                    <span className="invite-suggestion-desc">{user.description}</span>
+                                                ) : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <button
                             type="submit" 
                             className="auth-btn" 
                             disabled={generating}
@@ -425,21 +530,18 @@ export default function SharingPage() {
                         Search users as you type, pick multiple recipients, and remove them before sending.
                     </p>
                     <form onSubmit={handleSendInvite} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                        <div className="invite-selected-chips" onClick={() => inviteInputRef.current?.focus()}>
-                            {selectedRecipients.length === 0 ? (
-                                <span className="invite-chip-empty">No recipients selected</span>
-                            ) : (
-                                selectedRecipients.map((r) => (
-                                    <span key={r.id || r.label} className="invite-chip">
-                                        {r.label}
-                                        <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
-                                            ×
-                                        </button>
-                                    </span>
-                                ))
-                            )}
-                        </div>
                         <div className="invite-multi-input" onClick={() => inviteInputRef.current?.focus()}>
+                            {selectedRecipients.length === 0 && !userQuery ? (
+                                <span className="invite-chip-empty">No recipients selected</span>
+                            ) : null}
+                            {selectedRecipients.map((r) => (
+                                <span key={r.id || r.label} className="invite-chip">
+                                    {r.label}
+                                    <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
                             <input
                                 ref={inviteInputRef}
                                 type="text"
@@ -503,7 +605,8 @@ export default function SharingPage() {
                                 <tr>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Token</th>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Type</th>
-                                    <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Uses</th>
+                                    {/* Usage limit temporarily hidden */}
+                                    {/* <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Uses</th> */}
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Status</th>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500", textAlign: "right" }}>Actions</th>
                                 </tr>
@@ -523,9 +626,10 @@ export default function SharingPage() {
                                                 {link.linkType}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "1rem", fontSize: "0.9rem" }}>
+                                        {/* Usage limit temporarily hidden */}
+                                        {/* <td style={{ padding: "1rem", fontSize: "0.9rem" }}>
                                             {link.currentEnrollments || 0} / {link.maxEnrollments ? link.maxEnrollments : "∞"}
-                                        </td>
+                                        </td> */}
                                         <td style={{ padding: "1rem" }}>
                                             <span style={{ 
                                                 padding: "0.25rem 0.5rem", 
