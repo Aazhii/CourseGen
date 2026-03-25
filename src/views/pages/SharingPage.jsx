@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, deactivateAllShareLinks, activateAllShareLinks, sendDirectInvite } from "../../services/shareApi";
+import { autocompleteUsers } from "../../services/searchApi";
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
-import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
+import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Link as LinkIcon, CheckCircle, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { confirmDelete } from "../../utils/confirmDelete";
 
@@ -15,12 +16,26 @@ export default function SharingPage() {
     
     // New link form
     const [linkType, setLinkType] = useState("PUBLIC");
-    const [maxEnrollments, setMaxEnrollments] = useState("");
+    // const [maxEnrollments, setMaxEnrollments] = useState(""); // Temporarily disabled
     const [expiryDays, setExpiryDays] = useState("");
+    const [restrictedExpiryDays, setRestrictedExpiryDays] = useState("");
+    const [showRestrictedModal, setShowRestrictedModal] = useState(false);
 
-    // Email invite form
-    const [emails, setEmails] = useState("");
+    // Email/user invite form
+    const [userQuery, setUserQuery] = useState("");
+    const [userSuggestions, setUserSuggestions] = useState([]);
+    const [userSearchLoading, setUserSearchLoading] = useState(false);
+    const [selectedRecipients, setSelectedRecipients] = useState([]);
     const [sendingInvite, setSendingInvite] = useState(false);
+    const searchDebounceRef = useRef(null);
+    const inviteInputRef = useRef(null);
+
+    const [allowlistQuery, setAllowlistQuery] = useState("");
+    const [allowlistSuggestions, setAllowlistSuggestions] = useState([]);
+    const [allowlistSearchLoading, setAllowlistSearchLoading] = useState(false);
+    const [allowlistedUsers, setAllowlistedUsers] = useState([]);
+    const allowlistDebounceRef = useRef(null);
+    const allowlistInputRef = useRef(null);
 
     // Newly generated link
     const [newlyGeneratedLink, setNewlyGeneratedLink] = useState(null);
@@ -45,36 +60,72 @@ export default function SharingPage() {
         }
     };
 
-    const handleGenerate = async (e) => {
-        e.preventDefault();
+    const resolveExpiryIso = (daysValue) => {
+        if (!daysValue) return null;
+        const date = new Date();
+        date.setDate(date.getDate() + parseInt(daysValue, 10));
+        return date.toISOString();
+    };
+
+    const createShareLink = async ({ type, expiryInput, allowedUsers = [] }) => {
         setGenerating(true);
         try {
-            let expiresAt = null;
-            if (expiryDays) {
-                const date = new Date();
-                date.setDate(date.getDate() + parseInt(expiryDays));
-                expiresAt = date.toISOString();
-            }
-
             const payload = {
-                linkType,
-                maxEnrollments: maxEnrollments ? parseInt(maxEnrollments) : null,
-                expiresAt
+                linkType: type,
+                maxEnrollments: null, // Temporarily disabled
+                expiresAt: resolveExpiryIso(expiryInput),
+                allowedUsers,
             };
 
             const newLink = await generateShareLink(courseId, payload);
-            setLinks([...links, newLink]);
+            setLinks((prev) => [...prev, newLink]);
             setNewlyGeneratedLink(newLink);
             toast.success("Share link generated!");
-            
-            // Reset form
-            setMaxEnrollments("");
-            setExpiryDays("");
+            return true;
         } catch (err) {
             toast.error("Failed to generate link.");
+            return false;
         } finally {
             setGenerating(false);
         }
+    };
+
+    const resetRestrictedDraft = () => {
+        setRestrictedExpiryDays("");
+        setAllowlistedUsers([]);
+        setAllowlistQuery("");
+        setAllowlistSuggestions([]);
+    };
+
+    const handleGeneratePublic = async (e) => {
+        e.preventDefault();
+        const ok = await createShareLink({ type: "PUBLIC", expiryInput: expiryDays, allowedUsers: [] });
+        if (ok) {
+            setExpiryDays("");
+        }
+    };
+
+    const handleGenerateRestricted = async (e) => {
+        e.preventDefault();
+        const allowedUsers = allowlistedUsers.map((u) => u.label);
+        const ok = await createShareLink({ type: "RESTRICTED", expiryInput: restrictedExpiryDays, allowedUsers });
+        if (ok) {
+            resetRestrictedDraft();
+            setShowRestrictedModal(false);
+        }
+    };
+
+    const handleLinkTypeChange = (e) => {
+        const nextType = e.target.value;
+        setLinkType(nextType);
+        if (nextType === "RESTRICTED") {
+            setShowRestrictedModal(true);
+        }
+    };
+
+    const closeRestrictedModal = () => {
+        setShowRestrictedModal(false);
+        resetRestrictedDraft();
     };
 
     const handleCopy = (token) => {
@@ -178,19 +229,151 @@ export default function SharingPage() {
         }
     };
 
+    const normalizeUserSuggestions = (resp) => {
+        if (!resp) return [];
+        const seen = new Set();
+        const items = [];
+        (resp.topResults || []).forEach((item) => {
+            if (item.type === "USER" && item.label) {
+                const key = `${item.id || item.label}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    items.push({ id: item.id || item.label, label: item.label, description: item.description });
+                }
+            }
+        });
+        (resp.suggestions || []).forEach((label) => {
+            const key = `s-${label}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                items.push({ id: key, label });
+            }
+        });
+        return items;
+    };
+
+    const fetchSuggestions = async (value, setSuggestions, setLoading) => {
+        const term = value.trim();
+        if (!term || term.length < 2) {
+            setSuggestions([]);
+            return;
+        }
+        setLoading(true);
+        try {
+            const resp = await autocompleteUsers(term, 8);
+            setSuggestions(normalizeUserSuggestions(resp));
+        } catch (err) {
+            console.error("Failed to search users", err);
+            toast.error("Search is unavailable right now.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUserQueryChange = (e) => {
+        const value = e.target.value;
+        setUserQuery(value);
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        searchDebounceRef.current = setTimeout(() => fetchSuggestions(value, setUserSuggestions, setUserSearchLoading), 250);
+    };
+
+    useEffect(() => () => {
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        if (allowlistDebounceRef.current) {
+            clearTimeout(allowlistDebounceRef.current);
+        }
+    }, []);
+
+    const handleSelectUser = (user) => {
+        if (!user || !user.label) return;
+        setSelectedRecipients((prev) => {
+            if (prev.some((r) => r.label.toLowerCase() === user.label.toLowerCase())) {
+                return prev;
+            }
+            return [...prev, user];
+        });
+        setUserQuery("");
+        setUserSuggestions([]);
+    };
+
+    const handleRemoveRecipient = (idOrLabel) => {
+        setSelectedRecipients((prev) => prev.filter((r) => (r.id || r.label) !== idOrLabel));
+    };
+
+    const handleAddFreeformRecipient = () => {
+        const value = userQuery.trim();
+        if (!value) return;
+        handleSelectUser({ id: `manual-${value}`, label: value });
+    };
+
+    const handleInviteKeyDown = (e) => {
+        if ((e.key === "Enter" || e.key === ",") && userQuery.trim()) {
+            e.preventDefault();
+            handleAddFreeformRecipient();
+        }
+        if (e.key === "Backspace" && !userQuery && selectedRecipients.length > 0) {
+            handleRemoveRecipient(selectedRecipients[selectedRecipients.length - 1].id || selectedRecipients[selectedRecipients.length - 1].label);
+        }
+    };
+
+    const handleAllowlistQueryChange = (e) => {
+        const value = e.target.value;
+        setAllowlistQuery(value);
+        if (allowlistDebounceRef.current) {
+            clearTimeout(allowlistDebounceRef.current);
+        }
+        allowlistDebounceRef.current = setTimeout(() => fetchSuggestions(value, setAllowlistSuggestions, setAllowlistSearchLoading), 250);
+    };
+
+    const handleSelectAllowlistUser = (user) => {
+        if (!user || !user.label) return;
+        setAllowlistedUsers((prev) => {
+            if (prev.some((r) => r.label.toLowerCase() === user.label.toLowerCase())) {
+                return prev;
+            }
+            return [...prev, user];
+        });
+        setAllowlistQuery("");
+        setAllowlistSuggestions([]);
+    };
+
+    const handleRemoveAllowlistUser = (idOrLabel) => {
+        setAllowlistedUsers((prev) => prev.filter((r) => (r.id || r.label) !== idOrLabel));
+    };
+
+    const handleAddAllowlistFreeform = () => {
+        const value = allowlistQuery.trim();
+        if (!value) return;
+        handleSelectAllowlistUser({ id: `manual-${value}`, label: value });
+    };
+
+    const handleAllowlistKeyDown = (e) => {
+        if ((e.key === "Enter" || e.key === ",") && allowlistQuery.trim()) {
+            e.preventDefault();
+            handleAddAllowlistFreeform();
+        }
+        if (e.key === "Backspace" && !allowlistQuery && allowlistedUsers.length > 0) {
+            handleRemoveAllowlistUser(allowlistedUsers[allowlistedUsers.length - 1].id || allowlistedUsers[allowlistedUsers.length - 1].label);
+        }
+    };
+
     const handleSendInvite = async (e) => {
         e.preventDefault();
-        if (!emails.trim()) return;
-        
-        const emailList = emails.split(',').map(e => e.trim()).filter(e => e);
-        if (emailList.length === 0) return;
-
+        if (selectedRecipients.length === 0) return;
         setSendingInvite(true);
         try {
-            await sendDirectInvite(courseId, emailList);
-            toast.success(`Invites sent to ${emailList.length} recipients`);
-            setEmails("");
+            const emails = selectedRecipients.map((r) => r.label);
+            await sendDirectInvite(courseId, emails);
+            toast.success("Invites sent!");
+            setSelectedRecipients([]);
+            setUserQuery("");
+            setUserSuggestions([]);
         } catch (err) {
+            console.error("Failed to send invites", err);
             toast.error("Failed to send invites.");
         } finally {
             setSendingInvite(false);
@@ -269,12 +452,12 @@ export default function SharingPage() {
                     <h2 style={{ fontSize: "1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "8px" }}>
                         <LinkIcon size={20} className="text-accent" /> Create Share Link
                     </h2>
-                    <form onSubmit={handleGenerate} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <form onSubmit={handleGeneratePublic} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                         <div>
                             <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Link Type</label>
                             <select 
                                 value={linkType} 
-                                onChange={(e) => setLinkType(e.target.value)}
+                                onChange={handleLinkTypeChange}
                                 style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                             >
                                 <option value="PUBLIC">Public (Anyone with link)</option>
@@ -282,40 +465,52 @@ export default function SharingPage() {
                             </select>
                         </div>
                         
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Usage Limit</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="Unlimited" 
-                                    value={maxEnrollments}
-                                    onChange={(e) => setMaxEnrollments(e.target.value)}
-                                    min="1"
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Expires in (Days)</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="Never" 
-                                    value={expiryDays}
-                                    onChange={(e) => setExpiryDays(e.target.value)}
-                                    min="1"
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                                />
-                            </div>
+                        {/* Usage Limit temporarily disabled
+                        <div>
+                            <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Usage Limit</label>
+                            <input
+                                type="number"
+                                placeholder="Unlimited"
+                                value={maxEnrollments}
+                                onChange={(e) => setMaxEnrollments(e.target.value)}
+                                min="1"
+                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                            />
+                        </div>
+                        */}
+
+                        <div>
+                            <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Expires in (Days)</label>
+                            <input
+                                type="number"
+                                placeholder="Never"
+                                value={expiryDays}
+                                onChange={(e) => setExpiryDays(e.target.value)}
+                                min="1"
+                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                            />
                         </div>
 
-                        <button 
-                            type="submit" 
-                            className="auth-btn" 
-                            disabled={generating}
-                            style={{ marginTop: "1rem", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
-                        >
-                            {generating ? <Loader2 className="spin" size={18} /> : null}
-                            Generate Link
-                        </button>
+                        {linkType === "RESTRICTED" ? (
+                            <button
+                                type="button"
+                                className="auth-btn"
+                                onClick={() => setShowRestrictedModal(true)}
+                                style={{ marginTop: "1rem", width: "100%", padding: "0.75rem" }}
+                            >
+                                Open Restricted Setup
+                            </button>
+                        ) : (
+                            <button
+                                type="submit"
+                                className="auth-btn"
+                                disabled={generating}
+                                style={{ marginTop: "1rem", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
+                            >
+                                {generating ? <Loader2 className="spin" size={18} /> : null}
+                                Generate Link
+                            </button>
+                        )}
                     </form>
                 </div>
 
@@ -325,22 +520,60 @@ export default function SharingPage() {
                         <Mail size={20} className="text-accent" /> Direct Email Invite
                     </h2>
                     <p className="text-muted" style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
-                        Send course invitations directly to users' email addresses. Separate multiple emails with commas.
+                        Search users as you type, pick multiple recipients, and remove them before sending.
                     </p>
                     <form onSubmit={handleSendInvite} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                        <div>
-                            <textarea 
-                                placeholder="e.g. user1@example.com, user2@example.com"
-                                value={emails}
-                                onChange={(e) => setEmails(e.target.value)}
-                                rows="3"
-                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)", resize: "vertical" }}
+                        <div className="invite-multi-input" onClick={() => inviteInputRef.current?.focus()}>
+                            {selectedRecipients.length === 0 && !userQuery ? (
+                                <span className="invite-chip-empty">No recipients selected</span>
+                            ) : null}
+                            {selectedRecipients.map((r) => (
+                                <span key={r.id || r.label} className="invite-chip">
+                                    {r.label}
+                                    <button type="button" onClick={() => handleRemoveRecipient(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                            <input
+                                ref={inviteInputRef}
+                                type="text"
+                                value={userQuery}
+                                onChange={handleUserQueryChange}
+                                onKeyDown={handleInviteKeyDown}
+                                placeholder="Type a user name or email"
+                                aria-label="Search users to invite"
+                                autoComplete="off"
                             />
+                            {userSearchLoading ? <Loader2 size={16} className="spin" /> : null}
                         </div>
-                        <button 
+                        {userSuggestions.length > 0 && (
+                            <div className="invite-suggestions">
+                                {userSuggestions.map((user) => (
+                                    <button
+                                        key={user.id || user.label}
+                                        type="button"
+                                        className="invite-suggestion-item"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleSelectUser(user);
+                                        }}
+                                    >
+                                        <span className="invite-suggestion-label">{user.label}</span>
+                                        {user.description ? (
+                                            <span className="invite-suggestion-desc">{user.description}</span>
+                                        ) : null}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: "-0.25rem" }}>
+                            Press Enter to add a free-form email/username when no suggestion is shown.
+                        </p>
+                        <button
                             type="submit" 
                             className="auth-btn" 
-                            disabled={sendingInvite || !emails.trim()}
+                            disabled={sendingInvite || selectedRecipients.length === 0}
                             style={{ marginTop: "auto", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
                         >
                             {sendingInvite ? <Loader2 className="spin" size={18} /> : null}
@@ -350,6 +583,86 @@ export default function SharingPage() {
                 </div>
 
             </div>
+
+            {showRestrictedModal && (
+                <div className="restricted-modal-overlay" onClick={closeRestrictedModal}>
+                    <div className="restricted-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="restricted-modal-close" onClick={closeRestrictedModal} aria-label="Close restricted setup">
+                            <X size={18} />
+                        </button>
+                        <h3 className="restricted-modal-title">Restricted Link Setup</h3>
+                        <p className="restricted-modal-subtitle">Search and select users who can access this link.</p>
+
+                        <form onSubmit={handleGenerateRestricted} className="restricted-modal-form">
+                            <div className="restricted-modal-field">
+                                <label className="restricted-modal-label">Allowed Users</label>
+                                <div className="invite-multi-input" onClick={() => allowlistInputRef.current?.focus()}>
+                                    {allowlistedUsers.length === 0 && !allowlistQuery ? (
+                                        <span className="invite-chip-empty">Type a username or email</span>
+                                    ) : null}
+                                    {allowlistedUsers.map((r) => (
+                                        <span key={r.id || r.label} className="invite-chip">
+                                            {r.label}
+                                            <button type="button" onClick={() => handleRemoveAllowlistUser(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                    <input
+                                        ref={allowlistInputRef}
+                                        type="text"
+                                        value={allowlistQuery}
+                                        onChange={handleAllowlistQueryChange}
+                                        onKeyDown={handleAllowlistKeyDown}
+                                        placeholder="Search users"
+                                        aria-label="Search users for restricted link"
+                                        autoComplete="off"
+                                    />
+                                    {allowlistSearchLoading ? <Loader2 size={16} className="spin" /> : null}
+                                </div>
+                                {allowlistSuggestions.length > 0 && (
+                                    <div className="invite-suggestions">
+                                        {allowlistSuggestions.map((user) => (
+                                            <button
+                                                key={user.id || user.label}
+                                                type="button"
+                                                className="invite-suggestion-item"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectAllowlistUser(user);
+                                                }}
+                                            >
+                                                <span className="invite-suggestion-label">{user.label}</span>
+                                                {user.description ? <span className="invite-suggestion-desc">{user.description}</span> : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="restricted-modal-field">
+                                <label className="restricted-modal-label">Expires in (Days)</label>
+                                <input
+                                    type="number"
+                                    placeholder="Never"
+                                    value={restrictedExpiryDays}
+                                    onChange={(e) => setRestrictedExpiryDays(e.target.value)}
+                                    min="1"
+                                    className="restricted-modal-input"
+                                />
+                            </div>
+
+                            <div className="restricted-modal-actions">
+                                <button type="button" className="share-link-action-btn" onClick={closeRestrictedModal}>Cancel</button>
+                                <button type="submit" className="auth-btn" disabled={generating} style={{ padding: "0.65rem 1rem" }}>
+                                    {generating ? <Loader2 className="spin" size={16} /> : null}
+                                    Generate Restricted Link
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Active Links Table */}
             <div>
@@ -365,7 +678,8 @@ export default function SharingPage() {
                                 <tr>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Token</th>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Type</th>
-                                    <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Uses</th>
+                                    {/* Usage limit temporarily hidden */}
+                                    {/* <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Uses</th> */}
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500" }}>Status</th>
                                     <th style={{ padding: "1rem", color: "var(--text-secondary)", fontWeight: "500", textAlign: "right" }}>Actions</th>
                                 </tr>
@@ -385,9 +699,10 @@ export default function SharingPage() {
                                                 {link.linkType}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "1rem", fontSize: "0.9rem" }}>
+                                        {/* Usage limit temporarily hidden */}
+                                        {/* <td style={{ padding: "1rem", fontSize: "0.9rem" }}>
                                             {link.currentEnrollments || 0} / {link.maxEnrollments ? link.maxEnrollments : "∞"}
-                                        </td>
+                                        </td> */}
                                         <td style={{ padding: "1rem" }}>
                                             <span style={{ 
                                                 padding: "0.25rem 0.5rem", 
