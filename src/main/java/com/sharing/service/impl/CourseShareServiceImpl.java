@@ -5,11 +5,9 @@ import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.UserRepo;
 import com.sharing.dto.ShareLinkResponse;
-import com.sharing.model.CourseEnrollment;
-import com.sharing.model.CourseShareLink;
-import com.sharing.model.EnrollmentStatus;
-import com.sharing.model.ShareLinkType;
+import com.sharing.model.*;
 import com.sharing.repo.CourseEnrollmentRepo;
+import com.sharing.repo.CourseShareLinkAllowedUserRepo;
 import com.sharing.repo.CourseShareLinkRepo;
 import com.sharing.service.CourseShareService;
 import jakarta.transaction.Transactional;
@@ -18,10 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -44,10 +39,14 @@ public class CourseShareServiceImpl implements CourseShareService {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private CourseShareLinkAllowedUserRepo allowedUserRepo;
+
     @Override
     @Transactional
     public ShareLinkResponse generateShareLink(Long courseId, Long creatorId, ShareLinkType linkType,
-                                               OffsetDateTime expiresAt, Integer maxEnrollments) throws Exception {
+                                               OffsetDateTime expiresAt, Integer maxEnrollments,
+                                               List<String> allowlistedUsers) throws Exception {
         LOGGER.log(Level.INFO, "Generating share link for course ID: {0}", courseId);
 
         try {
@@ -68,6 +67,18 @@ public class CourseShareServiceImpl implements CourseShareService {
             shareLink.setMaxEnrollments(maxEnrollments);
 
             CourseShareLink savedLink = courseShareLinkRepo.save(shareLink);
+
+            if (ShareLinkType.PRIVATE.equals(linkType)) {
+                List<Long> allowedUserIds = resolveAllowedUserIds(allowlistedUsers);
+                if (allowedUserIds.isEmpty()) {
+                    throw new IllegalArgumentException("At least one valid user is required for a PRIVATE share link");
+                }
+
+                List<CourseShareLinkAllowedUser> allowlistRows = allowedUserIds.stream()
+                        .map(userId -> new CourseShareLinkAllowedUser(savedLink.getId(), userId))
+                        .collect(Collectors.toList());
+                allowedUserRepo.saveAll(allowlistRows);
+            }
             LOGGER.log(Level.INFO, "Share link created with token: {0}", shareToken);
 
             return mapToResponse(savedLink);
@@ -101,7 +112,7 @@ public class CourseShareServiceImpl implements CourseShareService {
     }
 
     @Override
-    public ShareLinkResponse getShareLinkByToken(String token) throws Exception {
+    public ShareLinkResponse getShareLinkByToken(String token, Long requestingUserId) throws Exception {
         LOGGER.log(Level.INFO, "Fetching share link by token");
 
         try {
@@ -119,6 +130,17 @@ public class CourseShareServiceImpl implements CourseShareService {
             if (!course.isActive()) {
                 LOGGER.log(Level.WARNING, "Share link resolution failed: Course {0} is deactivated", shareLink.getCourseId());
                 throw new IllegalArgumentException("This course has been deactivated and is no longer available");
+            }
+
+            if (ShareLinkType.PRIVATE.equals(shareLink.getLinkType())) {
+                if (requestingUserId == null) {
+                    throw new IllegalArgumentException("Login required to access this private share link");
+                }
+
+                boolean allowed = allowedUserRepo.existsByShareLinkIdAndUserId(shareLink.getId(), requestingUserId);
+                if (!allowed) {
+                    throw new IllegalArgumentException("You are not allowed to access this private share link");
+                }
             }
 
             return mapToResponse(shareLink);
@@ -327,6 +349,18 @@ public class CourseShareServiceImpl implements CourseShareService {
 
     private ShareLinkResponse mapToResponse(CourseShareLink shareLink) {
         String shareUrl = String.format("/api/join/%s", shareLink.getShareToken());
+        List<String> allowedUsernames = null;
+
+        if (ShareLinkType.PRIVATE.equals(shareLink.getLinkType())) {
+            List<CourseShareLinkAllowedUser> allowlist = allowedUserRepo.findByShareLinkId(shareLink.getId());
+            Set<Long> userIds = allowlist.stream()
+                    .map(CourseShareLinkAllowedUser::getUserId)
+                    .collect(Collectors.toSet());
+            allowedUsernames = userRepo.findAllById(userIds).stream()
+                    .map(Users::getUsername)
+                    .collect(Collectors.toList());
+        }
+
         return new ShareLinkResponse(
                 shareLink.getId(),
                 shareLink.getShareToken(),
@@ -337,8 +371,42 @@ public class CourseShareServiceImpl implements CourseShareService {
                 shareLink.getIsActive(),
                 shareLink.getCurrentEnrollments(),
                 shareLink.getMaxEnrollments(),
-                shareUrl
+                shareUrl,
+                allowedUsernames
         );
+    }
+
+    private List<Long> resolveAllowedUserIds(List<String> identifiers) {
+        if (identifiers == null) {
+            return List.of();
+        }
+
+        Set<Long> allowedIds = new HashSet<>();
+        List<String> invalid = new ArrayList<>();
+
+        for (String raw : identifiers) {
+            if (raw == null) {
+                continue;
+            }
+            String identifier = raw.trim();
+            if (identifier.isBlank()) {
+                continue;
+            }
+
+            Users user = resolveUser(identifier);
+            if (user == null) {
+                invalid.add(identifier);
+                continue;
+            }
+
+            allowedIds.add(user.getId());
+        }
+
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException("Unknown users for PRIVATE link: " + String.join(", ", invalid));
+        }
+
+        return new ArrayList<>(allowedIds);
     }
 }
 

@@ -15,6 +15,7 @@ public class ShareLinkResponse {
     private Integer currentEnrollments;
     private Integer maxEnrollments;
     private String shareUrl;
+    private java.util.List<String> allowedUsers;
 
     // --- Constructors ---
     public ShareLinkResponse() {
@@ -22,7 +23,8 @@ public class ShareLinkResponse {
 
     public ShareLinkResponse(Long id, String shareToken, Long courseId, ShareLinkType linkType,
                              OffsetDateTime createdAt, OffsetDateTime expiresAt, Boolean isActive,
-                             Integer currentEnrollments, Integer maxEnrollments, String shareUrl) {
+                             Integer currentEnrollments, Integer maxEnrollments, String shareUrl,
+                             java.util.List<String> allowedUsers) {
         this.id = id;
         this.shareToken = shareToken;
         this.courseId = courseId;
@@ -33,6 +35,7 @@ public class ShareLinkResponse {
         this.currentEnrollments = currentEnrollments;
         this.maxEnrollments = maxEnrollments;
         this.shareUrl = shareUrl;
+        this.allowedUsers = allowedUsers;
     }
 
     // --- Getters and Setters ---
@@ -114,5 +117,13 @@ public class ShareLinkResponse {
 
     public void setShareUrl(String shareUrl) {
         this.shareUrl = shareUrl;
+    }
+
+    public java.util.List<String> getAllowedUsers() {
+        return allowedUsers;
+    }
+
+    public void setAllowedUsers(java.util.List<String> allowedUsers) {
+        this.allowedUsers = allowedUsers;
     }
 }

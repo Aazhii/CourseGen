@@ -30,10 +30,17 @@ public class CourseJoinController {
      * Resolve share token and get course details
      */
     @GetMapping("/{token}")
-    public ResponseEntity<ApiResponse<ShareLinkResponse>> resolveShareLink(@PathVariable String token) {
+    public ResponseEntity<ApiResponse<ShareLinkResponse>> resolveShareLink(@PathVariable String token,
+                                                                           Authentication auth) {
         LOGGER.log(Level.INFO, "Request received to resolve share token");
         try {
-            ShareLinkResponse response = courseShareService.getShareLinkByToken(token);
+            if (auth == null || !auth.isAuthenticated()) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("Login required to access this share link"));
+            }
+
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            ShareLinkResponse response = courseShareService.getShareLinkByToken(token, principal.getUser().getId());
 
             // ✅ CHECK: Course must be active
             // This check will be done in the service layer
@@ -60,7 +67,7 @@ public class CourseJoinController {
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
 
             // Resolve the share link
-            ShareLinkResponse shareLink = courseShareService.getShareLinkByToken(token);
+            ShareLinkResponse shareLink = courseShareService.getShareLinkByToken(token, principal.getUser().getId());
 
             // Enroll user
             EnrollmentResponse response = lessonProgressService.enrollUserInCourse(

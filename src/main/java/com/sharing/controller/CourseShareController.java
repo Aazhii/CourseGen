@@ -50,12 +50,23 @@ public class CourseShareController {
 
             Integer maxEnrollments = (Integer) payload.get("maxEnrollments");
 
+            List<String> allowlistedUsers = new ArrayList<>();
+            Object allowlistRaw = payload.get("allowedUsers");
+            if (allowlistRaw instanceof List<?> identifiers) {
+                for (Object identifier : identifiers) {
+                    if (identifier != null) {
+                        allowlistedUsers.add(String.valueOf(identifier));
+                    }
+                }
+            }
+
             ShareLinkResponse response = courseShareService.generateShareLink(
                     courseId,
                     principal.getUser().getId(),
                     linkType,
                     expiresAt,
-                    maxEnrollments
+                    maxEnrollments,
+                    allowlistedUsers
             );
 
             LOGGER.log(Level.INFO, "Share link generated successfully");

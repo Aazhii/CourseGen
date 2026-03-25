@@ -12,7 +12,8 @@ public interface CourseShareService {
      * Generate a new share link for a course
      */
     ShareLinkResponse generateShareLink(Long courseId, Long creatorId, ShareLinkType linkType,
-                                        OffsetDateTime expiresAt, Integer maxEnrollments) throws Exception;
+                                        OffsetDateTime expiresAt, Integer maxEnrollments,
+                                        List<String> allowlistedUsers) throws Exception;
 
     /**
      * Get all share links for a course
@@ -22,7 +23,7 @@ public interface CourseShareService {
     /**
      * Get a specific share link by token
      */
-    ShareLinkResponse getShareLinkByToken(String token) throws Exception;
+    ShareLinkResponse getShareLinkByToken(String token, Long requestingUserId) throws Exception;
 
     /**
      * Deactivate a share link
