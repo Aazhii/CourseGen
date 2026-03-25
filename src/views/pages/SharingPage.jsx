@@ -16,7 +16,7 @@ export default function SharingPage() {
     
     // New link form
     const [linkType, setLinkType] = useState("PUBLIC");
-    const [maxEnrollments, setMaxEnrollments] = useState("");
+    // const [maxEnrollments, setMaxEnrollments] = useState(""); // Temporarily disabled
     const [expiryDays, setExpiryDays] = useState("");
 
     // Email/user invite form
@@ -64,7 +64,7 @@ export default function SharingPage() {
 
             const payload = {
                 linkType,
-                maxEnrollments: maxEnrollments ? parseInt(maxEnrollments) : null,
+                maxEnrollments: null, // Temporarily disabled
                 expiresAt
             };
 
@@ -74,7 +74,6 @@ export default function SharingPage() {
             toast.success("Share link generated!");
             
             // Reset form
-            setMaxEnrollments("");
             setExpiryDays("");
         } catch (err) {
             toast.error("Failed to generate link.");
@@ -379,29 +378,30 @@ export default function SharingPage() {
                             </select>
                         </div>
                         
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Usage Limit</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="Unlimited" 
-                                    value={maxEnrollments}
-                                    onChange={(e) => setMaxEnrollments(e.target.value)}
-                                    min="1"
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Expires in (Days)</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="Never" 
-                                    value={expiryDays}
-                                    onChange={(e) => setExpiryDays(e.target.value)}
-                                    min="1"
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
-                                />
-                            </div>
+                        {/* Usage Limit temporarily disabled
+                        <div>
+                            <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Usage Limit</label>
+                            <input
+                                type="number"
+                                placeholder="Unlimited"
+                                value={maxEnrollments}
+                                onChange={(e) => setMaxEnrollments(e.target.value)}
+                                min="1"
+                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                            />
+                        </div>
+                        */}
+
+                        <div>
+                            <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Expires in (Days)</label>
+                            <input
+                                type="number"
+                                placeholder="Never"
+                                value={expiryDays}
+                                onChange={(e) => setExpiryDays(e.target.value)}
+                                min="1"
+                                style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
+                            />
                         </div>
 
                         <button 
