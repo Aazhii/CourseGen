@@ -2912,6 +2912,10 @@ select:focus {
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
+.share-access-icon-btn span {
+  display: inline;
+}
+
 .share-access-icon-btn:hover {
   transform: translateY(-1px);
   background: rgba(245, 158, 11, 0.2);
@@ -3033,22 +3037,34 @@ select:focus {
   padding: 0 0.1rem;
 }
 
+.invite-chip button:hover {
+  color: #ffffff;
+}
+
 .invite-multi-input {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   gap: 0.45rem;
   padding: 0.6rem 0.65rem;
   border-radius: 0.65rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
   background: var(--bg-primary);
   min-height: 3rem;
   cursor: text;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.invite-multi-input:focus-within {
+  border-color: rgba(99, 102, 241, 0.7);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 .invite-multi-input input {
-  flex: 1;
+  flex: 1 1 140px;
   min-width: 140px;
+  min-height: 1.9rem;
   border: none;
   background: transparent;
   color: var(--text-primary);
@@ -3062,10 +3078,11 @@ select:focus {
   width: 100%;
   margin-top: 0.25rem;
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
   border-radius: 0.65rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  max-height: 220px;
+  overflow: auto;
 }
 
 .invite-suggestion-item {
@@ -3094,5 +3111,140 @@ select:focus {
 .invite-suggestion-desc {
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+.restricted-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.restricted-modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 560px);
+  min-height: min(92vw, 560px);
+  max-height: 88vh;
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: linear-gradient(180deg, rgba(13, 22, 37, 0.98) 0%, rgba(9, 15, 27, 0.98) 100%);
+  box-shadow: var(--shadow-modal);
+}
+
+.restricted-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restricted-modal-close:hover {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.restricted-modal-title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  margin: 0;
+  padding-right: 2.2rem;
+}
+
+.restricted-modal-subtitle {
+  color: var(--text-secondary);
+  margin: 0.25rem 0 1rem;
+  font-size: 0.9rem;
+}
+
+.restricted-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  flex: 1;
+}
+
+.restricted-modal-field {
+  width: 100%;
+}
+
+.restricted-modal-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.restricted-modal-input {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  color: var(--text-primary);
+}
+
+.restricted-modal-input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.72);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.restricted-modal-field .invite-suggestions {
+  margin-top: 0.4rem;
+}
+
+.restricted-modal-actions {
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 768px) {
+  .share-access-icon-btn {
+    gap: 0.35rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .share-link-action-btn {
+    height: 2.1rem;
+    min-width: 2.1rem;
+  }
+
+  .restricted-modal-card {
+    width: min(95vw, 520px);
+    min-height: auto;
+  }
+
+  .restricted-modal-actions {
+    justify-content: stretch;
+  }
+
+  .restricted-modal-actions .share-link-action-btn,
+  .restricted-modal-actions .auth-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
 

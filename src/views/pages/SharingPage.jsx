@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { generateShareLink, getCourseShareLinks, revokeShareLink, deactivateShareLink, activateShareLink, deactivateAllShareLinks, activateAllShareLinks, sendDirectInvite } from "../../services/shareApi";
 import { autocompleteUsers } from "../../services/searchApi";
 import { getCourseById, activateCourse, deactivateCourse } from "../../services/courseApi";
-import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Users, Calendar, Link as LinkIcon, CheckCircle } from "lucide-react";
+import { ChevronLeft, Copy, Trash2, Power, PowerOff, Loader2, Mail, Link as LinkIcon, CheckCircle, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { confirmDelete } from "../../utils/confirmDelete";
 
@@ -18,6 +18,8 @@ export default function SharingPage() {
     const [linkType, setLinkType] = useState("PUBLIC");
     // const [maxEnrollments, setMaxEnrollments] = useState(""); // Temporarily disabled
     const [expiryDays, setExpiryDays] = useState("");
+    const [restrictedExpiryDays, setRestrictedExpiryDays] = useState("");
+    const [showRestrictedModal, setShowRestrictedModal] = useState(false);
 
     // Email/user invite form
     const [userQuery, setUserQuery] = useState("");
@@ -58,39 +60,72 @@ export default function SharingPage() {
         }
     };
 
-    const handleGenerate = async (e) => {
-        e.preventDefault();
+    const resolveExpiryIso = (daysValue) => {
+        if (!daysValue) return null;
+        const date = new Date();
+        date.setDate(date.getDate() + parseInt(daysValue, 10));
+        return date.toISOString();
+    };
+
+    const createShareLink = async ({ type, expiryInput, allowedUsers = [] }) => {
         setGenerating(true);
         try {
-            let expiresAt = null;
-            if (expiryDays) {
-                const date = new Date();
-                date.setDate(date.getDate() + parseInt(expiryDays));
-                expiresAt = date.toISOString();
-            }
-
             const payload = {
-                linkType,
+                linkType: type,
                 maxEnrollments: null, // Temporarily disabled
-                expiresAt,
-                allowedUsers: linkType === "RESTRICTED" ? allowlistedUsers.map((u) => u.label) : []
+                expiresAt: resolveExpiryIso(expiryInput),
+                allowedUsers,
             };
 
             const newLink = await generateShareLink(courseId, payload);
-            setLinks([...links, newLink]);
+            setLinks((prev) => [...prev, newLink]);
             setNewlyGeneratedLink(newLink);
             toast.success("Share link generated!");
-            
-            // Reset form
-            setExpiryDays("");
-            setAllowlistedUsers([]);
-            setAllowlistQuery("");
-            setAllowlistSuggestions([]);
+            return true;
         } catch (err) {
             toast.error("Failed to generate link.");
+            return false;
         } finally {
             setGenerating(false);
         }
+    };
+
+    const resetRestrictedDraft = () => {
+        setRestrictedExpiryDays("");
+        setAllowlistedUsers([]);
+        setAllowlistQuery("");
+        setAllowlistSuggestions([]);
+    };
+
+    const handleGeneratePublic = async (e) => {
+        e.preventDefault();
+        const ok = await createShareLink({ type: "PUBLIC", expiryInput: expiryDays, allowedUsers: [] });
+        if (ok) {
+            setExpiryDays("");
+        }
+    };
+
+    const handleGenerateRestricted = async (e) => {
+        e.preventDefault();
+        const allowedUsers = allowlistedUsers.map((u) => u.label);
+        const ok = await createShareLink({ type: "RESTRICTED", expiryInput: restrictedExpiryDays, allowedUsers });
+        if (ok) {
+            resetRestrictedDraft();
+            setShowRestrictedModal(false);
+        }
+    };
+
+    const handleLinkTypeChange = (e) => {
+        const nextType = e.target.value;
+        setLinkType(nextType);
+        if (nextType === "RESTRICTED") {
+            setShowRestrictedModal(true);
+        }
+    };
+
+    const closeRestrictedModal = () => {
+        setShowRestrictedModal(false);
+        resetRestrictedDraft();
     };
 
     const handleCopy = (token) => {
@@ -417,12 +452,12 @@ export default function SharingPage() {
                     <h2 style={{ fontSize: "1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "8px" }}>
                         <LinkIcon size={20} className="text-accent" /> Create Share Link
                     </h2>
-                    <form onSubmit={handleGenerate} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <form onSubmit={handleGeneratePublic} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                         <div>
                             <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Link Type</label>
                             <select 
                                 value={linkType} 
-                                onChange={(e) => setLinkType(e.target.value)}
+                                onChange={handleLinkTypeChange}
                                 style={{ width: "100%", padding: "0.75rem", borderRadius: "0.5rem", background: "var(--bg-primary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
                             >
                                 <option value="PUBLIC">Public (Anyone with link)</option>
@@ -456,68 +491,26 @@ export default function SharingPage() {
                             />
                         </div>
 
-                        {linkType === "RESTRICTED" && (
-                            <div>
-                                <label style={{ display: "block", marginBottom: "0.35rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Allowed Users</label>
-                                <p className="text-muted" style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
-                                    Add usernames/emails that can use this link. You can pick multiple and remove them before generating.
-                                </p>
-                                <div className="invite-multi-input" onClick={() => allowlistInputRef.current?.focus()}>
-                                    {allowlistedUsers.length === 0 && !allowlistQuery ? (
-                                        <span className="invite-chip-empty">Type to search users</span>
-                                    ) : null}
-                                    {allowlistedUsers.map((r) => (
-                                        <span key={r.id || r.label} className="invite-chip">
-                                            {r.label}
-                                            <button type="button" onClick={() => handleRemoveAllowlistUser(r.id || r.label)} aria-label={`Remove ${r.label}`}>
-                                                ×
-                                            </button>
-                                        </span>
-                                    ))}
-                                    <input
-                                        ref={allowlistInputRef}
-                                        type="text"
-                                        value={allowlistQuery}
-                                        onChange={handleAllowlistQueryChange}
-                                        onKeyDown={handleAllowlistKeyDown}
-                                        placeholder="Search users"
-                                        aria-label="Search users for allowlist"
-                                        autoComplete="off"
-                                    />
-                                    {allowlistSearchLoading ? <Loader2 size={16} className="spin" /> : null}
-                                </div>
-                                {allowlistSuggestions.length > 0 && (
-                                    <div className="invite-suggestions">
-                                        {allowlistSuggestions.map((user) => (
-                                            <button
-                                                key={user.id || user.label}
-                                                type="button"
-                                                className="invite-suggestion-item"
-                                                onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    handleSelectAllowlistUser(user);
-                                                }}
-                                            >
-                                                <span className="invite-suggestion-label">{user.label}</span>
-                                                {user.description ? (
-                                                    <span className="invite-suggestion-desc">{user.description}</span>
-                                                ) : null}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                        {linkType === "RESTRICTED" ? (
+                            <button
+                                type="button"
+                                className="auth-btn"
+                                onClick={() => setShowRestrictedModal(true)}
+                                style={{ marginTop: "1rem", width: "100%", padding: "0.75rem" }}
+                            >
+                                Open Restricted Setup
+                            </button>
+                        ) : (
+                            <button
+                                type="submit"
+                                className="auth-btn"
+                                disabled={generating}
+                                style={{ marginTop: "1rem", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
+                            >
+                                {generating ? <Loader2 className="spin" size={18} /> : null}
+                                Generate Link
+                            </button>
                         )}
-
-                        <button
-                            type="submit" 
-                            className="auth-btn" 
-                            disabled={generating}
-                            style={{ marginTop: "1rem", width: "100%", padding: "0.75rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
-                        >
-                            {generating ? <Loader2 className="spin" size={18} /> : null}
-                            Generate Link
-                        </button>
                     </form>
                 </div>
 
@@ -590,6 +583,86 @@ export default function SharingPage() {
                 </div>
 
             </div>
+
+            {showRestrictedModal && (
+                <div className="restricted-modal-overlay" onClick={closeRestrictedModal}>
+                    <div className="restricted-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="restricted-modal-close" onClick={closeRestrictedModal} aria-label="Close restricted setup">
+                            <X size={18} />
+                        </button>
+                        <h3 className="restricted-modal-title">Restricted Link Setup</h3>
+                        <p className="restricted-modal-subtitle">Search and select users who can access this link.</p>
+
+                        <form onSubmit={handleGenerateRestricted} className="restricted-modal-form">
+                            <div className="restricted-modal-field">
+                                <label className="restricted-modal-label">Allowed Users</label>
+                                <div className="invite-multi-input" onClick={() => allowlistInputRef.current?.focus()}>
+                                    {allowlistedUsers.length === 0 && !allowlistQuery ? (
+                                        <span className="invite-chip-empty">Type a username or email</span>
+                                    ) : null}
+                                    {allowlistedUsers.map((r) => (
+                                        <span key={r.id || r.label} className="invite-chip">
+                                            {r.label}
+                                            <button type="button" onClick={() => handleRemoveAllowlistUser(r.id || r.label)} aria-label={`Remove ${r.label}`}>
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                    <input
+                                        ref={allowlistInputRef}
+                                        type="text"
+                                        value={allowlistQuery}
+                                        onChange={handleAllowlistQueryChange}
+                                        onKeyDown={handleAllowlistKeyDown}
+                                        placeholder="Search users"
+                                        aria-label="Search users for restricted link"
+                                        autoComplete="off"
+                                    />
+                                    {allowlistSearchLoading ? <Loader2 size={16} className="spin" /> : null}
+                                </div>
+                                {allowlistSuggestions.length > 0 && (
+                                    <div className="invite-suggestions">
+                                        {allowlistSuggestions.map((user) => (
+                                            <button
+                                                key={user.id || user.label}
+                                                type="button"
+                                                className="invite-suggestion-item"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectAllowlistUser(user);
+                                                }}
+                                            >
+                                                <span className="invite-suggestion-label">{user.label}</span>
+                                                {user.description ? <span className="invite-suggestion-desc">{user.description}</span> : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="restricted-modal-field">
+                                <label className="restricted-modal-label">Expires in (Days)</label>
+                                <input
+                                    type="number"
+                                    placeholder="Never"
+                                    value={restrictedExpiryDays}
+                                    onChange={(e) => setRestrictedExpiryDays(e.target.value)}
+                                    min="1"
+                                    className="restricted-modal-input"
+                                />
+                            </div>
+
+                            <div className="restricted-modal-actions">
+                                <button type="button" className="share-link-action-btn" onClick={closeRestrictedModal}>Cancel</button>
+                                <button type="submit" className="auth-btn" disabled={generating} style={{ padding: "0.65rem 1rem" }}>
+                                    {generating ? <Loader2 className="spin" size={16} /> : null}
+                                    Generate Restricted Link
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Active Links Table */}
             <div>
