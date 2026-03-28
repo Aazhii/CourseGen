@@ -32,23 +32,23 @@ public class CourseJoinController {
     @GetMapping("/{token}")
     public ResponseEntity<ApiResponse<ShareLinkResponse>> resolveShareLink(@PathVariable String token,
                                                                            Authentication auth) {
-        LOGGER.log(Level.INFO, "Request received to resolve share token");
+        LOGGER.log(Level.INFO, "Request received to resolve share token: {0}", token);
         try {
-            if (auth == null || !auth.isAuthenticated()) {
-                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.failure("Login required to access this share link"));
-            }
+            Long userId = (auth != null && auth.isAuthenticated()) ? ((UserPrincipal) auth.getPrincipal()).getUser().getId() : null;
 
-            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-            ShareLinkResponse response = courseShareService.getShareLinkByToken(token, principal.getUser().getId());
+            ShareLinkResponse response = courseShareService.getShareLinkByToken(token, userId);
 
-            // ✅ CHECK: Course must be active
-            // This check will be done in the service layer
-            
+            // If it's a PRIVATE link and user is not logged in, the service would have thrown an exception
+            // because userId is null. If it's PUBLIC, it returns the response.
+
             LOGGER.log(Level.INFO, "Share token resolved successfully");
             return ResponseEntity.ok(ApiResponse.success("Share token resolved successfully", response));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error resolving share token: {0}", e.getMessage());
+            if (e.getMessage().contains("Login required") || e.getMessage().contains("not allowed")) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure(e.getMessage()));
+            }
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("Invalid or expired share link: " + e.getMessage()));
         }

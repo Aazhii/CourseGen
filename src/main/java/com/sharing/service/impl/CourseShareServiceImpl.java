@@ -348,7 +348,7 @@ public class CourseShareServiceImpl implements CourseShareService {
     }
 
     private ShareLinkResponse mapToResponse(CourseShareLink shareLink) {
-        String shareUrl = String.format("/api/join/%s", shareLink.getShareToken());
+        String shareUrl = String.format("/join/%s", shareLink.getShareToken());
         List<String> allowedUsernames = null;
 
         if (ShareLinkType.PRIVATE.equals(shareLink.getLinkType())) {
@@ -359,6 +359,18 @@ public class CourseShareServiceImpl implements CourseShareService {
             allowedUsernames = userRepo.findAllById(userIds).stream()
                     .map(Users::getUsername)
                     .collect(Collectors.toList());
+        }
+
+        Course course = courseRepo.findById(shareLink.getCourseId()).orElse(null);
+        String courseName = course != null ? course.getTitle() : "Unknown Course";
+        String courseDescription = course != null ? course.getDescription() : "";
+        int moduleCount = (course != null && course.getModules() != null) ? course.getModules().size() : 0;
+        // Assuming course has a way to get total lessons, or count them from modules
+        int lessonCount = 0;
+        if (course != null && course.getModules() != null) {
+            lessonCount = course.getModules().stream()
+                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                    .sum();
         }
 
         return new ShareLinkResponse(
@@ -372,7 +384,11 @@ public class CourseShareServiceImpl implements CourseShareService {
                 shareLink.getCurrentEnrollments(),
                 shareLink.getMaxEnrollments(),
                 shareUrl,
-                allowedUsernames
+                allowedUsernames,
+                courseName,
+                courseDescription,
+                moduleCount,
+                lessonCount
         );
     }
 

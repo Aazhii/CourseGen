@@ -16,6 +16,10 @@ public class ShareLinkResponse {
     private Integer maxEnrollments;
     private String shareUrl;
     private java.util.List<String> allowedUsers;
+    private String courseName;
+    private String courseDescription;
+    private int moduleCount;
+    private int lessonCount;
 
     // --- Constructors ---
     public ShareLinkResponse() {
@@ -24,7 +28,8 @@ public class ShareLinkResponse {
     public ShareLinkResponse(Long id, String shareToken, Long courseId, ShareLinkType linkType,
                              OffsetDateTime createdAt, OffsetDateTime expiresAt, Boolean isActive,
                              Integer currentEnrollments, Integer maxEnrollments, String shareUrl,
-                             java.util.List<String> allowedUsers) {
+                             java.util.List<String> allowedUsers, String courseName,
+                             String courseDescription, int moduleCount, int lessonCount) {
         this.id = id;
         this.shareToken = shareToken;
         this.courseId = courseId;
@@ -36,6 +41,10 @@ public class ShareLinkResponse {
         this.maxEnrollments = maxEnrollments;
         this.shareUrl = shareUrl;
         this.allowedUsers = allowedUsers;
+        this.courseName = courseName;
+        this.courseDescription = courseDescription;
+        this.moduleCount = moduleCount;
+        this.lessonCount = lessonCount;
     }
 
     // --- Getters and Setters ---
@@ -125,5 +134,37 @@ public class ShareLinkResponse {
 
     public void setAllowedUsers(java.util.List<String> allowedUsers) {
         this.allowedUsers = allowedUsers;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public String getCourseDescription() {
+        return courseDescription;
+    }
+
+    public void setCourseDescription(String courseDescription) {
+        this.courseDescription = courseDescription;
+    }
+
+    public int getModuleCount() {
+        return moduleCount;
+    }
+
+    public void setModuleCount(int moduleCount) {
+        this.moduleCount = moduleCount;
+    }
+
+    public int getLessonCount() {
+        return lessonCount;
+    }
+
+    public void setLessonCount(int lessonCount) {
+        this.lessonCount = lessonCount;
     }
 }
