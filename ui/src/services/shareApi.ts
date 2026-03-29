@@ -1,5 +1,12 @@
 import { apiFetch } from './apiClient';
 
+function unwrap<T>(payload: any): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
 /**
  * Generate a share link for a course
  */
@@ -8,7 +15,7 @@ export async function generateShareLink(courseId: string, payload: any): Promise
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -16,7 +23,8 @@ export async function generateShareLink(courseId: string, payload: any): Promise
  */
 export async function getCourseShareLinks(courseId: string): Promise<any[]> {
   const res = await apiFetch(`/api/courses/${courseId}/share/links`);
-  return res.data || [];
+  const data = unwrap<any>(res);
+  return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -26,7 +34,7 @@ export async function deactivateShareLink(courseId: string, shareLinkId: string)
   const res = await apiFetch(`/api/courses/${courseId}/share/links/${shareLinkId}/deactivate`, {
     method: 'PUT',
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -36,7 +44,7 @@ export async function activateShareLink(courseId: string, shareLinkId: string): 
   const res = await apiFetch(`/api/courses/${courseId}/share/links/${shareLinkId}/activate`, {
     method: 'PUT',
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -46,7 +54,7 @@ export async function deactivateAllShareLinks(courseId: string): Promise<any> {
   const res = await apiFetch(`/api/courses/${courseId}/share/links/deactivate-all`, {
     method: 'PUT',
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -56,7 +64,7 @@ export async function activateAllShareLinks(courseId: string): Promise<any> {
   const res = await apiFetch(`/api/courses/${courseId}/share/links/activate-all`, {
     method: 'PUT',
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -66,7 +74,7 @@ export async function revokeShareLink(courseId: string, shareLinkId: string): Pr
   const res = await apiFetch(`/api/courses/${courseId}/share/links/${shareLinkId}`, {
     method: 'DELETE',
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
@@ -77,17 +85,21 @@ export async function updateShareLink(courseId: string, shareLinkId: string, pay
     method: 'PUT',
     body: JSON.stringify(payload),
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 
 /**
  * Send direct email invites for a course
  */
-export async function sendDirectInvite(courseId: string, emails: string[]): Promise<any> {
+export async function sendDirectInvite(courseId: string, recipients: string[]): Promise<any> {
   const res = await apiFetch(`/api/courses/${courseId}/share/invite`, {
     method: 'POST',
-    body: JSON.stringify({ emails }),
+    body: JSON.stringify({
+      emails: recipients,
+      usernames: recipients,
+      recipients,
+    }),
   });
-  return res.data;
+  return unwrap<any>(res);
 }
 

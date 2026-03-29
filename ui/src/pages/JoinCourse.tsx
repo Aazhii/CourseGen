@@ -33,7 +33,14 @@ export default function JoinCourse() {
           setCourseInfo(data?.data ?? data);
         }
       } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : "This link is invalid or has expired.");
+        if (!mounted) return;
+
+        const raw = err instanceof Error ? err.message : "";
+        const message = raw.includes("Received HTML response")
+          ? "This share link endpoint is not available on the backend. Please verify the join API route for token resolution."
+          : raw || "This link is invalid or has expired.";
+
+        setError(message);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -92,12 +99,12 @@ export default function JoinCourse() {
     );
   }
 
-  const title = courseInfo?.courseTitle ?? courseInfo?.title ?? "Unknown Course";
+  const title = courseInfo?.courseName ?? courseInfo?.courseTitle ?? courseInfo?.title ?? "Unknown Course";
   const description = courseInfo?.courseDescription ?? courseInfo?.description ?? "";
-  const modules = courseInfo?.moduleCount ?? 0;
-  const lessons = courseInfo?.lessonCount ?? 0;
+  const modules = courseInfo?.moduleCount ?? (courseInfo?.modules ? courseInfo.modules.length : 0);
+  const lessons = courseInfo?.lessonCount ?? courseInfo?.totalLessons ?? 0;
   const difficulty = courseInfo?.difficulty ?? courseInfo?.level ?? "";
-  const inviterName = courseInfo?.inviterUsername ?? courseInfo?.sharedBy ?? "";
+  const inviterName = courseInfo?.invitedByName ?? courseInfo?.inviterUsername ?? courseInfo?.sharedBy ?? "";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">

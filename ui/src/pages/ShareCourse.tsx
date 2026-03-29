@@ -4,7 +4,16 @@ import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2 } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCourseById } from "@/services/courseApi";
-import { autocomplete, resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
+import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
+import {
+  activateShareLink,
+  deactivateShareLink,
+  generateShareLink,
+  getCourseShareLinks,
+  revokeShareLink,
+  sendDirectInvite,
+} from "@/services/shareApi";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +25,38 @@ import {
 
 // ─── Types ─────────────────────────────────────────────────────────
 type Recipient = Pick<SearchResultItem, "id" | "label" | "description">;
-type LinkType = "PUBLIC" | "RESTRICTED";
+type LinkType = "PUBLIC" | "PRIVATE";
+type ShareLinkRow = { id: string; token: string; type: LinkType; active: boolean; url?: string };
+
+function extractTokenFromUrl(url: string): string {
+  if (!url) return "";
+  const normalized = url.trim();
+  const byPath = normalized.match(/\/join\/([^/?#]+)/i);
+  if (byPath?.[1]) return byPath[1];
+  const byQuery = normalized.match(/[?&]token=([^&#]+)/i);
+  return byQuery?.[1] ? decodeURIComponent(byQuery[1]) : "";
+}
+
+function normalizeShareLink(item: any): ShareLinkRow {
+  let rawUrl =
+    String(item?.url ?? item?.link ?? item?.shareUrl ?? item?.joinUrl ?? "").trim();
+  // Ignore rawUrl if it's an /api/ path
+  if (rawUrl.startsWith('/api/')) {
+    rawUrl = '';
+  }
+  const extracted = extractTokenFromUrl(rawUrl);
+  const token = String(item?.token ?? item?.shareToken ?? extracted ?? "").trim();
+
+  const frontendUrl = token ? `${window.location.origin}/join/${token}` : undefined;
+  
+  return {
+    id: String(item?.id ?? item?.shareLinkId ?? item?.token ?? ""),
+    token,
+    type: String(item?.type ?? item?.linkType ?? "PUBLIC").toUpperCase() === "PRIVATE" ? "PRIVATE" : "PUBLIC",
+    active: Boolean(item?.isActive ?? item?.active ?? item?.enabled ?? true),
+    url: frontendUrl,
+  };
+}
 
 // ─── Debounce hook ──────────────────────────────────────────────────
 function useDebounce<T>(value: T, delay: number): T {
@@ -154,26 +194,48 @@ export default function ShareCourse() {
 
   const [selectedRecipients, setSelectedRecipients] = useState<Recipient[]>([]);
   const [allowlistedUsers, setAllowlistedUsers] = useState<Recipient[]>([]);
-
-  const [generatedLinks, setGeneratedLinks] = useState<
-    Array<{ id: string; token: string; type: LinkType; active: boolean }>
-  >([]);
+  const [generatedLinks, setGeneratedLinks] = useState<ShareLinkRow[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [generatingPublic, setGeneratingPublic] = useState(false);
+  const [generatingRestricted, setGeneratingRestricted] = useState(false);
+  const [sendingInvites, setSendingInvites] = useState(false);
+  const [updatingLinkId, setUpdatingLinkId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    async function loadCourse() {
+    async function loadCourseAndLinks() {
       if (!courseId) { setCourseLoading(false); return; }
       try {
-        const data = await getCourseById(courseId);
-        if (mounted) setCourse(data);
+        const [courseData, linksData] = await Promise.all([
+          getCourseById(courseId),
+          getCourseShareLinks(courseId).catch(() => []),
+        ]);
+        if (mounted) {
+          setCourse(courseData);
+          setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
+        }
       } catch {
         if (mounted) setCourse(null);
       } finally {
         if (mounted) setCourseLoading(false);
       }
     }
-    loadCourse();
+    loadCourseAndLinks();
     return () => { mounted = false; };
+  }, [courseId]);
+
+  const refreshLinks = useCallback(async () => {
+    if (!courseId) return;
+    setLinksLoading(true);
+    try {
+      const links = await getCourseShareLinks(courseId);
+      setGeneratedLinks(links.map(normalizeShareLink).filter((item) => item.id));
+    } catch (error) {
+      console.error("Failed to fetch share links:", error);
+      toast.error("Failed to fetch share links");
+    } finally {
+      setLinksLoading(false);
+    }
   }, [courseId]);
 
   const addRecipient = useCallback((r: Recipient) => {
@@ -196,10 +258,131 @@ export default function ShareCourse() {
     setAllowlistedUsers((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
-  const createLink = (type: LinkType) => {
-    const token = Math.random().toString(36).slice(2, 12);
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setGeneratedLinks((prev) => [{ id, token, type, active: true }, ...prev]);
+  const buildExpiryPayload = (daysValue: string) => {
+    const parsed = Number(daysValue);
+    if (!daysValue || Number.isNaN(parsed) || parsed <= 0) return {};
+    const expiresAt = new Date(Date.now() + parsed * 24 * 60 * 60 * 1000).toISOString();
+    return { expiresInDays: parsed, expiryDays: parsed, expiresAt };
+  };
+
+  const handleGeneratePublicLink = async () => {
+    if (!courseId) return;
+    setGeneratingPublic(true);
+    try {
+      const payload = {
+        type: "PUBLIC",
+        linkType: "PUBLIC",
+        ...buildExpiryPayload(expiryDays),
+      };
+      const created = await generateShareLink(courseId, payload);
+      const normalized = normalizeShareLink(created);
+      setGeneratedLinks((prev) => [normalized, ...prev.filter((item) => item.id !== normalized.id)]);
+      toast.success("Share link generated");
+    } catch (error) {
+      console.error("Failed to generate public link:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate link");
+    } finally {
+      setGeneratingPublic(false);
+    }
+  };
+
+  const handleGenerateRestrictedLink = async () => {
+    if (!courseId) return;
+    setGeneratingRestricted(true);
+    try {
+      const users = allowlistedUsers.map((item) => item.label).filter(Boolean);
+      const payload = {
+        type: "PRIVATE",
+        linkType: "PRIVATE",
+        allowedUsers: users,
+        allowedUsernames: users,
+        allowlist: users,
+        ...buildExpiryPayload(restrictedDays),
+      };
+      const created = await generateShareLink(courseId, payload);
+      const normalized = normalizeShareLink(created);
+      setGeneratedLinks((prev) => [normalized, ...prev.filter((item) => item.id !== normalized.id)]);
+      setRestrictedOpen(false);
+      setAllowlistedUsers([]);
+      setRestrictedDays("");
+      toast.success("Private share link generated");
+    } catch (error) {
+      console.error("Failed to generate private link:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate private link");
+    } finally {
+      setGeneratingRestricted(false);
+    }
+  };
+
+  const handleSendInvites = async () => {
+    if (!courseId || selectedRecipients.length === 0) return;
+    setSendingInvites(true);
+    try {
+      const recipients = selectedRecipients
+        .map((item) => (item.id.startsWith("manual-") ? item.label : item.id))
+        .map((value) => String(value).trim())
+        .filter(Boolean);
+
+      await sendDirectInvite(courseId, recipients);
+      setSelectedRecipients([]);
+      toast.success("Invites sent");
+    } catch (error) {
+      console.error("Failed to send invites:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to send invites");
+    } finally {
+      setSendingInvites(false);
+    }
+  };
+
+  const handleToggleLink = async (link: ShareLinkRow) => {
+    if (!courseId || !link.id) return;
+    setUpdatingLinkId(link.id);
+    try {
+      if (link.active) {
+        await deactivateShareLink(courseId, link.id);
+      } else {
+        await activateShareLink(courseId, link.id);
+      }
+      setGeneratedLinks((prev) =>
+        prev.map((item) => (item.id === link.id ? { ...item, active: !link.active } : item))
+      );
+      toast.success(link.active ? "Share link deactivated" : "Share link activated");
+    } catch (error) {
+      console.error("Failed to update link status:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update link status");
+    } finally {
+      setUpdatingLinkId(null);
+    }
+  };
+
+  const handleDeleteLink = async (linkId: string) => {
+    if (!courseId || !linkId) return;
+    setUpdatingLinkId(linkId);
+    try {
+      await revokeShareLink(courseId, linkId);
+      setGeneratedLinks((prev) => prev.filter((item) => item.id !== linkId));
+      toast.success("Share link deleted");
+    } catch (error) {
+      console.error("Failed to delete link:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete link");
+    } finally {
+      setUpdatingLinkId(null);
+    }
+  };
+
+  const handleCopyLink = async (link: ShareLinkRow) => {
+    const joinUrl = link.url || (link.token ? `${window.location.origin}/join/${link.token}` : "");
+    if (!joinUrl) {
+      toast.error("This share link has no token");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      toast.success("Link copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
   };
 
   if (courseLoading) return <div className="p-8 text-muted-foreground">Loading course...</div>;
@@ -245,12 +428,12 @@ export default function ShareCourse() {
                 onChange={(e) => {
                   const next = e.target.value as LinkType;
                   setLinkType(next);
-                  if (next === "RESTRICTED") setRestrictedOpen(true);
+                  if (next === "PRIVATE") setRestrictedOpen(true);
                 }}
                 className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               >
                 <option value="PUBLIC">Public (Anyone with link)</option>
-                <option value="RESTRICTED">Restricted</option>
+                <option value="PRIVATE">Private (Restricted to specific users)</option>
               </select>
             </div>
             <div>
@@ -265,13 +448,13 @@ export default function ShareCourse() {
                 className="mt-1"
               />
             </div>
-            {linkType === "RESTRICTED" ? (
+            {linkType === "PRIVATE" ? (
               <Button className="w-full" onClick={() => setRestrictedOpen(true)}>
                 Open Restricted Setup
               </Button>
             ) : (
-              <Button className="w-full" onClick={() => createLink("PUBLIC")}>
-                Generate Link
+              <Button className="w-full" onClick={handleGeneratePublicLink} disabled={generatingPublic}>
+                {generatingPublic ? "Generating..." : "Generate Link"}
               </Button>
             )}
           </div>
@@ -298,9 +481,10 @@ export default function ShareCourse() {
           <Button
             variant="secondary"
             className="mt-4 w-full"
-            disabled={selectedRecipients.length === 0}
+            disabled={selectedRecipients.length === 0 || sendingInvites}
+            onClick={handleSendInvites}
           >
-            Send Invites
+            {sendingInvites ? "Sending..." : "Send Invites"}
           </Button>
         </div>
       </div>
@@ -350,12 +534,10 @@ export default function ShareCourse() {
           <DialogFooter className="restricted-actions mt-4 border-t border-border/60 pt-4">
             <Button variant="outline" onClick={() => setRestrictedOpen(false)}>Cancel</Button>
             <Button
-              onClick={() => {
-                createLink("RESTRICTED");
-                setRestrictedOpen(false);
-              }}
+              onClick={handleGenerateRestrictedLink}
+              disabled={generatingRestricted}
             >
-              Generate Restricted Link
+              {generatingRestricted ? "Generating..." : "Generate Private Link"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,7 +546,9 @@ export default function ShareCourse() {
       {/* Active Share Links Table */}
       <div className="mt-8">
         <h2 className="font-display text-xl font-bold text-foreground">Active Share Links</h2>
-        {generatedLinks.length === 0 ? (
+        {linksLoading ? (
+          <p className="mt-4 text-sm text-muted-foreground">Loading share links...</p>
+        ) : generatedLinks.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">No share links generated yet.</p>
         ) : (
           <div className="mt-4 overflow-x-auto rounded-lg border border-border/60">
@@ -380,7 +564,7 @@ export default function ShareCourse() {
               <tbody>
                 {generatedLinks.map((link) => (
                   <tr key={link.id} className="border-t border-border/50">
-                    <td className="px-4 py-3 font-mono text-xs text-foreground">{link.token.slice(0, 8)}...</td>
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">{link.token ? `${link.token.slice(0, 8)}...` : "N/A"}</td>
                     <td className="px-4 py-3 text-foreground">{link.type}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded px-2 py-1 text-xs font-semibold ${link.active ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"}`}>
@@ -389,19 +573,20 @@ export default function ShareCourse() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="icon" title="Copy link" aria-label="Copy link">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Copy link"
+                          aria-label="Copy link"
+                          onClick={() => handleCopyLink(link)}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
+                          disabled={updatingLinkId === link.id}
                           className="gap-2"
-                          onClick={() =>
-                            setGeneratedLinks((prev) =>
-                              prev.map((item) =>
-                                item.id === link.id ? { ...item, active: !item.active } : item
-                              )
-                            )
-                          }
+                          onClick={() => handleToggleLink(link)}
                         >
                           {link.active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                           <span>{link.active ? "Deactivate" : "Activate"}</span>
@@ -409,11 +594,10 @@ export default function ShareCourse() {
                         <Button
                           variant="outline-destructive"
                           size="icon"
+                          disabled={updatingLinkId === link.id}
                           title="Delete link"
                           aria-label="Delete link"
-                          onClick={() =>
-                            setGeneratedLinks((prev) => prev.filter((item) => item.id !== link.id))
-                          }
+                          onClick={() => handleDeleteLink(link.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
