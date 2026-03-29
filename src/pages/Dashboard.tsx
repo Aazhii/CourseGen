@@ -43,12 +43,13 @@ export default function Dashboard() {
           list = Array.isArray(invites)
             ? invites.map((inv: any) => ({
               id: inv.courseId ?? inv.id,
-              title: inv.courseTitle ?? inv.title ?? "Untitled Course",
-              description: inv.courseDescription ?? inv.description ?? "",
-              modules: [],
+              title: inv.courseName ?? inv.courseTitle ?? inv.title ?? "Untitled Course",
+              description: inv.courseDescription ?? inv.description ?? "No description available.",
+              modules: Array.from({ length: inv.moduleCount ?? 0 }),
+              lessonCount: inv.lessonCount ?? 0,
               active: true,
               isEnrolled: true,
-              inviteStatus: inv.status,
+              inviteStatus: inv.inviteStatus ?? inv.status,
             }))
             : [];
         } else {
@@ -206,7 +207,7 @@ export default function Dashboard() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-display text-base font-bold text-foreground capitalize truncate">
-                          {course.title || course.topic || "Untitled Course"}
+                          {course.title || course.courseName || course.topic || "Untitled Course"}
                         </h3>
                         {course.active === false && (
                           <span className="text-xs font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
