@@ -1,0 +1,185 @@
+import { apiFetch } from './apiClient';
+
+export interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  topic?: string;
+  difficulty?: string;
+  duration?: string;
+  moduleCount?: number;
+  lessonCount?: number;
+  modules?: any[];
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
+export interface CourseCreatePayload {
+  topic: string;
+  difficulty?: string;
+  duration?: string;
+  projectId?: string;
+}
+
+function unwrapApiData<T>(payload: any): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
+function normalizeLesson(lesson: any) {
+  const id = lesson?.id ?? lesson?.lessonId ?? lesson?.uuid;
+  return {
+    ...lesson,
+    id: id ? String(id) : '',
+    title: lesson?.title ?? lesson?.name ?? 'Untitled Lesson',
+  };
+}
+
+function normalizeModule(module: any) {
+  const id = module?.id ?? module?.moduleId ?? module?.uuid;
+  const rawLessons =
+    (Array.isArray(module?.lessons) && module.lessons) ||
+    (Array.isArray(module?.lessonDtos) && module.lessonDtos) ||
+    (Array.isArray(module?.lessonList) && module.lessonList) ||
+    [];
+
+  return {
+    ...module,
+    id: id ? String(id) : '',
+    title: module?.title ?? module?.name ?? 'Untitled Module',
+    number: module?.number ?? module?.moduleNumber,
+    lessons: rawLessons.map(normalizeLesson),
+  };
+}
+
+function normalizeCourse(course: any): Course {
+  const id = course?.id ?? course?.courseId ?? course?.uuid;
+  const rawModules =
+    (Array.isArray(course?.modules) && course.modules) ||
+    (Array.isArray(course?.moduleDtos) && course.moduleDtos) ||
+    (Array.isArray(course?.moduleList) && course.moduleList) ||
+    [];
+
+  return {
+    ...course,
+    id: id ? String(id) : '',
+    title: course?.title ?? course?.topic ?? 'Untitled Course',
+    modules: rawModules.map(normalizeModule),
+  };
+}
+
+/**
+ * Create a new course
+ */
+export async function createCourse(data: any) {
+  const payload = {
+    ...data,
+    title: data?.title ?? data?.topic,
+  };
+
+  const response = await apiFetch('/api/courses/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return normalizeCourse(unwrapApiData<any>(response));
+}
+
+/**
+ * Fetch all courses for the current user
+ */
+export async function fetchCourses() {
+  const response = await apiFetch('/api/courses/my-courses');
+  const list = unwrapApiData<any>(response);
+  return Array.isArray(list) ? list.map(normalizeCourse) : [];
+}
+
+/**
+ * Fetch courses shared by the user
+ */
+export async function fetchCoursesSharedByMe() {
+  const response = await apiFetch('/api/courses/shared-by-me');
+  const list = unwrapApiData<any>(response);
+  return Array.isArray(list) ? list.map(normalizeCourse) : [];
+}
+
+/**
+ * Get a specific course by ID
+ */
+export async function getCourseById(id: string) {
+  const response = await apiFetch(`/api/courses/${id}`);
+  return normalizeCourse(unwrapApiData<any>(response));
+}
+
+/**
+ * Update an existing course
+ */
+export async function updateCourse(id: string, data: any) {
+  return apiFetch(`/api/courses/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a course
+ */
+export async function deleteCourse(id: string) {
+  return apiFetch(`/api/courses/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Activate a course (make it accessible)
+ */
+export async function activateCourse(id: string) {
+  return apiFetch(`/api/courses/${id}/activate`, {
+    method: 'PUT',
+  });
+}
+
+/**
+ * Deactivate a course (make it inaccessible)
+ */
+export async function deactivateCourse(id: string) {
+  return apiFetch(`/api/courses/${id}/deactivate`, {
+    method: 'PUT',
+  });
+}
+
+/**
+ * Generate lesson content for a specific lesson
+ */
+export async function generateLessonContent(
+  courseId: string,
+  moduleId: string,
+  lessonId: string
+) {
+  return apiFetch(
+    `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/generate`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+/**
+ * Get a specific lesson by ID
+ */
+export async function getLessonById(id: string) {
+  try {
+    const response = await apiFetch(`/api/courses/lessons/${id}`);
+    return unwrapApiData<any>(response);
+  } catch {
+    const response = await apiFetch(`/api/lessons/${id}`);
+    return unwrapApiData<any>(response);
+  }
+}
+
