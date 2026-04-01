@@ -30,18 +30,25 @@ public class CourseJoinController {
      * Resolve share token and get course details
      */
     @GetMapping("/{token}")
-    public ResponseEntity<ApiResponse<ShareLinkResponse>> resolveShareLink(@PathVariable String token) {
-        LOGGER.log(Level.INFO, "Request received to resolve share token");
+    public ResponseEntity<ApiResponse<ShareLinkResponse>> resolveShareLink(@PathVariable String token,
+                                                                           Authentication auth) {
+        LOGGER.log(Level.INFO, "Request received to resolve share token: {0}", token);
         try {
-            ShareLinkResponse response = courseShareService.getShareLinkByToken(token);
+            Long userId = (auth != null && auth.isAuthenticated()) ? ((UserPrincipal) auth.getPrincipal()).getUser().getId() : null;
 
-            // ✅ CHECK: Course must be active
-            // This check will be done in the service layer
-            
+            ShareLinkResponse response = courseShareService.getShareLinkByToken(token, userId);
+
+            // If it's a PRIVATE link and user is not logged in, the service would have thrown an exception
+            // because userId is null. If it's PUBLIC, it returns the response.
+
             LOGGER.log(Level.INFO, "Share token resolved successfully");
             return ResponseEntity.ok(ApiResponse.success("Share token resolved successfully", response));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error resolving share token: {0}", e.getMessage());
+            if (e.getMessage().contains("Login required") || e.getMessage().contains("not allowed")) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure(e.getMessage()));
+            }
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("Invalid or expired share link: " + e.getMessage()));
         }
@@ -60,7 +67,7 @@ public class CourseJoinController {
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
 
             // Resolve the share link
-            ShareLinkResponse shareLink = courseShareService.getShareLinkByToken(token);
+            ShareLinkResponse shareLink = courseShareService.getShareLinkByToken(token, principal.getUser().getId());
 
             // Enroll user
             EnrollmentResponse response = lessonProgressService.enrollUserInCourse(

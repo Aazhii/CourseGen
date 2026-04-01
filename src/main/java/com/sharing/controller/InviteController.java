@@ -287,6 +287,14 @@ public class InviteController {
                     .orElse("Unknown User");
         }
 
+        int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
+        int lessonCount = 0;
+        if (course.getModules() != null) {
+            lessonCount = course.getModules().stream()
+                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                    .sum();
+        }
+
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getCourseId(),
@@ -295,10 +303,13 @@ public class InviteController {
                 enrollment.getEnrolledAt(),
                 enrollment.getProgressPercentage(),
                 course.getTitle(),
+                course.getDescription(),
                 enrollment.getIsRead(),
                 enrollment.getInviteStatus(),
                 enrollment.getInvitedBy(),
-                invitedByName
+                invitedByName,
+                moduleCount,
+                lessonCount
         );
     }
 }

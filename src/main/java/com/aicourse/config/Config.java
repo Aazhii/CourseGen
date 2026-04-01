@@ -1,6 +1,7 @@
 package com.aicourse.config;
 
 // ... keeping your existing imports ...
+
 import com.aicourse.filter.JWTFilter;
 import com.aicourse.service.JWT.impl.AuthenticationSuccessHandlerImpl;
 import com.aicourse.service.UserDetailService;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
 
 @Configuration
@@ -48,7 +50,8 @@ public class Config {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**", // Make sure this covers your auth endpoints
+                                "/api/auth/**",
+                                "/api/join/**",
                                 "/login",
                                 "/register",
                                 "/oauth2/**",
@@ -71,7 +74,7 @@ public class Config {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Allow your Frontend
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://10.179.164.21:5173")); // Allow your Frontend
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

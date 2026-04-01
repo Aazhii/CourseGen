@@ -189,6 +189,14 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
 
+            int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
+            int lessonCount = 0;
+            if (course.getModules() != null) {
+                lessonCount = course.getModules().stream()
+                        .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                        .sum();
+            }
+
             return new EnrollmentResponse(
                     enrollment.getId(),
                     enrollment.getCourseId(),
@@ -196,7 +204,14 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     enrollment.getStatus(),
                     enrollment.getEnrolledAt(),
                     enrollment.getProgressPercentage(),
-                    course.getTitle()
+                    course.getTitle(),
+                    course.getDescription(),
+                    enrollment.getIsRead(),
+                    enrollment.getInviteStatus(),
+                    enrollment.getInvitedBy(),
+                    null, // invitedByName
+                    moduleCount,
+                    lessonCount
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching enrollment: {0}", e.getMessage());
@@ -215,15 +230,31 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             List<CourseEnrollment> enrollments = courseEnrollmentRepo.findByCourseId(courseId);
 
             return enrollments.stream()
-                    .map(enrollment -> new EnrollmentResponse(
-                            enrollment.getId(),
-                            enrollment.getCourseId(),
-                            enrollment.getUserId(),
-                            enrollment.getStatus(),
-                            enrollment.getEnrolledAt(),
-                            enrollment.getProgressPercentage(),
-                            course.getTitle()
-                    ))
+                    .map(enrollment -> {
+                        int mCount = (course.getModules() != null) ? course.getModules().size() : 0;
+                        int lCount = 0;
+                        if (course.getModules() != null) {
+                            lCount = course.getModules().stream()
+                                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                                    .sum();
+                        }
+                        return new EnrollmentResponse(
+                                enrollment.getId(),
+                                enrollment.getCourseId(),
+                                enrollment.getUserId(),
+                                enrollment.getStatus(),
+                                enrollment.getEnrolledAt(),
+                                enrollment.getProgressPercentage(),
+                                course.getTitle(),
+                                course.getDescription(),
+                                enrollment.getIsRead(),
+                                enrollment.getInviteStatus(),
+                                enrollment.getInvitedBy(),
+                                null,
+                                mCount,
+                                lCount
+                        );
+                    })
                     .collect(Collectors.toList());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching course enrollments: {0}", e.getMessage());
@@ -259,6 +290,14 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             CourseEnrollment enrollment = new CourseEnrollment(courseId, userId, shareLinkId);
             CourseEnrollment savedEnrollment = courseEnrollmentRepo.save(enrollment);
 
+            int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
+            int lessonCount = 0;
+            if (course.getModules() != null) {
+                lessonCount = course.getModules().stream()
+                        .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                        .sum();
+            }
+
             LOGGER.log(Level.INFO, "User enrolled successfully");
             return new EnrollmentResponse(
                     savedEnrollment.getId(),
@@ -267,7 +306,14 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     savedEnrollment.getStatus(),
                     savedEnrollment.getEnrolledAt(),
                     savedEnrollment.getProgressPercentage(),
-                    course.getTitle()
+                    course.getTitle(),
+                    course.getDescription(),
+                    savedEnrollment.getIsRead(),
+                    savedEnrollment.getInviteStatus(),
+                    savedEnrollment.getInvitedBy(),
+                    null,
+                    moduleCount,
+                    lessonCount
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error enrolling user: {0}", e.getMessage());
