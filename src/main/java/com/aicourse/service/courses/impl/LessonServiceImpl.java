@@ -4,6 +4,7 @@ import com.aicourse.geminiConnection.GeminiConnection;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.aicourse.repo.LessonRepo;
+import com.aicourse.service.courses.LessonPromptBuilder;
 import com.aicourse.service.courses.LessonService;
 import com.aicourse.utils.json.JsonParserUtil;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -66,33 +67,36 @@ public class LessonServiceImpl implements LessonService {
         String moduleTitle = module.getTitle();
         String lessonTitle = lesson.getTitle();
 
-        String prompt = """
-                Generate detailed content for a lesson titled "%s".
-                Context:
-                - Course: "%s"
-                - Module: "%s"
-
-                The content must be educational, engaging, and formatted as a JSON array.
-                Each block must contain:
-                - "type"
-                - "content"
-
-                Example:
-                [
-                    { "type": "text", "content": "Introduction..." },
-                    { "type": "code", "content": "print('Hello')" }
-                ]
-
-                Respond ONLY with a raw JSON array.
-                """.formatted(lessonTitle, courseTitle, moduleTitle);
+        String prompt = new LessonPromptBuilder()
+                .lessonTitle(lessonTitle)
+                .courseTitle(courseTitle)
+                .moduleTitle(moduleTitle)
+                .build();
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for lesson ''{0}''", new Object[]{lessonTitle});
             String response = geminiConnection.getResponse(prompt);
-            LOGGER.log(Level.FINE, "Received response from AI for lesson ''{0}''", new Object[]{lessonTitle});
+            LOGGER.log(Level.FINE, "Received response from AI for lesson ''{0}'' (length: {1})",
+                    new Object[]{lessonTitle, response.length()});
 
             String cleanJson = JsonParserUtil.extractRawJson(response);
+
+            // Validate JSON before parsing
+            if (!JsonParserUtil.isValidJson(cleanJson)) {
+                LOGGER.log(Level.SEVERE, "AI response is not valid JSON for lesson: {0}", new Object[]{lessonTitle});
+                throw new RuntimeException("AI generated invalid JSON content for lesson: " + lessonTitle);
+            }
+            
             JsonNode contentJson = JsonParserUtil.parseStringToJsonObject(cleanJson);
+
+            // Additional validation: ensure it's an array
+            if (!contentJson.isArray()) {
+                LOGGER.log(Level.SEVERE, "AI response is not a JSON array for lesson: {0}", new Object[]{lessonTitle});
+                throw new RuntimeException("AI content must be a JSON array of lesson blocks for lesson: " + lessonTitle);
+            }
+
+            LOGGER.log(Level.FINE, "Successfully parsed {0} content blocks for lesson: {1}",
+                    new Object[]{contentJson.size(), lessonTitle});
 
             lesson.setContent(contentJson);
             lesson.setEnriched(true);
@@ -103,7 +107,8 @@ public class LessonServiceImpl implements LessonService {
 
             Lesson savedLesson = lessonRepo.save(lesson);
 
-            LOGGER.log(Level.INFO, "Lesson ID: {0} content generated and saved successfully", new Object[]{lessonId});
+            LOGGER.log(Level.INFO, "Lesson ID: {0} content generated and saved successfully with {1} blocks",
+                    new Object[]{lessonId, contentJson.size()});
             return savedLesson;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to generate content for lesson ID: {0}: {1}",
