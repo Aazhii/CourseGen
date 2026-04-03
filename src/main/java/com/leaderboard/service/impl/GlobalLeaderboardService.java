@@ -1,10 +1,13 @@
 package com.leaderboard.service.impl;
 
+import com.aicourse.model.Users;
+import com.aicourse.repo.UserRepo;
 import com.leaderboard.dto.LeaderboardResponseDTO;
 import com.leaderboard.dto.PagedLeaderboardDTO;
 import com.leaderboard.dto.UserRankDTO;
 import com.leaderboard.model.UserStats;
 import com.leaderboard.repository.UserStatsRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +21,9 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
     private final AtomicReference<List<UserStats>> cachedLeaderboard = new AtomicReference<>(null);
     private volatile long lastFetchedAt = 0L; // timestamp of last DB fetch
+
+    @Autowired
+    private UserRepo userRepo;
 
     public GlobalLeaderboardService(UserStatsRepository userStatsRepository) {
         super(userStatsRepository);
@@ -40,7 +46,9 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
         AtomicInteger rank = new AtomicInteger(1);
         for (UserStats user : all) {
             if (userId.equals(user.getUserId())) {
-                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user));
+                Users u = userRepo.findById(userId).orElse(null);
+                String username = (u != null) ? u.getUsername() : "Unknown";
+                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user), username, user.getCoursesCompleted(), user.getCurrentStreak(), user.getWeeklyPoints());
             }
             rank.incrementAndGet();
         }
@@ -56,7 +64,12 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
         int fromIndex = Math.min(page * size, total);
         int toIndex = Math.min(fromIndex + size, total);
 
-        List<LeaderboardResponseDTO> paged = buildLeaderBoard(all.subList(fromIndex, toIndex));
+        List<LeaderboardResponseDTO> paged = buildLeaderBoard(all.subList(fromIndex, toIndex), fromIndex);
+
+        // Populate usernames
+        for (LeaderboardResponseDTO dto : paged) {
+            userRepo.findById(dto.getUserId()).ifPresent(u -> dto.setUsername(u.getUsername()));
+        }
 
         int totalPages = (int) Math.ceil((double) total / size);
         return new PagedLeaderboardDTO(paged, page, size, total, totalPages);
