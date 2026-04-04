@@ -1,11 +1,11 @@
 package com.sharing.controller;
 
 import com.aicourse.model.Course;
-import com.aicourse.model.UserPrincipal;
-import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
-import com.aicourse.repo.UserRepo;
 import com.aicourse.utils.api.ApiResponse;
+import com.auth.model.UserPrincipal;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.sharing.dto.EnrollmentResponse;
 import com.sharing.model.CourseEnrollment;
 import com.sharing.model.EnrollmentStatus;

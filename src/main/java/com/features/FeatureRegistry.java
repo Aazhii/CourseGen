@@ -1,6 +1,6 @@
 package com.features;
 
-import com.aicourse.enums.UserRole;
+import com.auth.enums.UserRole;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;

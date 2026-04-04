@@ -1,9 +1,9 @@
 package com.search.service.impl;
 
 import com.aicourse.model.Course;
-import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
-import com.aicourse.repo.UserRepo;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.search.dto.*;
 import com.search.index.PrefixTrie;
 import com.search.model.SearchDocument;

@@ -1,15 +1,8 @@
 package com.aicourse.dto;
 
-public class LoginResponse {
-
-    private String token;
-    private UserResponse user;
-
-    public LoginResponse(String token, UserResponse user) {
-        this.token = token;
-        this.user = user;
+@Deprecated
+public class LoginResponse extends com.auth.dto.LoginResponse {
+    public LoginResponse(String token, com.auth.dto.UserResponse user) {
+        super(token, user);
     }
-
-    public String getToken() { return token; }
-    public UserResponse getUser() { return user; }
 }

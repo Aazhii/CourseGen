@@ -1,7 +1,7 @@
 package com.sharing.controller;
 
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.utils.api.ApiResponse;
+import com.auth.model.UserPrincipal;
 import com.sharing.dto.EnrollmentResponse;
 import com.sharing.dto.ShareLinkResponse;
 import com.sharing.service.CourseShareService;

@@ -1,7 +1,7 @@
 package com.leaderboard.service.impl;
 
-import com.aicourse.model.Users;
-import com.aicourse.repo.UserRepo;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.leaderboard.dto.LeaderboardResponseDTO;
 import com.leaderboard.dto.PagedLeaderboardDTO;
 import com.leaderboard.dto.UserRankDTO;
