@@ -1,16 +1,17 @@
 package com.aicourse.service.JWT.impl;
 
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import com.aicourse.service.JWT.JWTService;
-import com.aicourse.repo.UserRepo;
-import com.aicourse.model.Users;
 import com.aicourse.enums.UserRole;
+import com.aicourse.model.Users;
+import com.aicourse.repo.UserRepo;
+import com.aicourse.service.JWT.JWTService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -25,12 +26,14 @@ public class AuthenticationSuccessHandlerImpl implements AuthenticationSuccessHa
     @Autowired
     private UserRepo userRepo;
 
+    @Value("${app.frontend.base-url:http://localhost:5173}")
+    private String frontendBaseUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         
         String email = null;
-        if (authentication.getPrincipal() instanceof OAuth2User) {
-            OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
+        if (authentication.getPrincipal() instanceof OAuth2User oauthUser) {
             email = oauthUser.getAttribute("email");
         }
         
@@ -54,8 +57,13 @@ public class AuthenticationSuccessHandlerImpl implements AuthenticationSuccessHa
 
         String token = jwtService.generateToken(user.getUsername());
         System.out.println("Generated Token for " + user.getUsername() + ": " + token);
-        
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth-success")
+
+        String normalizedFrontendBaseUrl = frontendBaseUrl.endsWith("/")
+                ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
+                : frontendBaseUrl;
+
+        String targetUrl = UriComponentsBuilder.fromUriString(normalizedFrontendBaseUrl)
+                .path("/oauth-success")
                 .queryParam("token", token)
                 .build().toUriString();
         System.out.println("Redirecting to: " + targetUrl);
