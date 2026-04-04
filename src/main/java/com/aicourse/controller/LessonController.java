@@ -1,8 +1,8 @@
 package com.aicourse.controller;
 
 import com.aicourse.model.Lesson;
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.service.courses.impl.LessonServiceImpl;
+import com.auth.model.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

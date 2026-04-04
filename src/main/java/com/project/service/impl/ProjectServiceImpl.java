@@ -1,10 +1,10 @@
 package com.project.service.impl;
 
 import com.aicourse.model.Course;
-import com.aicourse.model.UserPrincipal;
-import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
+import com.auth.model.UserPrincipal;
+import com.auth.model.Users;
 import com.features.Feature;
 import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;

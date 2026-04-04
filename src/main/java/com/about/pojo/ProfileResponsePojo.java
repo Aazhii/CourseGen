@@ -1,6 +1,6 @@
 package com.about.pojo;
 
-import com.aicourse.enums.UserRole;
+import com.auth.enums.UserRole;
 
 import java.time.OffsetDateTime;
 

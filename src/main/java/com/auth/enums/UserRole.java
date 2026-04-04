@@ -1,6 +1,5 @@
-package com.aicourse.enums;
+package com.auth.enums;
 
-@Deprecated
 public enum UserRole {
     ADMIN,
     USER,
