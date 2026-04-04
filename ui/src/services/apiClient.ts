@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../constants';
+import { API_BASE_URL } from "../constants";
 
 /**
  * Central API fetch function with proper token handling, validation, and error recovery
@@ -38,24 +38,23 @@ export async function apiFetch(
 
   // Build headers with optional auth
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(requiresAuth && token && { Authorization: `Bearer ${token}` }),
     ...(fetchOptions.headers as Record<string, string>) || {},
   };
 
-  // Construct full URL
-  const baseUrl = (API_BASE_URL || '').trim();
-  const fullUrl = `${baseUrl}${url}`;
+  // Construct full URL. In dev, keep API_BASE_URL empty and rely on Vite proxy (/api).
+  const fullUrl = API_BASE_URL ? `${API_BASE_URL}${url}` : url;
 
-  // Validate URL format
+  // Validate URL format (supports both absolute and relative URLs).
   try {
-    new URL(fullUrl);
+    new URL(fullUrl, window.location.origin);
   } catch (e) {
-    console.error('Invalid URL construction:', fullUrl);
+    console.error("Invalid URL construction:", fullUrl);
     throw new Error(`Invalid URL: ${fullUrl}`);
   }
 
-  console.log('apiFetch Details:', { fullUrl, requiresAuth, hasToken: !!token });
+  console.log("apiFetch Details:", { fullUrl, requiresAuth, hasToken: !!token });
 
   try {
     const res = await fetch(fullUrl, {
@@ -71,30 +70,41 @@ export async function apiFetch(
     }
 
     // Parse response based on content type
-    const contentType = res.headers.get('content-type');
-    console.log('apiFetch: Response Status:', res.status, 'Content-Type:', contentType);
+    const contentType = res.headers.get("content-type");
+    console.log("apiFetch: Response Status:", res.status, "Content-Type:", contentType);
 
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType && contentType.includes("application/json")) {
       const json = await res.json();
-      console.log('apiFetch: Parsed JSON:', json);
+      console.log("apiFetch: Parsed JSON:", json);
       return json;
     }
 
     // Return text response
     const text = await res.text();
 
-    // Check if we accidentally got HTML back (e.g., 404 page from server)
-    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+    // Check if we accidentally got HTML back (e.g., reverse proxy warning page).
+    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
       console.error(`API received HTML instead of data [${url}]:`, text);
+
+      if (text.includes("ERR_NGROK_6024") || text.includes("ngrok.com")) {
+        throw new Error(
+          "Ngrok returned its browser warning page instead of API JSON. " +
+            "Set Vite proxy target correctly and include 'ngrok-skip-browser-warning: true' header."
+        );
+      }
+
       throw new Error(
-        'Received HTML response from API (likely 404 or 500 error)'
+        "Received HTML response from API (likely 404 or 500 error)"
       );
     }
 
     return text;
   } catch (error) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Network error. Please check your connection.');
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      throw new Error(
+        "Request failed before response was readable. Likely CORS/preflight blocked or network issue. " +
+          "In development, keep VITE_API_BASE_URL empty and call /api through Vite proxy."
+      );
     }
     throw error;
   }
