@@ -2,9 +2,9 @@ package com.aicourse.controller;
 
 import com.aicourse.model.Course;
 import com.aicourse.model.Module;
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.service.courses.impl.CourseServiceImpl;
 import com.aicourse.utils.api.ApiResponse;
+import com.auth.model.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

@@ -1,13 +1,16 @@
 package com.aicourse.service.courses.impl;
 
 import com.aicourse.geminiConnection.GeminiConnection;
-import com.aicourse.model.*;
+import com.aicourse.model.Course;
+import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.ModuleRepo;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.aicourse.utils.json.JsonParserUtil;
+import com.auth.model.UserPrincipal;
+import com.auth.model.Users;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.features.Feature;
 import com.features.FeatureGuard;
