@@ -1,6 +1,6 @@
 package com.leaderboard.controller;
 
-import com.aicourse.model.UserPrincipal;
+import com.auth.model.UserPrincipal;
 import com.leaderboard.dto.PagedLeaderboardDTO;
 import com.leaderboard.dto.UserRankDTO;
 import com.leaderboard.service.impl.GlobalLeaderboardService;

@@ -2,9 +2,9 @@ package com.aicourse.config;
 
 // ... keeping your existing imports ...
 
-import com.aicourse.filter.JWTFilter;
-import com.aicourse.service.JWT.impl.AuthenticationSuccessHandlerImpl;
-import com.aicourse.service.UserDetailService;
+import com.auth.filter.JWTFilter;
+import com.auth.jwt.impl.AuthenticationSuccessHandlerImpl;
+import com.auth.service.UserDetailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

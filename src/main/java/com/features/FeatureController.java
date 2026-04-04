@@ -1,7 +1,7 @@
 package com.features;
 
-import com.aicourse.enums.UserRole;
-import com.aicourse.model.UserPrincipal;
+import com.auth.enums.UserRole;
+import com.auth.model.UserPrincipal;
 import com.leaderboard.model.impl.UserStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
