@@ -1,12 +1,12 @@
 package com.leaderboard.dto;
 
 public class LeaderboardResponseDTO extends RankScoreDTO {
-    public LeaderboardResponseDTO(int rank, Long userId, int score, String username, int coursesCompleted, int currentStreak, int weeklyPoints) {
+    public LeaderboardResponseDTO(int rank, Long userId, int totalPoints, String username, int courseCount, int currentStreak, int weeklyPoints) {
         this.rank = rank;
         this.userId = userId;
-        this.score = score;
+        this.totalPoints = totalPoints;
         this.username = username;
-        this.coursesCompleted = coursesCompleted;
+        this.courseCount = courseCount;
         this.currentStreak = currentStreak;
         this.weeklyPoints = weeklyPoints;
     }

@@ -373,6 +373,9 @@ public class CourseShareServiceImpl implements CourseShareService {
                     .sum();
         }
 
+        Users inviter = userRepo.findById(shareLink.getCreatedBy()).orElse(null);
+        String inviterUsername = inviter != null ? inviter.getUsername() : "Someone";
+
         return new ShareLinkResponse(
                 shareLink.getId(),
                 shareLink.getShareToken(),
@@ -387,6 +390,7 @@ public class CourseShareServiceImpl implements CourseShareService {
                 allowedUsernames,
                 courseName,
                 courseDescription,
+                inviterUsername,
                 moduleCount,
                 lessonCount
         );
