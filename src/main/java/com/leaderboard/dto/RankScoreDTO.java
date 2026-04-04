@@ -3,9 +3,9 @@ package com.leaderboard.dto;
 public abstract class RankScoreDTO {
     protected int rank;
     protected Long userId;
-    protected int score;
+    protected int totalPoints;
     protected String username;
-    protected int coursesCompleted;
+    protected int courseCount;
     protected int currentStreak;
     protected int weeklyPoints;
 
@@ -21,10 +21,12 @@ public abstract class RankScoreDTO {
         this.userId = userId;
     }
 
-    public int getScore() { return score; }
+    public int getTotalPoints() {
+        return totalPoints;
+    }
 
-    public void setScore(int score) {
-        this.score = score;
+    public void setTotalPoints(int totalPoints) {
+        this.totalPoints = totalPoints;
     }
 
     public String getUsername() {
@@ -35,12 +37,12 @@ public abstract class RankScoreDTO {
         this.username = username;
     }
 
-    public int getCoursesCompleted() {
-        return coursesCompleted;
+    public int getCourseCount() {
+        return courseCount;
     }
 
-    public void setCoursesCompleted(int coursesCompleted) {
-        this.coursesCompleted = coursesCompleted;
+    public void setCourseCount(int courseCount) {
+        this.courseCount = courseCount;
     }
 
     public int getCurrentStreak() {

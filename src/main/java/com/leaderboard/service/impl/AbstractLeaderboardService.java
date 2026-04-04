@@ -26,7 +26,7 @@ public abstract class AbstractLeaderboardService implements LeaderboardService {
                         user.getUserId(),
                         getScore(user),
                         null, // username will be populated later
-                        user.getCoursesCompleted(),
+                        user.getTotalCoursesCreated(),
                         user.getCurrentStreak(),
                         user.getWeeklyPoints()
                 ))

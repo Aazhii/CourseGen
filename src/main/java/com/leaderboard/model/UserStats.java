@@ -38,6 +38,9 @@ public class UserStats {
     @Column(name = "total_projects_created", nullable = false)
     private Integer totalProjectsCreated;
 
+    @Column(name = "last_activity_date")
+    private java.time.LocalDate lastActivityDate;
+
     protected UserStats() {
     }
 
@@ -51,6 +54,7 @@ public class UserStats {
         this.currentStreak = 0;
         this.totalCoursesCreated = 0;
         this.totalProjectsCreated = 0;
+        this.lastActivityDate = null;
     }
 
     public void addPoints(int points) {
@@ -120,6 +124,14 @@ public class UserStats {
 
     public Integer getTotalProjectsCreated() {
         return totalProjectsCreated;
+    }
+
+    public java.time.LocalDate getLastActivityDate() {
+        return lastActivityDate;
+    }
+
+    public void setLastActivityDate(java.time.LocalDate lastActivityDate) {
+        this.lastActivityDate = lastActivityDate;
     }
 
 }
