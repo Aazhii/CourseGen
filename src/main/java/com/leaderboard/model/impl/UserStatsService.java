@@ -31,6 +31,23 @@ public class UserStatsService {
         stats.addPoints(LESSON_POINTS);
         stats.incrementLessonsCompleted();
 
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate last = stats.getLastActivityDate();
+
+        if (last == null) {
+            stats.incrementStreak(); // first activity
+        } else if (last.isBefore(today)) {
+            if (last.equals(today.minusDays(1))) {
+                stats.incrementStreak(); // consecutive day
+            } else {
+                stats.resetStreak();
+                stats.incrementStreak(); // reset to 1
+            }
+        }
+        // if last is today, do nothing to streak
+
+        stats.setLastActivityDate(today);
+
         boolean allLessonsDone =
                 lessonRepo.countUnenrichedLessonsByCourseId(courseId) == 0;
 

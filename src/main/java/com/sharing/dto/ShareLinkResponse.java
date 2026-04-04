@@ -18,6 +18,7 @@ public class ShareLinkResponse {
     private java.util.List<String> allowedUsers;
     private String courseName;
     private String courseDescription;
+    private String inviterUsername;
     private int moduleCount;
     private int lessonCount;
 
@@ -29,7 +30,7 @@ public class ShareLinkResponse {
                              OffsetDateTime createdAt, OffsetDateTime expiresAt, Boolean isActive,
                              Integer currentEnrollments, Integer maxEnrollments, String shareUrl,
                              java.util.List<String> allowedUsers, String courseName,
-                             String courseDescription, int moduleCount, int lessonCount) {
+                             String courseDescription, String inviterUsername, int moduleCount, int lessonCount) {
         this.id = id;
         this.shareToken = shareToken;
         this.courseId = courseId;
@@ -43,6 +44,7 @@ public class ShareLinkResponse {
         this.allowedUsers = allowedUsers;
         this.courseName = courseName;
         this.courseDescription = courseDescription;
+        this.inviterUsername = inviterUsername;
         this.moduleCount = moduleCount;
         this.lessonCount = lessonCount;
     }
@@ -150,6 +152,14 @@ public class ShareLinkResponse {
 
     public void setCourseDescription(String courseDescription) {
         this.courseDescription = courseDescription;
+    }
+
+    public String getInviterUsername() {
+        return inviterUsername;
+    }
+
+    public void setInviterUsername(String inviterUsername) {
+        this.inviterUsername = inviterUsername;
     }
 
     public int getModuleCount() {
