@@ -54,16 +54,17 @@ public class JWTFilter extends OncePerRequestFilter {
         } catch (ExpiredJwtException e) {
             LOGGER.log(Level.INFO, "JWTFilter: Token expired: {0}", new Object[]{e.getMessage()});
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"success\":false,\"message\":\"JWT expired. Please login again.\"}");
+            writeUnauthorized(response, "JWT expired. Please login again.");
             return;
         } catch (JwtException | IllegalArgumentException e) {
             LOGGER.log(Level.WARNING, "JWTFilter: Invalid token: {0}", new Object[]{e.getMessage()});
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"success\":false,\"message\":\"Invalid JWT token.\"}");
+            writeUnauthorized(response, "Invalid JWT token.");
+            return;
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "JWTFilter: Token processing error: {0}", new Object[]{e.getMessage()});
+            SecurityContextHolder.clearContext();
+            writeUnauthorized(response, "Authentication token error.");
             return;
         }
 
@@ -92,6 +93,13 @@ public class JWTFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"success\":false,\"message\":\"" + message + "\"}");
     }
 
 }
