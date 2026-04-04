@@ -99,12 +99,12 @@ export default function JoinCourse() {
     );
   }
 
-  const title = courseInfo?.courseName ?? courseInfo?.courseTitle ?? courseInfo?.title ?? "Unknown Course";
-  const description = courseInfo?.courseDescription ?? courseInfo?.description ?? "";
-  const modules = courseInfo?.moduleCount ?? (courseInfo?.modules ? courseInfo.modules.length : 0);
-  const lessons = courseInfo?.lessonCount ?? courseInfo?.totalLessons ?? 0;
-  const difficulty = courseInfo?.difficulty ?? courseInfo?.level ?? "";
-  const inviterName = courseInfo?.invitedByName ?? courseInfo?.inviterUsername ?? courseInfo?.sharedBy ?? "";
+  const title = courseInfo?.courseName ?? "Unknown Course";
+  const description = courseInfo?.courseDescription ?? "";
+  const modules = courseInfo?.moduleCount ?? 0;
+  const lessons = courseInfo?.lessonCount ?? 0;
+  const difficulty = courseInfo?.difficulty ?? "";
+  const inviterName = courseInfo?.inviterUsername ?? "";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">

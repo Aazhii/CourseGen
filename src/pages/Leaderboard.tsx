@@ -126,11 +126,11 @@ export default function Leaderboard() {
               </thead>
               <tbody className="divide-y divide-border/50">
                 {leaders.map((l, i) => {
-                  const position = l.rank ?? l.position ?? l.globalRank ?? i + 1;
-                  const username = l.username ?? l.name ?? l.user ?? "Unknown";
-                  const courses = l.coursesCompleted ?? l.courseCount ?? l.courses ?? 0;
-                  const streak = l.currentStreak ?? l.streak ?? 0;
-                  const points = l.totalPoints ?? l.points ?? 0;
+                  const position = l.rank ?? i + 1;
+                  const username = l.username ?? "Unknown";
+                  const courses = l.courseCount ?? 0;
+                  const streak = l.currentStreak ?? 0;
+                  const points = l.totalPoints ?? 0;
 
                   return (
                     <tr
@@ -157,7 +157,7 @@ export default function Leaderboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">{courses}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{streak > 0 ? `🔥 ${streak}d` : "—"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{streak > 0 ? `🔥 ${streak}d` : "0"}</td>
                       <td className="px-6 py-4 text-right font-display font-bold text-primary">
                         {points.toLocaleString()}
                       </td>
