@@ -63,6 +63,15 @@ public class FeatureRegistry {
                 )
         );
 
+        // ── AI_COACH ───────────────────────────────────────
+        register(Feature.AI_COACH,
+                Map.of(
+                        UserRole.USER, FeatureConfig.UNLIMITED,
+                        UserRole.PREMIUM_USER, FeatureConfig.UNLIMITED,
+                        UserRole.ADMIN, FeatureConfig.UNLIMITED
+                )
+        );
+
         // ── ADVANCED_COURSE_SETTINGS (premium only) ────────
         register(Feature.ADVANCED_COURSE_SETTINGS,
                 Map.of(
