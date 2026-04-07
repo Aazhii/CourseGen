@@ -3,16 +3,31 @@ import { LessonQuiz } from "@/types/lessonContent";
 import { CheckCircle, XCircle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RichText from "./RichText";
+import { recordQuizAttempt } from "@/services/progressApi";
 
 interface Props {
   block: LessonQuiz;
+  courseId?: string;
+  lessonId?: string;
+  quizIndex?: number;
 }
 
-export default function LessonQuizBlock({ block }: Props) {
+export default function LessonQuizBlock({ block, courseId, lessonId, quizIndex }: Props) {
   const { question, options, correctIndex, explanation } = block.content;
   const [selected, setSelected] = useState<number | null>(null);
   const answered = selected !== null;
   const isCorrect = selected === correctIndex;
+
+  const handleSelect = async (index: number) => {
+    setSelected(index);
+    if (courseId && lessonId && quizIndex !== undefined) {
+      try {
+        await recordQuizAttempt(lessonId, courseId, quizIndex, index === correctIndex);
+      } catch (err) {
+        console.error("Failed to record quiz attempt", err);
+      }
+    }
+  };
 
   return (
     <div className="my-8 rounded-xl border border-border bg-card p-6">
@@ -65,7 +80,7 @@ export default function LessonQuizBlock({ block }: Props) {
             <button
               key={i}
               disabled={answered}
-              onClick={() => setSelected(i)}
+              onClick={() => handleSelect(i)}
               className={cn(
                 "flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-all",
                 borderClass

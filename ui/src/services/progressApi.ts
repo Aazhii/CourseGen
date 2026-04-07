@@ -63,3 +63,43 @@ export const updateEnrollmentStatus = async (courseId: string, status: string) =
   return res.data;
 };
 
+/**
+ * Start a lesson session
+ */
+export const startLessonSession = async (lessonId: string, courseId: string) => {
+  const res = await apiFetch(`/api/progress/lessons/${lessonId}/session/start?courseId=${courseId}`, {
+    method: 'POST',
+  });
+  return res.data;
+};
+
+/**
+ * Stop a lesson session
+ */
+export const stopLessonSession = async (lessonId: string, courseId: string) => {
+  const res = await apiFetch(`/api/progress/lessons/${lessonId}/session/stop?courseId=${courseId}`, {
+    method: 'POST',
+  });
+  return res.data;
+};
+
+/**
+ * Record a quiz attempt
+ */
+export const recordQuizAttempt = async (lessonId: string, courseId: string, quizIndex: number, correct: boolean) => {
+  const res = await apiFetch(`/api/progress/lessons/${lessonId}/quiz-attempts?courseId=${courseId}`, {
+    method: 'POST',
+    body: JSON.stringify({ quizIndex, correct }),
+  });
+  return res.data;
+};
+
+/**
+ * Get shared course usage report for an enrolled user (Creator only)
+ */
+export const getSharedCourseUsage = async (courseId: string, userId: string) => {
+  const res = await apiFetch(`/api/progress/courses/${courseId}/users/${userId}/report`);
+  return res.data;
+};
+
+

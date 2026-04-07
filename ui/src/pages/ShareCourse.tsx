@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2 } from "lucide-react";
+import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCourseById } from "@/services/courseApi";
 import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
+import { getCourseEnrollments } from "@/services/progressApi";
 import {
   activateShareLink,
   deactivateShareLink,
@@ -22,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import CourseAnalyticsModal from "@/components/course/CourseAnalyticsModal";
 
 // ─── Types ─────────────────────────────────────────────────────────
 type Recipient = Pick<SearchResultItem, "id" | "label" | "description">;
@@ -201,6 +203,11 @@ export default function ShareCourse() {
   const [sendingInvites, setSendingInvites] = useState(false);
   const [updatingLinkId, setUpdatingLinkId] = useState<string | null>(null);
 
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsUser, setAnalyticsUser] = useState<{ id: string, name: string } | null>(null);
+
   useEffect(() => {
     let mounted = true;
     async function loadCourseAndLinks() {
@@ -213,6 +220,17 @@ export default function ShareCourse() {
         if (mounted) {
           setCourse(courseData);
           setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
+        }
+        
+        // Load enrollments separately but initially
+        setEnrollmentsLoading(true);
+        try {
+          const enrollData = await getCourseEnrollments(courseId);
+          if (mounted) setEnrollments(enrollData || []);
+        } catch (e) {
+          console.error("Failed to load enrollments", e);
+        } finally {
+          if (mounted) setEnrollmentsLoading(false);
         }
       } catch {
         if (mounted) setCourse(null);
@@ -383,6 +401,11 @@ export default function ShareCourse() {
     } catch {
       toast.error("Failed to copy link");
     }
+  };
+
+  const handleOpenAnalytics = (userId: string, userName: string) => {
+    setAnalyticsUser({ id: userId, name: userName });
+    setAnalyticsOpen(true);
   };
 
   if (courseLoading) return <div className="p-8 text-muted-foreground">Loading course...</div>;
@@ -610,6 +633,87 @@ export default function ShareCourse() {
           </div>
         )}
       </div>
+
+      {/* Enrolled Users Table */}
+      <div className="mt-12">
+        <h2 className="font-display text-xl font-bold text-foreground">Enrolled Students</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Monitor progress for users who have joined this course.</p>
+        
+        {enrollmentsLoading ? (
+          <p className="mt-4 text-sm text-muted-foreground">Loading enrollments...</p>
+        ) : enrollments.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-border/60 bg-muted/20 p-8 text-center">
+            <p className="text-muted-foreground">No users have enrolled in this course yet.</p>
+          </div>
+        ) : (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[600px] text-sm">
+              <thead className="bg-muted/50 text-left text-muted-foreground border-b border-border/50">
+                <tr>
+                  <th className="px-4 py-3 font-medium">User ID</th>
+                  <th className="px-4 py-3 font-medium">Progress</th>
+                  <th className="px-4 py-3 font-medium">Enrolled Date</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50 bg-card">
+                {enrollments.map((env) => (
+                  <tr key={env.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3 text-foreground font-medium">
+                      User {env.userId}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
+                          <div 
+                            className="h-full bg-primary" 
+                            style={{ width: `${Math.round(env.progressPercentage)}%` }} 
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{Math.round(env.progressPercentage)}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {env.enrolledAt ? new Date(env.enrolledAt).toLocaleDateString() : 'Unknown'}
+                    </td>
+                    <td className="px-4 py-3">
+                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        env.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {env.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-2 text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleOpenAnalytics(env.userId, `User ${env.userId}`)}
+                        >
+                          <BarChart2 className="h-4 w-4" />
+                          <span>View Report</span>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {courseId && analyticsUser && (
+        <CourseAnalyticsModal
+          courseId={courseId}
+          userId={analyticsUser.id}
+          userName={analyticsUser.name}
+          open={analyticsOpen}
+          onOpenChange={setAnalyticsOpen}
+        />
+      )}
     </div>
   );
 }
