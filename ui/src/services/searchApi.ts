@@ -8,6 +8,7 @@ export interface SearchResultItem {
   label: string;
   description: string;
   score: number;
+  handle?: string;
 }
 
 export interface SearchResponse {

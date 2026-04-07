@@ -10,16 +10,23 @@ import { Loader2, LayoutDashboard, Eye, EyeOff, UserPlus } from "lucide-react";
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const handlePattern = /^[a-z0-9._]{6,25}$/;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password || !confirmPassword) {
       toast.error("All fields are required");
+      return;
+    }
+    if (!handlePattern.test(username.trim())) {
+      toast.error("User ID must be 6-25 characters and use only lowercase letters, numbers, '.' or '_' .");
       return;
     }
     if (password !== confirmPassword) {
@@ -33,7 +40,11 @@ export default function RegisterPage() {
 
     try {
       setLoading(true);
-      const response = await register({ username: username.trim(), password });
+      const response = await register({
+        username: username.trim(),
+        displayName: displayName.trim() || undefined,
+        password,
+      });
       const token =
         typeof response === "string"
           ? response
@@ -79,18 +90,33 @@ export default function RegisterPage() {
         <div className="glass-card rounded-2xl p-8 border border-border/80">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
+              <label htmlFor="reg-display" className="text-sm font-medium text-foreground">
+                Display Name
+              </label>
+              <Input
+                id="reg-display"
+                type="text"
+                placeholder="Your name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="reg-username" className="text-sm font-medium text-foreground">
-                Username
+                User ID
               </label>
               <Input
                 id="reg-username"
                 type="text"
-                placeholder="Choose a username"
+                placeholder="choose_a_user_id"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
                 autoComplete="username"
               />
+              <p className="text-xs text-muted-foreground">6-25 chars, lowercase letters, numbers, '.' or '_'.</p>
             </div>
 
             <div className="space-y-2">

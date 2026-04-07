@@ -83,6 +83,9 @@ export default function Leaderboard() {
                   · {myRank.totalPoints ?? myRank.points ?? 0} pts
                 </span>
               </p>
+              {myRank.handle && (
+                <p className="text-xs text-muted-foreground">@{myRank.handle}</p>
+              )}
             </div>
             <div className="ml-auto flex items-center gap-1.5 text-sm text-primary">
               <TrendingUp className="h-4 w-4" />
@@ -127,7 +130,8 @@ export default function Leaderboard() {
               <tbody className="divide-y divide-border/50">
                 {leaders.map((l, i) => {
                   const position = l.rank ?? i + 1;
-                  const username = l.username ?? "Unknown";
+                  const displayName = l.displayName ?? l.username ?? "Unknown";
+                  const handle = l.handle ?? l.userHandle ?? "";
                   const courses = l.courseCount ?? 0;
                   const streak = l.currentStreak ?? 0;
                   const points = l.totalPoints ?? 0;
@@ -151,9 +155,12 @@ export default function Leaderboard() {
                             position === 3 ? "bg-amber-600/20 text-amber-500" :
                             "bg-primary/20 text-primary"
                           }`}>
-                            {username[0]?.toUpperCase() ?? "?"}
+                            {displayName[0]?.toUpperCase() ?? "?"}
                           </div>
-                          <span className="font-medium text-foreground">{username}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">{displayName}</span>
+                            {handle && <span className="text-xs text-muted-foreground">@{handle}</span>}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">{courses}</td>
@@ -172,5 +179,4 @@ export default function Leaderboard() {
     </div>
   );
 }
-
 

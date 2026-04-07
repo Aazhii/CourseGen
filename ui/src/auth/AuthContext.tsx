@@ -3,7 +3,9 @@ import { apiFetch } from '../services/apiClient';
 
 export interface User {
   id?: string;
-  username: string;
+  handle?: string;
+  displayName?: string;
+  username?: string;
   email?: string;
   roles?: string[];
   [key: string]: any;
@@ -41,10 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = async () => {
     try {
       const response = await apiFetch('/api/auth/me');
-      if (response?.data) {
-        setUser(response.data);
-      } else if (response && typeof response === 'object') {
-        setUser(response as User);
+      const data = response?.data ?? response;
+      if (data && typeof data === 'object') {
+        const displayName = data.displayName ?? data.username;
+        const handle = data.handle ?? data.username;
+        setUser({ ...data, displayName, handle, username: handle });
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
@@ -60,7 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(newToken);
 
     if (userData) {
-      setUser(userData);
+      const displayName = userData.displayName ?? userData.username;
+      const handle = userData.handle ?? userData.username;
+      setUser({ ...userData, displayName, handle, username: handle });
     } else {
       // Fetch user profile if not provided
       fetchUserProfile();
@@ -93,4 +98,3 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
-

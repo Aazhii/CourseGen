@@ -41,7 +41,7 @@ export default function AppSidebar() {
     return () => { mounted = false; };
   }, []);
 
-  const displayName = user?.username ?? "User";
+  const displayName = user?.displayName ?? user?.username ?? "User";
   const avatarLetter = displayName[0]?.toUpperCase() ?? "U";
 
   const handleLogout = () => {

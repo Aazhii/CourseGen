@@ -11,9 +11,11 @@ import LessonReferenceBlock from "./LessonReferenceBlock";
 
 interface Props {
   blocks: LessonBlock[];
+  courseId?: string;
+  lessonId?: string;
 }
 
-export default function LessonContentRenderer({ blocks }: Props) {
+export default function LessonContentRenderer({ blocks, courseId, lessonId }: Props) {
   return (
     <article className="lesson-content">
       {blocks.map((block, index) => {
@@ -29,7 +31,7 @@ export default function LessonContentRenderer({ blocks }: Props) {
           case "table":
             return <LessonTableBlock key={index} block={block} />;
           case "quiz":
-            return <LessonQuizBlock key={index} block={block} />;
+            return <LessonQuizBlock key={index} block={block} courseId={courseId} lessonId={lessonId} quizIndex={index} />;
           case "code":
             return <LessonCodeBlock key={index} block={block} />;
           case "youtube":

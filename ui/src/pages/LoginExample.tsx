@@ -18,7 +18,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      toast.error("Please enter username and password");
+      toast.error("Please enter user ID and password");
       return;
     }
 
@@ -76,15 +76,14 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label htmlFor="username" className="text-sm font-medium text-foreground">
-                Username
+                User ID
               </label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder="Enter your user ID"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
                 autoComplete="username"
               />
             </div>
