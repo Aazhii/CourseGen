@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
-import { ChevronLeft, CheckCircle, BookOpen, Clock } from "lucide-react";
+import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LessonContentRenderer from "@/components/lesson/LessonContentRenderer";
 import { LessonData } from "@/types/lessonContent";
@@ -140,6 +140,12 @@ export default function LessonView() {
             <CheckCircle className="h-4 w-4" />
             {completed ? "Completed ✓" : "Mark Complete"}
           </Button>
+          <Link to={`/courses/${courseId}/lessons/${lessonId}/coach`}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Coach
+            </Button>
+          </Link>
         </div>
       </div>
 
