@@ -2,6 +2,7 @@ package com.sharing.service;
 
 import com.sharing.dto.CourseProgressResponse;
 import com.sharing.dto.EnrollmentResponse;
+import com.sharing.dto.SharedCourseUsageResponse;
 import com.sharing.model.EnrollmentStatus;
 
 import java.util.List;
@@ -17,6 +18,14 @@ public interface LessonProgressService {
      * Mark a lesson as incomplete for a user
      */
     void markLessonIncomplete(Long lessonId, Long courseId, Long userId) throws Exception;
+
+    void startLessonSession(Long lessonId, Long courseId, Long userId) throws Exception;
+
+    void stopLessonSession(Long lessonId, Long courseId, Long userId) throws Exception;
+
+    void recordQuizAttempt(Long lessonId, Long courseId, Long userId, int quizIndex, boolean correct) throws Exception;
+
+    SharedCourseUsageResponse getSharedCourseUsage(Long courseId, Long childUserId, Long creatorId) throws Exception;
 
     /**
      * Get user's progress in a course
@@ -58,4 +67,3 @@ public interface LessonProgressService {
      */
     int getTotalLessonsInCourse(Long courseId) throws Exception;
 }
-
