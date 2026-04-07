@@ -41,8 +41,11 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
         for (UserStats user : all) {
             if (userId.equals(user.getUserId())) {
                 Users u = userRepo.findById(userId).orElse(null);
-                String username = (u != null) ? u.getUsername() : "Unknown";
-                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user), username, user.getTotalCoursesCreated(), user.getCurrentStreak(), user.getWeeklyPoints());
+                String displayName = (u != null && u.getDisplayName() != null && !u.getDisplayName().isBlank())
+                        ? u.getDisplayName()
+                        : (u != null ? u.getUsername() : "Unknown");
+                String handle = u != null ? u.getUsername() : "";
+                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user), displayName, handle, user.getTotalCoursesCreated(), user.getCurrentStreak(), user.getWeeklyPoints());
             }
             rank.incrementAndGet();
         }
@@ -60,9 +63,16 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
         List<LeaderboardResponseDTO> paged = buildLeaderBoard(all.subList(fromIndex, toIndex), fromIndex);
 
-        // Populate usernames
+        // Populate displayName and handle
         for (LeaderboardResponseDTO dto : paged) {
-            userRepo.findById(dto.getUserId()).ifPresent(u -> dto.setUsername(u.getUsername()));
+            userRepo.findById(dto.getUserId()).ifPresent(u -> {
+                String displayName = (u.getDisplayName() == null || u.getDisplayName().isBlank())
+                        ? u.getUsername()
+                        : u.getDisplayName();
+                dto.setDisplayName(displayName);
+                dto.setHandle(u.getUsername());
+                dto.setUsername(displayName);
+            });
         }
 
         int totalPages = (int) Math.ceil((double) total / size);

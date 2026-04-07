@@ -62,6 +62,6 @@ public class UserController {
         Users user = principal.getUser();
 
         LOGGER.log(Level.INFO, "Fetched details for currently authenticated user: {0}", new Object[]{user.getUsername()});
-        return ResponseEntity.ok(new UserResponse(user.getId(), user.getUsername(), user.getRoles()));
+        return ResponseEntity.ok(new UserResponse(user));
     }
 }
