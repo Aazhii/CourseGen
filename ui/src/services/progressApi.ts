@@ -110,6 +110,8 @@ export const getCourseLeaderboard = async (courseId: string) => {
   return unwrapPagedItems<any>(res).map(normalizeLeaderboardEntry) as Array<{
     userId: number;
     username: string;
+    displayName?: string;
+    handle?: string;
     rank: number;
     score: number;
     totalProgress: number;
@@ -136,9 +138,13 @@ function unwrapPagedItems<T>(payload: any): T[] {
 }
 
 function normalizeLeaderboardEntry(raw: any) {
+  const displayName = String(raw?.username ?? raw?.displayName ?? raw?.userName ?? 'Unknown');
+  const handle = String(raw?.userHandle ?? raw?.handle ?? raw?.userIdHandle ?? raw?.username ?? '').trim();
   return {
     userId: Number(raw?.userId ?? raw?.user_id ?? 0),
-    username: String(raw?.username ?? raw?.userName ?? 'Unknown'),
+    username: displayName,
+    displayName,
+    handle: handle || undefined,
     rank: Number(raw?.rank ?? raw?.position ?? 0),
     score: Number(raw?.score ?? raw?.totalScore ?? 0),
     totalProgress: Number(raw?.totalProgress ?? raw?.progress ?? 0),

@@ -16,8 +16,11 @@ export default function Profile() {
   const [section, setSection] = useState<Section>("profile");
 
   // Profile edit state
-  const [newUsername, setNewUsername] = useState("");
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [newHandle, setNewHandle] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  const handlePattern = /^[a-z0-9._]{6,25}$/;
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -33,7 +36,8 @@ export default function Profile() {
         const normalized = data?.data ?? data;
         if (mounted) {
           setProfile(normalized);
-          setNewUsername(normalized?.username ?? "");
+          setNewDisplayName(normalized?.displayName ?? normalized?.username ?? "");
+          setNewHandle(normalized?.handle ?? normalized?.username ?? "");
         }
       } catch (err) {
         toast.error("Failed to load profile");
@@ -46,18 +50,48 @@ export default function Profile() {
   }, []);
 
   const handleSaveProfile = async () => {
-    if (!newUsername.trim()) {
-      toast.error("Username cannot be empty");
+    const trimmedDisplay = newDisplayName.trim();
+    const trimmedHandle = newHandle.trim();
+    const currentDisplay = String(profile?.displayName ?? profile?.username ?? "").trim();
+    const currentHandle = String(profile?.handle ?? profile?.username ?? "").trim();
+
+    if (!trimmedDisplay) {
+      toast.error("Display name cannot be empty");
       return;
     }
+
+    const payload: { displayName?: string; handle?: string } = {};
+
+    if (trimmedDisplay !== currentDisplay) {
+      payload.displayName = trimmedDisplay;
+    }
+
+    if (trimmedHandle !== currentHandle) {
+      if (!handlePattern.test(trimmedHandle)) {
+        toast.error("User ID must be 6-25 characters and use only lowercase letters, numbers, '.' or '_' .");
+        return;
+      }
+      payload.handle = trimmedHandle;
+    }
+
+    if (!payload.displayName && !payload.handle) {
+      toast.info("No changes to save");
+      return;
+    }
+
     try {
       setSavingProfile(true);
-      const updated = await updateProfile(newUsername.trim());
+      const updated = await updateProfile(payload);
       const normalized = updated?.data ?? updated;
       setProfile(normalized);
       if (normalized?.token && setUser) {
         localStorage.setItem("token", normalized.token);
-        setUser({ ...(user ?? {}), username: normalized.username });
+        setUser({
+          ...(user ?? {}),
+          displayName: normalized.displayName ?? payload.displayName ?? currentDisplay,
+          handle: normalized.handle ?? payload.handle ?? currentHandle,
+          username: normalized.handle ?? payload.handle ?? currentHandle,
+        });
       }
       toast.success("Profile updated successfully");
     } catch (err) {
@@ -140,12 +174,15 @@ export default function Profile() {
       <div className="gradient-header px-8 pb-8 pt-8">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-2xl font-bold text-primary-foreground font-display shadow-lg">
-            {(profile?.username ?? user?.username ?? "U")[0].toUpperCase()}
+            {(profile?.displayName ?? user?.displayName ?? profile?.username ?? user?.username ?? "U")[0].toUpperCase()}
           </div>
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
-              {loading ? "Loading..." : profile?.username ?? user?.username ?? "Profile"}
+              {loading ? "Loading..." : profile?.displayName ?? user?.displayName ?? profile?.username ?? user?.username ?? "Profile"}
             </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              @{profile?.handle ?? user?.handle ?? profile?.username ?? user?.username ?? ""}
+            </p>
             <p className="mt-0.5 text-sm text-muted-foreground capitalize">
               {profile?.role?.toLowerCase() ?? "user"} · Member since{" "}
               {profile?.createdAt
@@ -205,12 +242,21 @@ export default function Profile() {
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Username</label>
+                    <label className="text-sm font-medium text-foreground">Display Name</label>
                     <Input
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value)}
-                      placeholder="Enter new username"
+                      value={newDisplayName}
+                      onChange={(e) => setNewDisplayName(e.target.value)}
+                      placeholder="Enter display name"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">User ID</label>
+                    <Input
+                      value={newHandle}
+                      onChange={(e) => setNewHandle(e.target.value)}
+                      placeholder="your_id"
+                    />
+                    <p className="text-xs text-muted-foreground">6-25 chars, lowercase letters, numbers, '.' or '_'.</p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Role</label>
@@ -223,7 +269,7 @@ export default function Profile() {
                   </div>
                   <Button
                     onClick={handleSaveProfile}
-                    disabled={savingProfile || newUsername === profile?.username}
+                    disabled={savingProfile || (newDisplayName === (profile?.displayName ?? profile?.username) && newHandle === (profile?.handle ?? profile?.username))}
                     variant="gradient"
                     className="gap-2"
                   >
