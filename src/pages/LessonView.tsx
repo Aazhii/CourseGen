@@ -6,7 +6,7 @@ import LessonContentRenderer from "@/components/lesson/LessonContentRenderer";
 import { LessonData } from "@/types/lessonContent";
 import { getLessonWithGeneration } from "@/services/lessonService";
 import { getCourseById } from "@/services/courseApi";
-import { markLessonComplete, markLessonIncomplete } from "@/services/progressApi";
+import { markLessonComplete, markLessonIncomplete, startLessonSession, stopLessonSession } from "@/services/progressApi";
 import { toast } from "sonner";
 
 export default function LessonView() {
@@ -61,10 +61,37 @@ export default function LessonView() {
     }
 
     load();
+
+    // Start session when lesson and course are both available
+    if (courseId && lessonId) {
+      startLessonSession(lessonId, courseId).catch(console.error);
+    }
+
     return () => {
       mounted = false;
+      // Stop session when user leaves
+      if (courseId && lessonId) {
+        stopLessonSession(lessonId, courseId).catch(console.error);
+      }
     };
   }, [courseId, lessonId, moduleIdFromQuery]);
+
+  // Track visibility change to handle tab switching
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!courseId || !lessonId) return;
+      if (document.visibilityState === 'visible') {
+        startLessonSession(lessonId, courseId).catch(console.error);
+      } else {
+        stopLessonSession(lessonId, courseId).catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [courseId, lessonId]);
 
 
 
@@ -138,7 +165,7 @@ export default function LessonView() {
 
       <div className="mx-auto max-w-4xl px-6 pb-20">
         {lesson.content.length > 0 ? (
-          <LessonContentRenderer blocks={lesson.content} />
+          <LessonContentRenderer blocks={lesson.content} courseId={courseId} lessonId={lessonId} />
         ) : (
           <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
             Lesson content is not available yet.
