@@ -15,6 +15,7 @@ import {
   sendDirectInvite,
 } from "@/services/shareApi";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import CourseAnalyticsModal from "@/components/course/CourseAnalyticsModal";
+import CourseLeaderboard from "@/components/course/CourseLeaderboard";
 
 // ─── Types ─────────────────────────────────────────────────────────
 type Recipient = Pick<SearchResultItem, "id" | "label" | "description">;
@@ -186,6 +188,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
 // ─── Main Component ──────────────────────────────────────────────────
 export default function ShareCourse() {
   const { courseId } = useParams();
+  const { user: currentUser } = useAuth();
   const [course, setCourse] = useState<any>(null);
   const [courseLoading, setCourseLoading] = useState(true);
   const [courseActive, setCourseActive] = useState(true);
@@ -751,6 +754,14 @@ export default function ShareCourse() {
           userName={analyticsUser.name}
           open={analyticsOpen}
           onOpenChange={setAnalyticsOpen}
+        />
+      )}
+
+      {/* Course Leaderboard */}
+      {courseId && (
+        <CourseLeaderboard
+          courseId={courseId}
+          currentUserId={currentUser?.id ? Number(currentUser.id) : undefined}
         />
       )}
     </div>

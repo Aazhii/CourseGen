@@ -102,4 +102,20 @@ export const getSharedCourseUsage = async (courseId: string, userId: string) => 
   return res.data;
 };
 
-
+/**
+ * Get course leaderboard (all enrolled users ranked by composite score)
+ */
+export const getCourseLeaderboard = async (courseId: string) => {
+  const res = await apiFetch(`/api/progress/courses/${courseId}/leaderboard`);
+  return res.data as Array<{
+    userId: number;
+    username: string;
+    rank: number;
+    score: number;
+    totalProgress: number;
+    lessonsCompleted: number;
+    quizAccuracy: number;
+    totalTimeSeconds: number;
+    flaggedCount: number;
+  }>;
+};
