@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 type LeaderboardEntry = {
   userId: number;
   username: string;
+  displayName?: string;
+  handle?: string;
   rank: number;
   score: number;
   totalProgress: number;
@@ -130,13 +132,16 @@ export default function CourseLeaderboard({ courseId, currentUserId }: CourseLea
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                       isCurrentUser ? "gradient-primary text-primary-foreground" : "bg-muted text-foreground"
                     )}>
-                      {entry.username?.[0]?.toUpperCase() ?? "?"}
+                      {(entry.displayName ?? entry.username)?.[0]?.toUpperCase() ?? "?"}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">
-                        {entry.username}
+                        {entry.displayName ?? entry.username}
                         {isCurrentUser && <span className="ml-2 text-xs font-normal text-primary">(You)</span>}
                       </p>
+                      {entry.handle && (
+                        <p className="text-xs text-muted-foreground">@{entry.handle}</p>
+                      )}
                       {/* Score bar */}
                       <div className="mt-1 flex items-center gap-2">
                         <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">

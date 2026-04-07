@@ -107,7 +107,11 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
   }, [debouncedQuery, selectedIds]);
 
   const handleAdd = (item: SearchResultItem) => {
-    onAdd({ id: String(item.id), label: item.label, description: item.description ?? "" });
+    onAdd({
+      id: String(item.id),
+      label: item.label,
+      description: item.handle ? `@${item.handle}` : item.description ?? "",
+    });
     setQuery("");
     setSuggestions([]);
   };
@@ -124,7 +128,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
     <div className="share-autocomplete-wrap">
       <div className="share-chip-input" onClick={() => document.getElementById(id)?.focus()}>
         {selected.length === 0 && !query ? (
-          <span className="text-sm text-muted-foreground">{placeholder ?? "Type a username"}</span>
+          <span className="text-sm text-muted-foreground">{placeholder ?? "Type a user ID"}</span>
         ) : null}
         {selected.map((r) => (
           <span key={r.id} className="share-chip">
@@ -155,7 +159,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               onRemove(selected[selected.length - 1].id);
             }
           }}
-          placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a username")}
+          placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
           className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
@@ -171,7 +175,9 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               onMouseDown={() => handleAdd(user)}
             >
               <span className="font-medium text-foreground">{user.label}</span>
-              {user.description && user.description !== "User" ? (
+              {user.handle ? (
+                <span className="text-xs text-muted-foreground">@{user.handle}</span>
+              ) : user.description && user.description !== "User" ? (
                 <span className="text-xs text-muted-foreground">{user.description}</span>
               ) : null}
             </button>
@@ -223,8 +229,9 @@ export default function ShareCourse() {
     if (!debouncedEnrollmentSearch) return visible;
     return visible.filter((env) => {
       const name = String(env.userName || "").toLowerCase();
+      const handle = String(env.userHandle || "").toLowerCase();
       const id = String(env.userId || "").toLowerCase();
-      return name.includes(debouncedEnrollmentSearch) || id.includes(debouncedEnrollmentSearch);
+      return name.includes(debouncedEnrollmentSearch) || handle.includes(debouncedEnrollmentSearch) || id.includes(debouncedEnrollmentSearch);
     });
   }, [enrollments, debouncedEnrollmentSearch, currentUser?.id]);
 
@@ -328,7 +335,10 @@ export default function ShareCourse() {
     if (!courseId) return;
     setGeneratingRestricted(true);
     try {
-      const users = allowlistedUsers.map((item) => item.label).filter(Boolean);
+      const users = allowlistedUsers
+        .map((item) => item.description || item.label)
+        .map((value) => String(value).trim().replace(/^@/, ""))
+        .filter(Boolean);
       const payload = {
         type: "PRIVATE",
         linkType: "PRIVATE",
@@ -357,8 +367,8 @@ export default function ShareCourse() {
     setSendingInvites(true);
     try {
       const recipients = selectedRecipients
-        .map((item) => (item.id.startsWith("manual-") ? item.label : item.id))
-        .map((value) => String(value).trim())
+        .map((item) => (item.id.startsWith("manual-") ? item.label : item.description || item.label))
+        .map((value) => String(value).trim().replace(/^@/, ""))
         .filter(Boolean);
 
       await sendDirectInvite(courseId, recipients);
@@ -510,7 +520,7 @@ export default function ShareCourse() {
             <h2 className="font-display text-xl font-bold text-foreground">Direct Invite</h2>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Search and select users by username to send a direct invite.
+            Search and select users by user ID to send a direct invite.
           </p>
           <div className="mt-4">
             <UserAutocomplete
@@ -518,7 +528,7 @@ export default function ShareCourse() {
               selected={selectedRecipients}
               onAdd={addRecipient}
               onRemove={removeRecipient}
-              placeholder="Type a username to search..."
+              placeholder="Type a user ID to search..."
             />
           </div>
           <Button
@@ -707,7 +717,11 @@ export default function ShareCourse() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
                         <span className="text-foreground font-medium">{env.userName || `User ${env.userId}`}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">ID: {env.userId}</span>
+                        {env.userHandle ? (
+                          <span className="text-xs text-muted-foreground">@{env.userHandle}</span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-mono">ID: {env.userId}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">

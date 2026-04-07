@@ -10,13 +10,12 @@ async function getProfile() {
 }
 
 /**
- * Update the user's username.
- * @param {string} newUsername
+ * Update the user's profile.
  */
-async function updateProfile(newUsername: string) {
+async function updateProfile(payload: { displayName?: string; handle?: string }) {
   return apiFetch('/api/about/profile', {
     method: 'PUT',
-    body: JSON.stringify({ newUsername }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -42,4 +41,3 @@ async function changePassword(
 }
 
 export { getProfile, updateProfile, changePassword };
-
