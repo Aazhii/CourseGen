@@ -10,6 +10,8 @@ import java.util.List;
 public interface LessonQuizAttemptRepo extends JpaRepository<LessonQuizAttempt, Long> {
     List<LessonQuizAttempt> findByCourseIdAndUserId(Long courseId, Long userId);
 
+    List<LessonQuizAttempt> findByCourseId(Long courseId);
+
     List<LessonQuizAttempt> findByLessonIdAndUserId(Long lessonId, Long userId);
 
     @Query("select coalesce(max(lqa.attemptNumber), 0) from LessonQuizAttempt lqa where lqa.lessonId = :lessonId and lqa.userId = :userId and lqa.quizIndex = :quizIndex")

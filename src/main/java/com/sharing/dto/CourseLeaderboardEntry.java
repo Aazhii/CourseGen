@@ -4,23 +4,30 @@ public class CourseLeaderboardEntry {
     private Long userId;
     private String username;
     private Integer rank;
-    private Double totalProgress;
-    private Integer coursesCompleted;
+    private Double score;          // composite score 0–1000
+    private Double totalProgress;  // lesson completion % (0–100)
     private Integer lessonsCompleted;
+    private Double quizAccuracy;   // first-attempt correct % (0–100)
+    private Long totalTimeSeconds;
+    private Integer flaggedCount;  // lessons flagged for fast completion
 
     // --- Constructors ---
     public CourseLeaderboardEntry() {
     }
 
     public CourseLeaderboardEntry(Long userId, String username, Integer rank,
-                                  Double totalProgress, Integer coursesCompleted,
-                                  Integer lessonsCompleted) {
+                                  Double score, Double totalProgress,
+                                  Integer lessonsCompleted, Double quizAccuracy,
+                                  Long totalTimeSeconds, Integer flaggedCount) {
         this.userId = userId;
         this.username = username;
         this.rank = rank;
+        this.score = score;
         this.totalProgress = totalProgress;
-        this.coursesCompleted = coursesCompleted;
         this.lessonsCompleted = lessonsCompleted;
+        this.quizAccuracy = quizAccuracy;
+        this.totalTimeSeconds = totalTimeSeconds;
+        this.flaggedCount = flaggedCount;
     }
 
     // --- Getters and Setters ---
@@ -48,20 +55,20 @@ public class CourseLeaderboardEntry {
         this.rank = rank;
     }
 
+    public Double getScore() {
+        return score;
+    }
+
+    public void setScore(Double score) {
+        this.score = score;
+    }
+
     public Double getTotalProgress() {
         return totalProgress;
     }
 
     public void setTotalProgress(Double totalProgress) {
         this.totalProgress = totalProgress;
-    }
-
-    public Integer getCoursesCompleted() {
-        return coursesCompleted;
-    }
-
-    public void setCoursesCompleted(Integer coursesCompleted) {
-        this.coursesCompleted = coursesCompleted;
     }
 
     public Integer getLessonsCompleted() {
@@ -71,5 +78,28 @@ public class CourseLeaderboardEntry {
     public void setLessonsCompleted(Integer lessonsCompleted) {
         this.lessonsCompleted = lessonsCompleted;
     }
-}
 
+    public Double getQuizAccuracy() {
+        return quizAccuracy;
+    }
+
+    public void setQuizAccuracy(Double quizAccuracy) {
+        this.quizAccuracy = quizAccuracy;
+    }
+
+    public Long getTotalTimeSeconds() {
+        return totalTimeSeconds;
+    }
+
+    public void setTotalTimeSeconds(Long totalTimeSeconds) {
+        this.totalTimeSeconds = totalTimeSeconds;
+    }
+
+    public Integer getFlaggedCount() {
+        return flaggedCount;
+    }
+
+    public void setFlaggedCount(Integer flaggedCount) {
+        this.flaggedCount = flaggedCount;
+    }
+}

@@ -19,6 +19,7 @@ public class EnrollmentResponse {
     private String invitedByName;
     private int moduleCount;
     private int lessonCount;
+    private String userName;
 
     // --- Constructors ---
     public EnrollmentResponse() {
@@ -38,7 +39,7 @@ public class EnrollmentResponse {
     public EnrollmentResponse(Long id, Long courseId, Long userId, EnrollmentStatus status,
                               OffsetDateTime enrolledAt, Double progressPercentage, String courseName,
                               String courseDescription, Boolean isRead, String inviteStatus,
-                              Long invitedBy, String invitedByName, int moduleCount, int lessonCount) {
+                              Long invitedBy, String invitedByName, int moduleCount, int lessonCount, String userName) {
         this.id = id;
         this.courseId = courseId;
         this.userId = userId;
@@ -53,6 +54,7 @@ public class EnrollmentResponse {
         this.invitedByName = invitedByName;
         this.moduleCount = moduleCount;
         this.lessonCount = lessonCount;
+        this.userName = userName;
     }
 
     // --- Getters and Setters ---
@@ -166,6 +168,14 @@ public class EnrollmentResponse {
 
     public void setLessonCount(int lessonCount) {
         this.lessonCount = lessonCount;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }
 
