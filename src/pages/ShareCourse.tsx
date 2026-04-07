@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2 } from "lucide-react";
+import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2, Search as SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCourseById } from "@/services/courseApi";
@@ -207,6 +207,18 @@ export default function ShareCourse() {
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [analyticsUser, setAnalyticsUser] = useState<{ id: string, name: string } | null>(null);
+
+  const [enrollmentSearch, setEnrollmentSearch] = useState("");
+  const debouncedEnrollmentSearch = useDebounce(enrollmentSearch.trim().toLowerCase(), 300);
+
+  const filteredEnrollments = useMemo(() => {
+    if (!debouncedEnrollmentSearch) return enrollments;
+    return enrollments.filter((env) => {
+      const name = String(env.userName || "").toLowerCase();
+      const id = String(env.userId || "").toLowerCase();
+      return name.includes(debouncedEnrollmentSearch) || id.includes(debouncedEnrollmentSearch);
+    });
+  }, [enrollments, debouncedEnrollmentSearch]);
 
   useEffect(() => {
     let mounted = true;
@@ -636,21 +648,45 @@ export default function ShareCourse() {
 
       {/* Enrolled Users Table */}
       <div className="mt-12">
-        <h2 className="font-display text-xl font-bold text-foreground">Enrolled Students</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Monitor progress for users who have joined this course.</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">Enrolled Students</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Monitor progress for users who have joined this course.</p>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search students..."
+              value={enrollmentSearch}
+              onChange={(e) => setEnrollmentSearch(e.target.value)}
+              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:bg-secondary/50 transition-all"
+            />
+            {enrollmentSearch && (
+              <button 
+                onClick={() => setEnrollmentSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
         
         {enrollmentsLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">Loading enrollments...</p>
-        ) : enrollments.length === 0 ? (
+        ) : filteredEnrollments.length === 0 ? (
           <div className="mt-4 rounded-lg border border-border/60 bg-muted/20 p-8 text-center">
-            <p className="text-muted-foreground">No users have enrolled in this course yet.</p>
+            <p className="text-muted-foreground">
+              {enrollmentSearch ? "No students found matching your search." : "No users have enrolled in this course yet."}
+            </p>
           </div>
         ) : (
           <div className="mt-4 overflow-x-auto rounded-lg border border-border/60">
             <table className="w-full min-w-[600px] text-sm">
               <thead className="bg-muted/50 text-left text-muted-foreground border-b border-border/50">
                 <tr>
-                  <th className="px-4 py-3 font-medium">User ID</th>
+                  <th className="px-4 py-3 font-medium">Student Name</th>
                   <th className="px-4 py-3 font-medium">Progress</th>
                   <th className="px-4 py-3 font-medium">Enrolled Date</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -658,10 +694,13 @@ export default function ShareCourse() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 bg-card">
-                {enrollments.map((env) => (
+                {filteredEnrollments.map((env) => (
                   <tr key={env.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 text-foreground font-medium">
-                      User {env.userId}
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="text-foreground font-medium">{env.userName || `User ${env.userId}`}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">ID: {env.userId}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -690,7 +729,7 @@ export default function ShareCourse() {
                           variant="ghost"
                           size="sm"
                           className="gap-2 text-primary hover:text-primary hover:bg-primary/10"
-                          onClick={() => handleOpenAnalytics(env.userId, `User ${env.userId}`)}
+                          onClick={() => handleOpenAnalytics(env.userId, env.userName || `User ${env.userId}`)}
                         >
                           <BarChart2 className="h-4 w-4" />
                           <span>View Report</span>
