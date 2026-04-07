@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Share2, Trash2, Play, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { deleteCourse, getCourseById } from "@/services/courseApi";
@@ -74,6 +74,12 @@ export default function CourseDetail() {
           </Button>
         </Link>
         <div className="flex items-center gap-3">
+          <Link to={`/courses/${course.id || courseId}/coach`}>
+            <Button variant="default" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Coach
+            </Button>
+          </Link>
           <Link to={`/courses/${course.id || courseId}/share`}>
             <Button variant="ghost" className="gap-2">
               <Share2 className="h-4 w-4" />
