@@ -32,6 +32,24 @@ public class LessonProgress {
     @Column(name = "progress_percentage")
     private Double progressPercentage;
 
+    @Column(name = "total_time_seconds")
+    private Long totalTimeSeconds;
+
+    @Column(name = "last_session_started_at")
+    private OffsetDateTime lastSessionStartedAt;
+
+    @Column(name = "last_activity_at")
+    private OffsetDateTime lastActivityAt;
+
+    @Column(name = "completion_duration_seconds")
+    private Long completionDurationSeconds;
+
+    @Column(name = "completion_flagged")
+    private Boolean completionFlagged;
+
+    @Column(name = "completion_flag_reason")
+    private String completionFlagReason;
+
     @Column(name = "started_at", nullable = false, updatable = false)
     private OffsetDateTime startedAt;
 
@@ -49,8 +67,10 @@ public class LessonProgress {
         this.courseId = courseId;
         this.isCompleted = false;
         this.progressPercentage = 0.0;
+        this.totalTimeSeconds = 0L;
         this.startedAt = OffsetDateTime.now();
         this.updatedAt = OffsetDateTime.now();
+        this.lastActivityAt = this.updatedAt;
     }
 
     @PrePersist
@@ -64,11 +84,20 @@ public class LessonProgress {
         if (progressPercentage == null) {
             progressPercentage = 0.0;
         }
+        if (totalTimeSeconds == null) {
+            totalTimeSeconds = 0L;
+        }
         if (startedAt == null) {
             startedAt = OffsetDateTime.now();
         }
         if (updatedAt == null) {
             updatedAt = OffsetDateTime.now();
+        }
+        if (lastActivityAt == null) {
+            lastActivityAt = updatedAt;
+        }
+        if (completionFlagged == null) {
+            completionFlagged = Boolean.FALSE;
         }
     }
 
@@ -127,6 +156,54 @@ public class LessonProgress {
 
     public void setProgressPercentage(Double progressPercentage) {
         this.progressPercentage = progressPercentage;
+    }
+
+    public Long getTotalTimeSeconds() {
+        return totalTimeSeconds;
+    }
+
+    public void setTotalTimeSeconds(Long totalTimeSeconds) {
+        this.totalTimeSeconds = totalTimeSeconds;
+    }
+
+    public OffsetDateTime getLastSessionStartedAt() {
+        return lastSessionStartedAt;
+    }
+
+    public void setLastSessionStartedAt(OffsetDateTime lastSessionStartedAt) {
+        this.lastSessionStartedAt = lastSessionStartedAt;
+    }
+
+    public OffsetDateTime getLastActivityAt() {
+        return lastActivityAt;
+    }
+
+    public void setLastActivityAt(OffsetDateTime lastActivityAt) {
+        this.lastActivityAt = lastActivityAt;
+    }
+
+    public Long getCompletionDurationSeconds() {
+        return completionDurationSeconds;
+    }
+
+    public void setCompletionDurationSeconds(Long completionDurationSeconds) {
+        this.completionDurationSeconds = completionDurationSeconds;
+    }
+
+    public Boolean getCompletionFlagged() {
+        return completionFlagged;
+    }
+
+    public void setCompletionFlagged(Boolean completionFlagged) {
+        this.completionFlagged = completionFlagged;
+    }
+
+    public String getCompletionFlagReason() {
+        return completionFlagReason;
+    }
+
+    public void setCompletionFlagReason(String completionFlagReason) {
+        this.completionFlagReason = completionFlagReason;
     }
 
     public OffsetDateTime getStartedAt() {

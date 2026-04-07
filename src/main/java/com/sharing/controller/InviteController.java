@@ -295,6 +295,16 @@ public class InviteController {
                     .sum();
         }
 
+        String studentName = userRepo.findById(enrollment.getUserId())
+                .map(Users::getDisplayName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElseGet(() -> userRepo.findById(enrollment.getUserId())
+                        .map(Users::getUsername)
+                        .orElse("Unknown User"));
+        String studentHandle = userRepo.findById(enrollment.getUserId())
+                .map(Users::getUsername)
+                .orElse("");
+
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getCourseId(),
@@ -309,7 +319,9 @@ public class InviteController {
                 enrollment.getInvitedBy(),
                 invitedByName,
                 moduleCount,
-                lessonCount
+                lessonCount,
+                studentName,
+                studentHandle
         );
     }
 }

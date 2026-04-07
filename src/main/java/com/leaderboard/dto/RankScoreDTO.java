@@ -5,6 +5,8 @@ public abstract class RankScoreDTO {
     protected Long userId;
     protected int totalPoints;
     protected String username;
+    protected String displayName;
+    protected String handle;
     protected int courseCount;
     protected int currentStreak;
     protected int weeklyPoints;
@@ -35,6 +37,22 @@ public abstract class RankScoreDTO {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getHandle() {
+        return handle;
+    }
+
+    public void setHandle(String handle) {
+        this.handle = handle;
     }
 
     public int getCourseCount() {

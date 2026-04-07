@@ -93,6 +93,14 @@ public class Course implements Persistable<Long> {
     public List<Module> getModules() { return modules; }
     public void setModules(List<Module> modules) { this.modules = modules; }
 
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public Long getProjectId() {
         return projectId;
     }
