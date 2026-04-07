@@ -29,6 +29,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
     private static final Logger LOGGER = Logger.getLogger(LessonProgressServiceImpl.class.getName());
     private static final long DEFAULT_MIN_LESSON_SECONDS = 60L;
+    private static final int MAX_PAGE_SIZE = 100;
 
     @Autowired
     private LessonProgressRepo lessonProgressRepo;
@@ -59,6 +60,12 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
     @Autowired
     private UserRepo userRepo;
+
+    @Autowired
+    private CourseShareLinkRepo courseShareLinkRepo;
+
+    @Autowired
+    private CourseShareLinkAllowedUserRepo allowedUserRepo;
 
     @Override
     @Transactional
@@ -408,6 +415,16 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     }
 
     @Override
+    public int getCompletedLessonsCount(Long courseId, Long userId) throws Exception {
+        return lessonProgressRepo.countByUserIdAndCourseIdAndIsCompletedTrue(userId, courseId);
+    }
+
+    @Override
+    public int getTotalLessonsInCourse(Long courseId) throws Exception {
+        return (int) lessonRepo.countByCourseId(courseId);
+    }
+
+    @Override
     public EnrollmentResponse getEnrollment(Long courseId, Long userId) throws Exception {
         LOGGER.log(Level.INFO, "Fetching enrollment for user {0} in course {1}", new Object[]{userId, courseId});
 
@@ -445,6 +462,24 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching enrollment: {0}", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updateEnrollmentStatus(Long courseId, Long userId, EnrollmentStatus status) throws Exception {
+        LOGGER.log(Level.INFO, "Updating enrollment status for user {0} to {1}", new Object[]{userId, status});
+
+        try {
+            CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Enrollment not found"));
+
+            enrollment.setStatus(status);
+            courseEnrollmentRepo.save(enrollment);
+            LOGGER.log(Level.INFO, "Enrollment status updated successfully");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error updating enrollment status: {0}", e.getMessage());
             throw e;
         }
     }
@@ -494,172 +529,61 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     }
 
     @Override
-    @Transactional
-    public EnrollmentResponse enrollUserInCourse(Long courseId, Long userId, Long shareLinkId) throws Exception {
-        LOGGER.log(Level.INFO, "Enrolling user {0} in course {1}", new Object[]{userId, courseId});
+    public PagedResponse<EnrollmentResponse> getCourseEnrollmentsPaged(Long courseId, int page, int size) throws Exception {
+        LOGGER.log(Level.INFO, "Fetching paged enrollments for course {0}", courseId);
 
         try {
-            // Check if already enrolled
-            if (courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId).isPresent()) {
-                throw new IllegalArgumentException("User is already enrolled in this course");
-            }
-
             Course course = courseRepo.findById(courseId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found"));
 
-            // ✅ CHECK: Course must be active
-            if (!course.isActive()) {
-                LOGGER.log(Level.WARNING, "Cannot enroll: Course {0} is deactivated", courseId);
-                throw new IllegalArgumentException("This course has been deactivated and cannot accept new enrollments");
-            }
+            int resolvedSize = clampPageSize(size);
+            int resolvedPage = Math.max(0, page);
+            int offset = resolvedPage * resolvedSize;
 
-            if (course.getCreator().equals(userId)) {
-                throw new IllegalArgumentException("You are the creator of this course and already have full access.");
-            }
+            List<CourseEnrollment> enrollments = courseEnrollmentRepo.findByCourseIdPaged(courseId, resolvedSize, offset);
+            int totalElements = courseEnrollmentRepo.countByCourseId(courseId);
+            int totalPages = resolvedSize == 0 ? 0 : (int) Math.ceil(totalElements / (double) resolvedSize);
 
-            // Create new enrollment
-            CourseEnrollment enrollment = new CourseEnrollment(courseId, userId, shareLinkId);
-            CourseEnrollment savedEnrollment = courseEnrollmentRepo.save(enrollment);
+            List<EnrollmentResponse> items = enrollments.stream()
+                    .map(enrollment -> {
+                        int mCount = (course.getModules() != null) ? course.getModules().size() : 0;
+                        int lCount = 0;
+                        if (course.getModules() != null) {
+                            lCount = course.getModules().stream()
+                                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                                    .sum();
+                        }
+                        return new EnrollmentResponse(
+                                enrollment.getId(),
+                                enrollment.getCourseId(),
+                                enrollment.getUserId(),
+                                enrollment.getStatus(),
+                                enrollment.getEnrolledAt(),
+                                enrollment.getProgressPercentage(),
+                                course.getTitle(),
+                                course.getDescription(),
+                                enrollment.getIsRead(),
+                                enrollment.getInviteStatus(),
+                                enrollment.getInvitedBy(),
+                                null,
+                                mCount,
+                                lCount,
+                                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+                        );
+                    })
+                    .collect(Collectors.toList());
 
-            int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
-            int lessonCount = 0;
-            if (course.getModules() != null) {
-                lessonCount = course.getModules().stream()
-                        .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
-                        .sum();
-            }
-
-            LOGGER.log(Level.INFO, "User enrolled successfully");
-            return new EnrollmentResponse(
-                    savedEnrollment.getId(),
-                    savedEnrollment.getCourseId(),
-                    savedEnrollment.getUserId(),
-                    savedEnrollment.getStatus(),
-                    savedEnrollment.getEnrolledAt(),
-                    savedEnrollment.getProgressPercentage(),
-                    course.getTitle(),
-                    course.getDescription(),
-                    savedEnrollment.getIsRead(),
-                    savedEnrollment.getInviteStatus(),
-                    savedEnrollment.getInvitedBy(),
-                    null,
-                    moduleCount,
-                    lessonCount,
-                    userRepo.findById(savedEnrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+            return new PagedResponse<>(
+                    items,
+                    resolvedPage,
+                    resolvedSize,
+                    totalElements,
+                    totalPages
             );
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error enrolling user: {0}", e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error fetching paged enrollments: {0}", e.getMessage());
             throw e;
         }
-    }
-
-    @Override
-    @Transactional
-    public void updateEnrollmentStatus(Long courseId, Long userId, EnrollmentStatus status) throws Exception {
-        LOGGER.log(Level.INFO, "Updating enrollment status for user {0} to {1}", new Object[]{userId, status});
-
-        try {
-            CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Enrollment not found"));
-
-            enrollment.setStatus(status);
-            courseEnrollmentRepo.save(enrollment);
-            LOGGER.log(Level.INFO, "Enrollment status updated successfully");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error updating enrollment status: {0}", e.getMessage());
-            throw e;
-        }
-    }
-
-    @Override
-    public int getCompletedLessonsCount(Long courseId, Long userId) throws Exception {
-        return lessonProgressRepo.countByUserIdAndCourseIdAndIsCompletedTrue(userId, courseId);
-    }
-
-    @Override
-    public int getTotalLessonsInCourse(Long courseId) throws Exception {
-        return (int) lessonRepo.countByCourseId(courseId);
-    }
-
-    // --- Helper methods ---
-    private CourseEnrollment getOrCreateEnrollment(Long courseId, Long userId) {
-        Optional<CourseEnrollment> existing = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-
-        Course course = courseRepo.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
-
-        // Allow the course creator to track own progress without manual self-enrollment.
-        if (course.getCreator().equals(userId)) {
-            CourseEnrollment creatorEnrollment = new CourseEnrollment(courseId, userId, null);
-            return courseEnrollmentRepo.save(creatorEnrollment);
-        }
-
-        throw new IllegalArgumentException("User is not enrolled in this course");
-    }
-
-    private void updateEnrollmentProgress(Long courseId, Long userId) throws Exception {
-        CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Enrollment not found"));
-
-        int totalLessons = getTotalLessonsInCourse(courseId);
-        int completedLessons = getCompletedLessonsCount(courseId, userId);
-        double progress = totalLessons > 0 ? (completedLessons * 100.0 / totalLessons) : 0.0;
-
-        enrollment.setProgressPercentage(progress);
-        courseEnrollmentRepo.save(enrollment);
-    }
-
-    private long closeOpenSessionIfNeeded(Long lessonId, Long userId, OffsetDateTime endTime) {
-        Optional<LessonSession> openSession = lessonSessionRepo
-                .findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(lessonId, userId);
-        if (openSession.isEmpty()) {
-            return 0L;
-        }
-        LessonSession session = openSession.get();
-        long durationSeconds = session.close(endTime);
-        lessonSessionRepo.save(session);
-        return durationSeconds;
-    }
-
-    private long resolveMinLessonSeconds(Long courseId) {
-        CourseProgressPolicy policy = courseProgressPolicyRepo.findByCourseId(courseId)
-                .orElse(null);
-        if (policy == null || policy.getMinLessonSeconds() == null) {
-            return DEFAULT_MIN_LESSON_SECONDS;
-        }
-        return Math.max(0L, policy.getMinLessonSeconds());
-    }
-
-    private long safeLong(Long value) {
-        return value == null ? 0L : value;
-    }
-
-    private QuizStats summarizeQuizAttempts(List<LessonQuizAttempt> attempts) {
-        if (attempts == null || attempts.isEmpty()) {
-            return new QuizStats(0, 0, 0, 0);
-        }
-
-        Map<Integer, List<LessonQuizAttempt>> byQuiz = attempts.stream()
-                .collect(Collectors.groupingBy(LessonQuizAttempt::getQuizIndex));
-
-        int totalAttempts = attempts.size();
-        int totalQuizzes = byQuiz.size();
-        int firstAttemptCorrect = 0;
-
-        for (Map.Entry<Integer, List<LessonQuizAttempt>> entry : byQuiz.entrySet()) {
-            LessonQuizAttempt firstAttempt = entry.getValue().stream()
-                    .min((a, b) -> Integer.compare(a.getAttemptNumber(), b.getAttemptNumber()))
-                    .orElse(null);
-            if (firstAttempt != null && Boolean.TRUE.equals(firstAttempt.getCorrect())) {
-                firstAttemptCorrect++;
-            }
-        }
-
-        int retryCount = Math.max(0, totalAttempts - totalQuizzes);
-        return new QuizStats(totalAttempts, totalQuizzes, firstAttemptCorrect, retryCount);
     }
 
     @Override
@@ -756,6 +680,203 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         }
 
         return entries;
+    }
+
+    @Override
+    public PagedResponse<CourseLeaderboardEntry> getCourseLeaderboardPaged(Long courseId, Long requestingUserId, int page, int size) throws Exception {
+        List<CourseLeaderboardEntry> entries = getCourseLeaderboard(courseId, requestingUserId);
+
+        int resolvedSize = clampPageSize(size);
+        int resolvedPage = Math.max(0, page);
+        int fromIndex = Math.min(resolvedPage * resolvedSize, entries.size());
+        int toIndex = Math.min(fromIndex + resolvedSize, entries.size());
+
+        List<CourseLeaderboardEntry> pageItems = entries.subList(fromIndex, toIndex);
+        int totalPages = resolvedSize == 0 ? 0 : (int) Math.ceil(entries.size() / (double) resolvedSize);
+
+        return new PagedResponse<>(pageItems, resolvedPage, resolvedSize, entries.size(), totalPages);
+    }
+
+    @Override
+    @Transactional
+    public EnrollmentResponse enrollUserInCourse(Long courseId, Long userId, Long shareLinkId) throws Exception {
+        LOGGER.log(Level.INFO, "Enrolling user {0} in course {1}", new Object[]{userId, courseId});
+
+        try {
+            Course course = courseRepo.findById(courseId)
+                    .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+            if (!course.isActive() && !course.getCreator().equals(userId)) {
+                throw new IllegalArgumentException("This course has been deactivated and is no longer available");
+            }
+
+            CourseShareLink shareLink = courseShareLinkRepo.findById(shareLinkId)
+                    .orElseThrow(() -> new IllegalArgumentException("Share link not found"));
+
+            if (!Objects.equals(shareLink.getCourseId(), courseId)) {
+                throw new IllegalArgumentException("Share link does not match the course");
+            }
+
+            if (!shareLink.canEnroll()) {
+                throw new IllegalArgumentException("Share link is no longer valid");
+            }
+
+            if (ShareLinkType.PRIVATE.equals(shareLink.getLinkType())) {
+                boolean allowed = allowedUserRepo.existsByShareLinkIdAndUserId(shareLink.getId(), userId);
+                if (!allowed) {
+                    throw new IllegalArgumentException("You are not allowed to access this private share link");
+                }
+            }
+
+            Optional<CourseEnrollment> existing = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId);
+            CourseEnrollment enrollment;
+
+            if (existing.isPresent()) {
+                enrollment = existing.get();
+                if (EnrollmentStatus.ACTIVE.equals(enrollment.getStatus())) {
+                    return buildEnrollmentResponse(course, enrollment);
+                }
+
+                enrollment.setStatus(EnrollmentStatus.ACTIVE);
+                enrollment.setInviteStatus("ACCEPTED");
+                enrollment.setInviteType("LINK");
+                enrollment.setShareLinkId(shareLinkId);
+                enrollment = courseEnrollmentRepo.save(enrollment);
+
+                incrementShareLinkEnrollments(shareLink);
+                return buildEnrollmentResponse(course, enrollment);
+            }
+
+            enrollment = new CourseEnrollment(courseId, userId, shareLinkId);
+            enrollment = courseEnrollmentRepo.save(enrollment);
+
+            incrementShareLinkEnrollments(shareLink);
+
+            return buildEnrollmentResponse(course, enrollment);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error enrolling user: {0}", e.getMessage());
+            throw e;
+        }
+    }
+
+    // --- Helper methods ---
+    private CourseEnrollment getOrCreateEnrollment(Long courseId, Long userId) {
+        Optional<CourseEnrollment> existing = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+        // Allow the course creator to track own progress without manual self-enrollment.
+        if (course.getCreator().equals(userId)) {
+            CourseEnrollment creatorEnrollment = new CourseEnrollment(courseId, userId, null);
+            return courseEnrollmentRepo.save(creatorEnrollment);
+        }
+
+        throw new IllegalArgumentException("User is not enrolled in this course");
+    }
+
+    private void updateEnrollmentProgress(Long courseId, Long userId) throws Exception {
+        CourseEnrollment enrollment = courseEnrollmentRepo.findByCourseIdAndUserId(courseId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Enrollment not found"));
+
+        int totalLessons = getTotalLessonsInCourse(courseId);
+        int completedLessons = getCompletedLessonsCount(courseId, userId);
+        double progress = totalLessons > 0 ? (completedLessons * 100.0 / totalLessons) : 0.0;
+
+        enrollment.setProgressPercentage(progress);
+        courseEnrollmentRepo.save(enrollment);
+    }
+
+    private long closeOpenSessionIfNeeded(Long lessonId, Long userId, OffsetDateTime endTime) {
+        Optional<LessonSession> openSession = lessonSessionRepo
+                .findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(lessonId, userId);
+        if (openSession.isEmpty()) {
+            return 0L;
+        }
+        LessonSession session = openSession.get();
+        long durationSeconds = session.close(endTime);
+        lessonSessionRepo.save(session);
+        return durationSeconds;
+    }
+
+    private long resolveMinLessonSeconds(Long courseId) {
+        CourseProgressPolicy policy = courseProgressPolicyRepo.findByCourseId(courseId)
+                .orElse(null);
+        if (policy == null || policy.getMinLessonSeconds() == null) {
+            return DEFAULT_MIN_LESSON_SECONDS;
+        }
+        return Math.max(0L, policy.getMinLessonSeconds());
+    }
+
+    private long safeLong(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    private QuizStats summarizeQuizAttempts(List<LessonQuizAttempt> attempts) {
+        if (attempts == null || attempts.isEmpty()) {
+            return new QuizStats(0, 0, 0, 0);
+        }
+
+        Map<Integer, List<LessonQuizAttempt>> byQuiz = attempts.stream()
+                .collect(Collectors.groupingBy(LessonQuizAttempt::getQuizIndex));
+
+        int totalAttempts = attempts.size();
+        int totalQuizzes = byQuiz.size();
+        int firstAttemptCorrect = 0;
+
+        for (Map.Entry<Integer, List<LessonQuizAttempt>> entry : byQuiz.entrySet()) {
+            LessonQuizAttempt firstAttempt = entry.getValue().stream()
+                    .min((a, b) -> Integer.compare(a.getAttemptNumber(), b.getAttemptNumber()))
+                    .orElse(null);
+            if (firstAttempt != null && Boolean.TRUE.equals(firstAttempt.getCorrect())) {
+                firstAttemptCorrect++;
+            }
+        }
+
+        int retryCount = Math.max(0, totalAttempts - totalQuizzes);
+        return new QuizStats(totalAttempts, totalQuizzes, firstAttemptCorrect, retryCount);
+    }
+
+    private EnrollmentResponse buildEnrollmentResponse(Course course, CourseEnrollment enrollment) {
+        int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
+        int lessonCount = 0;
+        if (course.getModules() != null) {
+            lessonCount = course.getModules().stream()
+                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                    .sum();
+        }
+
+        return new EnrollmentResponse(
+                enrollment.getId(),
+                enrollment.getCourseId(),
+                enrollment.getUserId(),
+                enrollment.getStatus(),
+                enrollment.getEnrolledAt(),
+                enrollment.getProgressPercentage(),
+                course.getTitle(),
+                course.getDescription(),
+                enrollment.getIsRead(),
+                enrollment.getInviteStatus(),
+                enrollment.getInvitedBy(),
+                null,
+                moduleCount,
+                lessonCount,
+                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+        );
+    }
+
+    private void incrementShareLinkEnrollments(CourseShareLink shareLink) {
+        Integer current = shareLink.getCurrentEnrollments();
+        shareLink.setCurrentEnrollments((current == null ? 0 : current) + 1);
+        courseShareLinkRepo.save(shareLink);
+    }
+
+    private int clampPageSize(int size) {
+        int resolved = size <= 0 ? 20 : size;
+        return Math.min(resolved, MAX_PAGE_SIZE);
     }
 
     private record QuizStats(int totalAttempts, int totalQuizzes, int firstAttemptCorrect, int retryCount) {

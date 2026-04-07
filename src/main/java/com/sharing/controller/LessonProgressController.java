@@ -235,12 +235,14 @@ public class LessonProgressController {
      * Get all enrollments for a course (admin/creator only)
      */
     @GetMapping("/courses/{courseId}/enrollments")
-    public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getCourseEnrollments(
-            @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<PagedResponse<EnrollmentResponse>>> getCourseEnrollments(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         LOGGER.log(Level.INFO, "Request received to fetch enrollments for course: {0}", courseId);
         try {
-            List<EnrollmentResponse> response = lessonProgressService.getCourseEnrollments(courseId);
+            PagedResponse<EnrollmentResponse> response = lessonProgressService.getCourseEnrollmentsPaged(courseId, page, size);
 
             LOGGER.log(Level.INFO, "Course enrollments fetched successfully");
             return ResponseEntity.ok(ApiResponse.success("Course enrollments fetched successfully", response));
@@ -303,15 +305,17 @@ public class LessonProgressController {
      * Get course leaderboard (accessible by creator or any enrolled user)
      */
     @GetMapping("/courses/{courseId}/leaderboard")
-    public ResponseEntity<ApiResponse<List<CourseLeaderboardEntry>>> getCourseLeaderboard(
+    public ResponseEntity<ApiResponse<PagedResponse<CourseLeaderboardEntry>>> getCourseLeaderboard(
             @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
 
         LOGGER.log(Level.INFO, "Request received to fetch leaderboard for course: {0}", courseId);
         try {
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-            List<CourseLeaderboardEntry> entries = lessonProgressService
-                    .getCourseLeaderboard(courseId, principal.getUser().getId());
+            PagedResponse<CourseLeaderboardEntry> entries = lessonProgressService
+                    .getCourseLeaderboardPaged(courseId, principal.getUser().getId(), page, size);
             return ResponseEntity.ok(ApiResponse.success("Leaderboard fetched successfully", entries));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching leaderboard: {0}", e.getMessage());
