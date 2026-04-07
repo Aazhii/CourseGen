@@ -215,13 +215,18 @@ export default function ShareCourse() {
   const debouncedEnrollmentSearch = useDebounce(enrollmentSearch.trim().toLowerCase(), 300);
 
   const filteredEnrollments = useMemo(() => {
-    if (!debouncedEnrollmentSearch) return enrollments;
-    return enrollments.filter((env) => {
+    const currentUserId = currentUser?.id != null ? String(currentUser.id) : null;
+    const visible = currentUserId
+      ? enrollments.filter((env) => String(env.userId) !== currentUserId)
+      : enrollments;
+
+    if (!debouncedEnrollmentSearch) return visible;
+    return visible.filter((env) => {
       const name = String(env.userName || "").toLowerCase();
       const id = String(env.userId || "").toLowerCase();
       return name.includes(debouncedEnrollmentSearch) || id.includes(debouncedEnrollmentSearch);
     });
-  }, [enrollments, debouncedEnrollmentSearch]);
+  }, [enrollments, debouncedEnrollmentSearch, currentUser?.id]);
 
   useEffect(() => {
     let mounted = true;
