@@ -49,7 +49,7 @@ export const getEnrollment = async (courseId: string) => {
  */
 export const getCourseEnrollments = async (courseId: string) => {
   const res = await apiFetch(`/api/progress/courses/${courseId}/enrollments`);
-  return res.data;
+  return unwrapPagedItems<any>(res);
 };
 
 /**
@@ -107,7 +107,7 @@ export const getSharedCourseUsage = async (courseId: string, userId: string) => 
  */
 export const getCourseLeaderboard = async (courseId: string) => {
   const res = await apiFetch(`/api/progress/courses/${courseId}/leaderboard`);
-  return res.data as Array<{
+  return unwrapPagedItems<any>(res).map(normalizeLeaderboardEntry) as Array<{
     userId: number;
     username: string;
     rank: number;
@@ -119,3 +119,32 @@ export const getCourseLeaderboard = async (courseId: string) => {
     flaggedCount: number;
   }>;
 };
+
+function unwrapApiData<T>(payload: any): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
+function unwrapPagedItems<T>(payload: any): T[] {
+  const data: any = unwrapApiData<any>(payload);
+  if (Array.isArray(data)) return data as T[];
+  if (data && Array.isArray(data.items)) return data.items as T[];
+  if (data && Array.isArray(data.content)) return data.content as T[];
+  return [];
+}
+
+function normalizeLeaderboardEntry(raw: any) {
+  return {
+    userId: Number(raw?.userId ?? raw?.user_id ?? 0),
+    username: String(raw?.username ?? raw?.userName ?? 'Unknown'),
+    rank: Number(raw?.rank ?? raw?.position ?? 0),
+    score: Number(raw?.score ?? raw?.totalScore ?? 0),
+    totalProgress: Number(raw?.totalProgress ?? raw?.progress ?? 0),
+    lessonsCompleted: Number(raw?.lessonsCompleted ?? raw?.completedLessons ?? 0),
+    quizAccuracy: Number(raw?.quizAccuracy ?? raw?.quizAccuracyPercent ?? 0),
+    totalTimeSeconds: Number(raw?.totalTimeSeconds ?? raw?.timeSeconds ?? 0),
+    flaggedCount: Number(raw?.flaggedCount ?? raw?.flags ?? 0),
+  };
+}
