@@ -1,9 +1,6 @@
 package com.sharing.service;
 
-import com.sharing.dto.CourseLeaderboardEntry;
-import com.sharing.dto.CourseProgressResponse;
-import com.sharing.dto.EnrollmentResponse;
-import com.sharing.dto.SharedCourseUsageResponse;
+import com.sharing.dto.*;
 import com.sharing.model.EnrollmentStatus;
 
 import java.util.List;
@@ -48,6 +45,8 @@ public interface LessonProgressService {
      */
     List<EnrollmentResponse> getCourseEnrollments(Long courseId) throws Exception;
 
+    PagedResponse<EnrollmentResponse> getCourseEnrollmentsPaged(Long courseId, int page, int size) throws Exception;
+
     /**
      * Enroll user in a course
      */
@@ -72,4 +71,6 @@ public interface LessonProgressService {
      * Get course leaderboard
      */
     List<CourseLeaderboardEntry> getCourseLeaderboard(Long courseId, Long requestingUserId) throws Exception;
+
+    PagedResponse<CourseLeaderboardEntry> getCourseLeaderboardPaged(Long courseId, Long requestingUserId, int page, int size) throws Exception;
 }
