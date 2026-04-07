@@ -1,5 +1,6 @@
 package com.sharing.service;
 
+import com.sharing.dto.CourseLeaderboardEntry;
 import com.sharing.dto.CourseProgressResponse;
 import com.sharing.dto.EnrollmentResponse;
 import com.sharing.dto.SharedCourseUsageResponse;
@@ -66,4 +67,9 @@ public interface LessonProgressService {
      * Get total lessons in a course
      */
     int getTotalLessonsInCourse(Long courseId) throws Exception;
+
+    /**
+     * Get course leaderboard
+     */
+    List<CourseLeaderboardEntry> getCourseLeaderboard(Long courseId, Long requestingUserId) throws Exception;
 }

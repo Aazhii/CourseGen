@@ -2,10 +2,7 @@ package com.sharing.controller;
 
 import com.aicourse.utils.api.ApiResponse;
 import com.auth.model.UserPrincipal;
-import com.sharing.dto.CourseProgressResponse;
-import com.sharing.dto.EnrollmentResponse;
-import com.sharing.dto.QuizAttemptRequest;
-import com.sharing.dto.SharedCourseUsageResponse;
+import com.sharing.dto.*;
 import com.sharing.exception.SharedCourseContentLockedException;
 import com.sharing.model.EnrollmentStatus;
 import com.sharing.service.LessonProgressService;
@@ -299,6 +296,27 @@ public class LessonProgressController {
             LOGGER.log(Level.SEVERE, "Error fetching shared course usage: {0}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("Error fetching shared course usage: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get course leaderboard (accessible by creator or any enrolled user)
+     */
+    @GetMapping("/courses/{courseId}/leaderboard")
+    public ResponseEntity<ApiResponse<List<CourseLeaderboardEntry>>> getCourseLeaderboard(
+            @PathVariable Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to fetch leaderboard for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            List<CourseLeaderboardEntry> entries = lessonProgressService
+                    .getCourseLeaderboard(courseId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Leaderboard fetched successfully", entries));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching leaderboard: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error fetching leaderboard: " + e.getMessage()));
         }
     }
 }

@@ -6,6 +6,8 @@ import com.aicourse.model.Module;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.LessonRepo;
 import com.aicourse.repo.ModuleRepo;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.sharing.dto.*;
 import com.sharing.model.*;
 import com.sharing.repo.*;
@@ -17,10 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -57,6 +56,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
     @Autowired
     private SharedCourseAccessGuard sharedCourseAccessGuard;
+
+    @Autowired
+    private UserRepo userRepo;
 
     @Override
     @Transactional
@@ -438,7 +440,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     enrollment.getInvitedBy(),
                     null, // invitedByName
                     moduleCount,
-                    lessonCount
+                    lessonCount,
+                    userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching enrollment: {0}", e.getMessage());
@@ -479,7 +482,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                                 enrollment.getInvitedBy(),
                                 null,
                                 mCount,
-                                lCount
+                                lCount,
+                                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
                         );
                     })
                     .collect(Collectors.toList());
@@ -540,7 +544,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     savedEnrollment.getInvitedBy(),
                     null,
                     moduleCount,
-                    lessonCount
+                    lessonCount,
+                    userRepo.findById(savedEnrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error enrolling user: {0}", e.getMessage());
@@ -655,6 +660,99 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
         int retryCount = Math.max(0, totalAttempts - totalQuizzes);
         return new QuizStats(totalAttempts, totalQuizzes, firstAttemptCorrect, retryCount);
+    }
+
+    @Override
+    public List<CourseLeaderboardEntry> getCourseLeaderboard(Long courseId, Long requestingUserId) throws Exception {
+        LOGGER.log(Level.INFO, "Building leaderboard for course {0}", courseId);
+
+        // 1. Get course to know total lessons
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found: " + courseId));
+        int totalLessons = (course.getModules() == null) ? 0 :
+                course.getModules().stream()
+                        .mapToInt(m -> m.getLessons() == null ? 0 : m.getLessons().size())
+                        .sum();
+
+        // Optimal time = totalLessons * 5 minutes (300 s) — creator-configurable in future
+        long optimalTotalSeconds = Math.max(1L, (long) totalLessons * 300L);
+
+        // 2. Get all enrollments
+        List<CourseEnrollment> enrollments = courseEnrollmentRepo.findByCourseId(courseId);
+
+        // 3. Load all progress & quiz attempts for the course in bulk
+        List<LessonProgress> allProgress = lessonProgressRepo.findByCourseId(courseId);
+        List<LessonQuizAttempt> allAttempts = lessonQuizAttemptRepo.findByCourseId(courseId);
+
+        // Group by userId
+        Map<Long, List<LessonProgress>> progressByUser = allProgress.stream()
+                .collect(Collectors.groupingBy(LessonProgress::getUserId));
+        Map<Long, List<LessonQuizAttempt>> attemptsByUser = allAttempts.stream()
+                .collect(Collectors.groupingBy(LessonQuizAttempt::getUserId));
+
+        // 4. Score each user
+        List<CourseLeaderboardEntry> entries = new ArrayList<>();
+        for (CourseEnrollment enrollment : enrollments) {
+            Long uid = enrollment.getUserId();
+            String username = userRepo.findById(uid).map(Users::getUsername).orElse("Unknown");
+
+            List<LessonProgress> userProgress = progressByUser.getOrDefault(uid, Collections.emptyList());
+            List<LessonQuizAttempt> userAttempts = attemptsByUser.getOrDefault(uid, Collections.emptyList());
+
+            // Lesson completion score (0–500)
+            int completedLessons = (int) userProgress.stream().filter(p -> Boolean.TRUE.equals(p.getIsCompleted())).count();
+            double completionRatio = totalLessons > 0 ? (double) completedLessons / totalLessons : 0.0;
+            double lessonScore = completionRatio * 500.0;
+
+            // Quiz accuracy score (0–300)
+            QuizStats stats = summarizeQuizAttempts(userAttempts);
+            double quizAccuracy = stats.totalQuizzes() > 0
+                    ? (double) stats.firstAttemptCorrect() / stats.totalQuizzes() * 100.0
+                    : 0.0;
+            double quizScore = (quizAccuracy / 100.0) * 300.0;
+
+            // Engagement time score (0–200)
+            long totalTime = userProgress.stream().mapToLong(p -> p.getTotalTimeSeconds() == null ? 0 : p.getTotalTimeSeconds()).sum();
+            double engagementRatio = Math.min(1.0, (double) totalTime / optimalTotalSeconds);
+            double engagementScore = engagementRatio * 200.0;
+
+            // Integrity penalty: -50 per flagged lesson
+            int flaggedCount = (int) userProgress.stream().filter(p -> Boolean.TRUE.equals(p.getCompletionFlagged())).count();
+            double penalty = flaggedCount * 50.0;
+
+            double rawScore = lessonScore + quizScore + engagementScore - penalty;
+            double score = Math.max(0.0, rawScore);
+
+            // Progress % for display
+            double progressPct = completionRatio * 100.0;
+
+            // FlaggedCount: only expose to the requesting user themselves or the course creator
+            Long creatorId = course.getCreator();
+            boolean isCreator = requestingUserId != null && requestingUserId.equals(creatorId);
+            boolean isOwn = requestingUserId != null && requestingUserId.equals(uid);
+            int exposedFlagCount = (isCreator || isOwn) ? flaggedCount : 0;
+
+            entries.add(new CourseLeaderboardEntry(
+                    uid, username, 0 /* rank assigned below */,
+                    Math.round(score * 10.0) / 10.0,
+                    Math.round(progressPct * 10.0) / 10.0,
+                    completedLessons,
+                    Math.round(quizAccuracy * 10.0) / 10.0,
+                    totalTime,
+                    exposedFlagCount
+            ));
+        }
+
+        // 5. Sort by score desc, tiebreak by username asc
+        entries.sort(Comparator.comparingDouble(CourseLeaderboardEntry::getScore).reversed()
+                .thenComparing(CourseLeaderboardEntry::getUsername));
+
+        // 6. Assign ranks
+        for (int i = 0; i < entries.size(); i++) {
+            entries.get(i).setRank(i + 1);
+        }
+
+        return entries;
     }
 
     private record QuizStats(int totalAttempts, int totalQuizzes, int firstAttemptCorrect, int retryCount) {
