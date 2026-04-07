@@ -20,6 +20,7 @@ import RegisterPage from "./pages/Register";
 import Profile from "./pages/Profile";
 import JoinCourse from "./pages/JoinCourse";
 import Notifications from "./pages/Notifications";
+import AiCoach from "./pages/AiCoach";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,8 @@ const App = () => (
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/courses/:courseId" element={<CourseDetail />} />
                   <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonView />} />
+                  <Route path="/courses/:courseId/coach" element={<AiCoach />} />
+                  <Route path="/courses/:courseId/lessons/:lessonId/coach" element={<AiCoach />} />
                   <Route path="/courses/:courseId/share" element={<ShareCourse />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:projectId" element={<ProjectDetail />} />
