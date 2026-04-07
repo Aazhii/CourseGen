@@ -3,6 +3,7 @@ package com.sharing.dto;
 public class CourseLeaderboardEntry {
     private Long userId;
     private String username;
+    private String userHandle;
     private Integer rank;
     private Double score;          // composite score 0–1000
     private Double totalProgress;  // lesson completion % (0–100)
@@ -15,12 +16,13 @@ public class CourseLeaderboardEntry {
     public CourseLeaderboardEntry() {
     }
 
-    public CourseLeaderboardEntry(Long userId, String username, Integer rank,
+    public CourseLeaderboardEntry(Long userId, String username, String userHandle, Integer rank,
                                   Double score, Double totalProgress,
                                   Integer lessonsCompleted, Double quizAccuracy,
                                   Long totalTimeSeconds, Integer flaggedCount) {
         this.userId = userId;
         this.username = username;
+        this.userHandle = userHandle;
         this.rank = rank;
         this.score = score;
         this.totalProgress = totalProgress;
@@ -45,6 +47,14 @@ public class CourseLeaderboardEntry {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getUserHandle() {
+        return userHandle;
+    }
+
+    public void setUserHandle(String userHandle) {
+        this.userHandle = userHandle;
     }
 
     public Integer getRank() {

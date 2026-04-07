@@ -78,7 +78,7 @@ public class SearchServiceImpl implements SearchService {
                     continue; // skip users that were already picked
                 }
                 double score = computeScore(doc, tokens, now);
-                scored.add(new SearchResultItem(doc.getId(), doc.getType(), doc.getTitle(), doc.getDescription(), score));
+                scored.add(new SearchResultItem(doc.getId(), doc.getType(), doc.getTitle(), doc.getDescription(), score, doc.getHandle()));
             }
 
             scored.sort((a, b) -> {
@@ -151,6 +151,7 @@ public class SearchServiceImpl implements SearchService {
                 title,
                 description,
                 null,
+                course.getCreatedAt(),
                 popularityWeight,
                 tokens
         );
@@ -158,15 +159,21 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private void indexUser(Users user) {
-        String title = safe(user.getUsername());
-        Set<String> tokens = tokenize(title).stream().collect(Collectors.toSet());
+        String handle = safe(user.getUsername());
+        String displayName = safe(user.getDisplayName());
+        if (displayName.isBlank()) {
+            displayName = handle;
+        }
+        String description = handle.isBlank() ? "User" : "@" + handle;
+        Set<String> tokens = tokenize(displayName + " " + handle).stream().collect(Collectors.toSet());
         double popularityWeight = 0.5;
 
         SearchDocument doc = new SearchDocument(
                 user.getId(),
                 ResultType.USER,
-                title,
-                "User",
+                displayName,
+                description,
+                handle,
                 user.getCreatedAt(),
                 popularityWeight,
                 tokens
@@ -186,7 +193,7 @@ public class SearchServiceImpl implements SearchService {
         if (input == null || input.isBlank()) {
             return Collections.emptyList();
         }
-        String normalized = input.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9 ]", " ");
+        String normalized = input.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._ ]", " ");
         String[] parts = normalized.split("\\s+");
         List<String> tokens = new ArrayList<>();
         for (String part : parts) {
@@ -220,5 +227,3 @@ public class SearchServiceImpl implements SearchService {
         return value == null ? "" : value;
     }
 }
-
-

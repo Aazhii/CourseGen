@@ -12,16 +12,18 @@ public class SearchDocument {
     private final ResultType type;
     private final String title;
     private final String description;
+    private final String handle;
     private final OffsetDateTime createdAt;
     private final double popularityWeight;
     private final Set<String> tokens;
 
     public SearchDocument(Long id, ResultType type, String title, String description,
-                          OffsetDateTime createdAt, double popularityWeight, Set<String> tokens) {
+                          String handle, OffsetDateTime createdAt, double popularityWeight, Set<String> tokens) {
         this.id = id;
         this.type = type;
         this.title = title;
         this.description = description;
+        this.handle = handle;
         this.createdAt = createdAt;
         this.popularityWeight = popularityWeight;
         this.tokens = tokens == null ? Collections.emptySet() : tokens;
@@ -48,6 +50,10 @@ public class SearchDocument {
         return description;
     }
 
+    public String getHandle() {
+        return handle;
+    }
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
@@ -60,4 +66,3 @@ public class SearchDocument {
         return tokens;
     }
 }
-

@@ -25,7 +25,8 @@ public abstract class AbstractLeaderboardService implements LeaderboardService {
                         rank.getAndIncrement(),
                         user.getUserId(),
                         getScore(user),
-                        null, // username will be populated later
+                        null, // displayName will be populated later
+                        null, // handle will be populated later
                         user.getTotalCoursesCreated(),
                         user.getCurrentStreak(),
                         user.getWeeklyPoints()
