@@ -16,12 +16,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
 
     private static final Logger LOGGER = Logger.getLogger(UserService.class.getName());
     private final static BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    private static final Pattern HANDLE_PATTERN = Pattern.compile("^[a-z0-9._]{6,25}$");
     @Autowired
     private UserRepo userRepo;
     @Autowired
@@ -36,6 +38,19 @@ public class UserService {
     public Users registerUser(Users user) {
         LOGGER.log(Level.INFO, "Attempting to register new user: {0}", new Object[]{user.getUsername()});
         try {
+            String handle = user.getUsername() == null ? null : user.getUsername().trim();
+            if (handle == null || !HANDLE_PATTERN.matcher(handle).matches()) {
+                throw new IllegalArgumentException("User ID must be 6-25 characters and use only lowercase letters, numbers, '.' or '_' .");
+            }
+            user.setUsername(handle);
+
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.isBlank()) {
+                user.setDisplayName(handle);
+            } else {
+                user.setDisplayName(displayName.trim());
+            }
+
             user.setId(SnowflakeIdGenerator.generateId());
             user.setPassword(encoder.encode(user.getPassword()));
             // Note: roles and timestamps are now handled automatically in Users.java

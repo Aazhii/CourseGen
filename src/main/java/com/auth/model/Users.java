@@ -30,6 +30,9 @@ public class Users {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "display_name")
+    private String displayName;
+
     // --- Getters and Setters ---
 
     public Long getId() {
@@ -80,6 +83,14 @@ public class Users {
         this.updatedAt = updatedAt;
     }
 
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
     // Automatically set timestamps and default role using JPA Lifecycle
     @PrePersist
     protected void onCreate() {
@@ -91,6 +102,9 @@ public class Users {
         }
         if (updatedAt == null) {
             updatedAt = OffsetDateTime.now();
+        }
+        if (displayName == null || displayName.isBlank()) {
+            displayName = username;
         }
         // Set default role if missing
         if (roles == null) {
@@ -108,6 +122,7 @@ public class Users {
         return "Users{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
+                ", displayName='" + displayName + '\'' +
                 ", roles='" + roles + '\'' +
                 '}';
     }

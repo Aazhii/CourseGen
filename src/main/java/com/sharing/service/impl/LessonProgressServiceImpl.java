@@ -443,6 +443,10 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                         .sum();
             }
 
+            Users enrolledUser = userRepo.findById(enrollment.getUserId()).orElse(null);
+            String displayName = resolveDisplayName(enrolledUser);
+            String handle = resolveHandle(enrolledUser);
+
             return new EnrollmentResponse(
                     enrollment.getId(),
                     enrollment.getCourseId(),
@@ -458,7 +462,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     null, // invitedByName
                     moduleCount,
                     lessonCount,
-                    userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+                    displayName,
+                    handle
             );
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error fetching enrollment: {0}", e.getMessage());
@@ -503,6 +508,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                                     .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
                                     .sum();
                         }
+                        Users enrolledUser = userRepo.findById(enrollment.getUserId()).orElse(null);
+                        String displayName = resolveDisplayName(enrolledUser);
+                        String handle = resolveHandle(enrolledUser);
                         return new EnrollmentResponse(
                                 enrollment.getId(),
                                 enrollment.getCourseId(),
@@ -518,7 +526,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                                 null,
                                 mCount,
                                 lCount,
-                                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+                                displayName,
+                                handle
                         );
                     })
                     .collect(Collectors.toList());
@@ -553,6 +562,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                                     .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
                                     .sum();
                         }
+                        Users enrolledUser = userRepo.findById(enrollment.getUserId()).orElse(null);
+                        String displayName = resolveDisplayName(enrolledUser);
+                        String handle = resolveHandle(enrolledUser);
                         return new EnrollmentResponse(
                                 enrollment.getId(),
                                 enrollment.getCourseId(),
@@ -568,7 +580,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                                 null,
                                 mCount,
                                 lCount,
-                                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+                                displayName,
+                                handle
                         );
                     })
                     .collect(Collectors.toList());
@@ -622,7 +635,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         List<CourseLeaderboardEntry> entries = new ArrayList<>();
         for (CourseEnrollment enrollment : enrollments) {
             Long uid = enrollment.getUserId();
-            String username = userRepo.findById(uid).map(Users::getUsername).orElse("Unknown");
+            Users leaderboardUser = userRepo.findById(uid).orElse(null);
+            String displayName = resolveDisplayName(leaderboardUser);
+            String handle = resolveHandle(leaderboardUser);
 
             List<LessonProgress> userProgress = progressByUser.getOrDefault(uid, Collections.emptyList());
             List<LessonQuizAttempt> userAttempts = attemptsByUser.getOrDefault(uid, Collections.emptyList());
@@ -660,7 +675,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             int exposedFlagCount = (isCreator || isOwn) ? flaggedCount : 0;
 
             entries.add(new CourseLeaderboardEntry(
-                    uid, username, 0 /* rank assigned below */,
+                    uid, displayName, handle, 0 /* rank assigned below */,
                     Math.round(score * 10.0) / 10.0,
                     Math.round(progressPct * 10.0) / 10.0,
                     completedLessons,
@@ -670,7 +685,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             ));
         }
 
-        // 5. Sort by score desc, tiebreak by username asc
+        // 5. Sort by score desc, tiebreak by display name asc
         entries.sort(Comparator.comparingDouble(CourseLeaderboardEntry::getScore).reversed()
                 .thenComparing(CourseLeaderboardEntry::getUsername));
 
@@ -849,6 +864,10 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     .sum();
         }
 
+        Users enrolledUser = userRepo.findById(enrollment.getUserId()).orElse(null);
+        String displayName = resolveDisplayName(enrolledUser);
+        String handle = resolveHandle(enrolledUser);
+
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getCourseId(),
@@ -864,7 +883,8 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                 null,
                 moduleCount,
                 lessonCount,
-                userRepo.findById(enrollment.getUserId()).map(Users::getUsername).orElse("Unknown")
+                displayName,
+                handle
         );
     }
 
@@ -877,6 +897,21 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     private int clampPageSize(int size) {
         int resolved = size <= 0 ? 20 : size;
         return Math.min(resolved, MAX_PAGE_SIZE);
+    }
+
+    private String resolveDisplayName(Users user) {
+        if (user == null) {
+            return "Unknown";
+        }
+        String name = user.getDisplayName();
+        if (name == null || name.isBlank()) {
+            return user.getUsername();
+        }
+        return name;
+    }
+
+    private String resolveHandle(Users user) {
+        return user == null ? "" : user.getUsername();
     }
 
     private record QuizStats(int totalAttempts, int totalQuizzes, int firstAttemptCorrect, int retryCount) {
