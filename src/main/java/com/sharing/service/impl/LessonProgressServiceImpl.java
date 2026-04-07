@@ -1,23 +1,25 @@
 package com.sharing.service.impl;
 
 import com.aicourse.model.Course;
+import com.aicourse.model.Lesson;
+import com.aicourse.model.Module;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.LessonRepo;
-import com.sharing.dto.CourseProgressResponse;
-import com.sharing.dto.EnrollmentResponse;
-import com.sharing.model.CourseEnrollment;
-import com.sharing.model.EnrollmentStatus;
-import com.sharing.model.LessonProgress;
-import com.sharing.repo.CourseEnrollmentRepo;
-import com.sharing.repo.LessonProgressRepo;
+import com.aicourse.repo.ModuleRepo;
+import com.sharing.dto.*;
+import com.sharing.model.*;
+import com.sharing.repo.*;
 import com.sharing.service.LessonProgressService;
 import com.sharing.service.SharedCourseAccessGuard;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class LessonProgressServiceImpl implements LessonProgressService {
 
     private static final Logger LOGGER = Logger.getLogger(LessonProgressServiceImpl.class.getName());
+    private static final long DEFAULT_MIN_LESSON_SECONDS = 60L;
 
     @Autowired
     private LessonProgressRepo lessonProgressRepo;
@@ -39,6 +42,18 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
     @Autowired
     private LessonRepo lessonRepo;
+
+    @Autowired
+    private ModuleRepo moduleRepo;
+
+    @Autowired
+    private LessonSessionRepo lessonSessionRepo;
+
+    @Autowired
+    private LessonQuizAttemptRepo lessonQuizAttemptRepo;
+
+    @Autowired
+    private CourseProgressPolicyRepo courseProgressPolicyRepo;
 
     @Autowired
     private SharedCourseAccessGuard sharedCourseAccessGuard;
@@ -54,24 +69,33 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             // Ensure enrollment exists; creators are auto-enrolled on first progress interaction.
             getOrCreateEnrollment(courseId, userId);
 
-            // Get or create lesson progress
             Optional<LessonProgress> existingProgress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId);
-            LessonProgress lessonProgress;
+            LessonProgress lessonProgress = existingProgress.orElseGet(() -> new LessonProgress(lessonId, userId, courseId));
 
-            if (existingProgress.isPresent()) {
-                lessonProgress = existingProgress.get();
-            } else {
-                lessonProgress = new LessonProgress(lessonId, userId, courseId);
-            }
+            OffsetDateTime now = OffsetDateTime.now();
+            long addedSeconds = closeOpenSessionIfNeeded(lessonId, userId, now);
+            long totalTimeSeconds = safeLong(lessonProgress.getTotalTimeSeconds()) + addedSeconds;
 
+            lessonProgress.setTotalTimeSeconds(totalTimeSeconds);
             lessonProgress.setIsCompleted(true);
-            lessonProgress.setCompletedAt(OffsetDateTime.now());
+            lessonProgress.setCompletedAt(now);
             lessonProgress.setProgressPercentage(100.0);
-            lessonProgress.setUpdatedAt(OffsetDateTime.now());
+            lessonProgress.setUpdatedAt(now);
+            lessonProgress.setLastActivityAt(now);
+
+            long completionDurationSeconds = 0L;
+            if (lessonProgress.getStartedAt() != null) {
+                completionDurationSeconds = Math.max(0L, Duration.between(lessonProgress.getStartedAt(), now).getSeconds());
+            }
+            lessonProgress.setCompletionDurationSeconds(completionDurationSeconds);
+
+            long minLessonSeconds = resolveMinLessonSeconds(courseId);
+            boolean flagged = totalTimeSeconds < minLessonSeconds || completionDurationSeconds < minLessonSeconds;
+            lessonProgress.setCompletionFlagged(flagged);
+            lessonProgress.setCompletionFlagReason(flagged ? "COMPLETED_TOO_FAST" : null);
 
             lessonProgressRepo.save(lessonProgress);
 
-            // Update course enrollment progress
             updateEnrollmentProgress(courseId, userId);
             LOGGER.log(Level.INFO, "Lesson marked as complete successfully");
         } catch (Exception e) {
@@ -96,9 +120,9 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                 progress.setCompletedAt(null);
                 progress.setProgressPercentage(0.0);
                 progress.setUpdatedAt(OffsetDateTime.now());
+                progress.setLastActivityAt(OffsetDateTime.now());
                 lessonProgressRepo.save(progress);
 
-                // Update course enrollment progress
                 updateEnrollmentProgress(courseId, userId);
                 LOGGER.log(Level.INFO, "Lesson marked as incomplete successfully");
             }
@@ -106,6 +130,204 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             LOGGER.log(Level.SEVERE, "Error marking lesson incomplete: {0}", e.getMessage());
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public void startLessonSession(Long lessonId, Long courseId, Long userId) throws Exception {
+        LOGGER.log(Level.INFO, "Starting lesson session for lesson {0} user {1}", new Object[]{lessonId, userId});
+
+        sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        getOrCreateEnrollment(courseId, userId);
+
+        Optional<LessonSession> openSession = lessonSessionRepo
+                .findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(lessonId, userId);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        LessonProgress progress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId)
+                .orElseGet(() -> new LessonProgress(lessonId, userId, courseId));
+
+        if (openSession.isPresent()) {
+            progress.setLastActivityAt(now);
+            progress.setUpdatedAt(now);
+            lessonProgressRepo.save(progress);
+            return;
+        }
+
+        LessonSession session = new LessonSession(lessonId, courseId, userId, now);
+        lessonSessionRepo.save(session);
+
+        progress.setLastSessionStartedAt(now);
+        progress.setLastActivityAt(now);
+        progress.setUpdatedAt(now);
+        lessonProgressRepo.save(progress);
+    }
+
+    @Override
+    @Transactional
+    public void stopLessonSession(Long lessonId, Long courseId, Long userId) throws Exception {
+        LOGGER.log(Level.INFO, "Stopping lesson session for lesson {0} user {1}", new Object[]{lessonId, userId});
+
+        sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        long addedSeconds = closeOpenSessionIfNeeded(lessonId, userId, now);
+
+        if (addedSeconds <= 0L) {
+            return;
+        }
+
+        LessonProgress progress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId)
+                .orElseGet(() -> new LessonProgress(lessonId, userId, courseId));
+
+        progress.setTotalTimeSeconds(safeLong(progress.getTotalTimeSeconds()) + addedSeconds);
+        progress.setLastActivityAt(now);
+        progress.setUpdatedAt(now);
+        lessonProgressRepo.save(progress);
+    }
+
+    @Override
+    @Transactional
+    public void recordQuizAttempt(Long lessonId, Long courseId, Long userId, int quizIndex, boolean correct) throws Exception {
+        LOGGER.log(Level.INFO, "Recording quiz attempt for lesson {0} user {1}", new Object[]{lessonId, userId});
+
+        sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        getOrCreateEnrollment(courseId, userId);
+
+        if (quizIndex < 0) {
+            throw new IllegalArgumentException("quizIndex must be >= 0");
+        }
+
+        Integer maxAttempt = lessonQuizAttemptRepo.findMaxAttemptNumber(lessonId, userId, quizIndex);
+        int nextAttempt = (maxAttempt == null ? 0 : maxAttempt) + 1;
+
+        LessonQuizAttempt attempt = new LessonQuizAttempt(lessonId, courseId, userId, quizIndex, nextAttempt, correct);
+        lessonQuizAttemptRepo.save(attempt);
+
+        LessonProgress progress = lessonProgressRepo.findByLessonIdAndUserId(lessonId, userId)
+                .orElseGet(() -> new LessonProgress(lessonId, userId, courseId));
+        progress.setLastActivityAt(OffsetDateTime.now());
+        progress.setUpdatedAt(OffsetDateTime.now());
+        lessonProgressRepo.save(progress);
+    }
+
+    @Override
+    public SharedCourseUsageResponse getSharedCourseUsage(Long courseId, Long childUserId, Long creatorId) throws Exception {
+        LOGGER.log(Level.INFO, "Fetching shared course usage for course {0} child {1}", new Object[]{courseId, childUserId});
+
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+        if (!course.getCreator().equals(creatorId)) {
+            throw new IllegalArgumentException("User is not authorized to view this course usage");
+        }
+
+        courseEnrollmentRepo.findByCourseIdAndUserId(courseId, childUserId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not enrolled in this course"));
+
+        List<Module> modules = moduleRepo.findByCourse_Id(courseId);
+        List<LessonProgress> progressList = lessonProgressRepo.findByUserIdAndCourseId(childUserId, courseId);
+        Map<Long, LessonProgress> progressByLesson = progressList.stream()
+                .collect(Collectors.toMap(LessonProgress::getLessonId, lp -> lp, (a, b) -> a));
+
+        List<LessonQuizAttempt> attempts = lessonQuizAttemptRepo.findByCourseIdAndUserId(courseId, childUserId);
+        Map<Long, List<LessonQuizAttempt>> attemptsByLesson = attempts.stream()
+                .collect(Collectors.groupingBy(LessonQuizAttempt::getLessonId));
+
+        List<ModuleUsageResponse> moduleResponses = new ArrayList<>();
+        List<LessonUsageResponse> lessonResponses = new ArrayList<>();
+        List<LessonUsageResponse> pendingLessons = new ArrayList<>();
+
+        int totalModules = modules.size();
+        int completedModules = 0;
+        int totalLessons = 0;
+        int completedLessons = 0;
+        long totalTimeSeconds = 0L;
+
+        int totalQuizAttempts = 0;
+        int totalQuizzesAttempted = 0;
+        int firstAttemptCorrect = 0;
+
+        for (Module module : modules) {
+            List<Lesson> lessons = lessonRepo.findByModule_Id(module.getId());
+            int moduleTotalLessons = lessons.size();
+            int moduleCompletedLessons = 0;
+
+            for (Lesson lesson : lessons) {
+                LessonProgress progress = progressByLesson.get(lesson.getId());
+                boolean completed = progress != null && Boolean.TRUE.equals(progress.getIsCompleted());
+
+                if (completed) {
+                    moduleCompletedLessons++;
+                    completedLessons++;
+                }
+
+                Long timeSpent = progress != null ? safeLong(progress.getTotalTimeSeconds()) : 0L;
+                totalTimeSeconds += timeSpent;
+
+                QuizStats lessonQuizStats = summarizeQuizAttempts(attemptsByLesson.get(lesson.getId()));
+                totalQuizAttempts += lessonQuizStats.totalAttempts;
+                totalQuizzesAttempted += lessonQuizStats.totalQuizzes;
+                firstAttemptCorrect += lessonQuizStats.firstAttemptCorrect;
+
+                LessonUsageResponse lessonResponse = new LessonUsageResponse(
+                        lesson.getId(),
+                        lesson.getTitle(),
+                        module.getId(),
+                        module.getTitle(),
+                        completed,
+                        progress != null ? progress.getCompletedAt() : null,
+                        timeSpent,
+                        progress != null ? progress.getCompletionDurationSeconds() : null,
+                        progress != null ? progress.getCompletionFlagged() : null,
+                        progress != null ? progress.getCompletionFlagReason() : null,
+                        lessonQuizStats.totalAttempts,
+                        lessonQuizStats.firstAttemptCorrect,
+                        lessonQuizStats.retryCount
+                );
+                lessonResponses.add(lessonResponse);
+                if (!completed) {
+                    pendingLessons.add(lessonResponse);
+                }
+            }
+
+            totalLessons += moduleTotalLessons;
+            double moduleProgress = moduleTotalLessons > 0 ? (moduleCompletedLessons * 100.0 / moduleTotalLessons) : 0.0;
+            if (moduleTotalLessons > 0 && moduleCompletedLessons == moduleTotalLessons) {
+                completedModules++;
+            }
+
+            moduleResponses.add(new ModuleUsageResponse(
+                    module.getId(),
+                    module.getTitle(),
+                    moduleTotalLessons,
+                    moduleCompletedLessons,
+                    moduleProgress
+            ));
+        }
+
+        int retryCount = Math.max(0, totalQuizAttempts - totalQuizzesAttempted);
+        QuizSummaryResponse quizSummary = new QuizSummaryResponse(
+                totalQuizAttempts,
+                totalQuizzesAttempted,
+                firstAttemptCorrect,
+                retryCount
+        );
+
+        return new SharedCourseUsageResponse(
+                courseId,
+                childUserId,
+                course.getTitle(),
+                totalModules,
+                completedModules,
+                totalLessons,
+                completedLessons,
+                totalTimeSeconds,
+                moduleResponses,
+                lessonResponses,
+                pendingLessons,
+                quizSummary
+        );
     }
 
     @Override
@@ -131,6 +353,11 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             SharedCourseAccessGuard.ContentLockState lockState =
                     sharedCourseAccessGuard.getContentLockState(courseId, userId);
 
+            OffsetDateTime lastAccessedAt = lessonProgressRepo
+                    .findTopByUserIdAndCourseIdOrderByLastActivityAtDesc(userId, courseId)
+                    .map(LessonProgress::getLastActivityAt)
+                    .orElse(null);
+
             return new CourseProgressResponse(
                     courseId,
                     course.getTitle(),
@@ -139,7 +366,7 @@ public class LessonProgressServiceImpl implements LessonProgressService {
                     totalLessons,
                     completedLessons,
                     enrollment.getEnrolledAt(),
-                    null, // TODO: Get last accessed timestamp
+                    lastAccessedAt,
                     lockState.locked(),
                     lockState.reason()
             );
@@ -378,5 +605,58 @@ public class LessonProgressServiceImpl implements LessonProgressService {
 
         enrollment.setProgressPercentage(progress);
         courseEnrollmentRepo.save(enrollment);
+    }
+
+    private long closeOpenSessionIfNeeded(Long lessonId, Long userId, OffsetDateTime endTime) {
+        Optional<LessonSession> openSession = lessonSessionRepo
+                .findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(lessonId, userId);
+        if (openSession.isEmpty()) {
+            return 0L;
+        }
+        LessonSession session = openSession.get();
+        long durationSeconds = session.close(endTime);
+        lessonSessionRepo.save(session);
+        return durationSeconds;
+    }
+
+    private long resolveMinLessonSeconds(Long courseId) {
+        CourseProgressPolicy policy = courseProgressPolicyRepo.findByCourseId(courseId)
+                .orElse(null);
+        if (policy == null || policy.getMinLessonSeconds() == null) {
+            return DEFAULT_MIN_LESSON_SECONDS;
+        }
+        return Math.max(0L, policy.getMinLessonSeconds());
+    }
+
+    private long safeLong(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    private QuizStats summarizeQuizAttempts(List<LessonQuizAttempt> attempts) {
+        if (attempts == null || attempts.isEmpty()) {
+            return new QuizStats(0, 0, 0, 0);
+        }
+
+        Map<Integer, List<LessonQuizAttempt>> byQuiz = attempts.stream()
+                .collect(Collectors.groupingBy(LessonQuizAttempt::getQuizIndex));
+
+        int totalAttempts = attempts.size();
+        int totalQuizzes = byQuiz.size();
+        int firstAttemptCorrect = 0;
+
+        for (Map.Entry<Integer, List<LessonQuizAttempt>> entry : byQuiz.entrySet()) {
+            LessonQuizAttempt firstAttempt = entry.getValue().stream()
+                    .min((a, b) -> Integer.compare(a.getAttemptNumber(), b.getAttemptNumber()))
+                    .orElse(null);
+            if (firstAttempt != null && Boolean.TRUE.equals(firstAttempt.getCorrect())) {
+                firstAttemptCorrect++;
+            }
+        }
+
+        int retryCount = Math.max(0, totalAttempts - totalQuizzes);
+        return new QuizStats(totalAttempts, totalQuizzes, firstAttemptCorrect, retryCount);
+    }
+
+    private record QuizStats(int totalAttempts, int totalQuizzes, int firstAttemptCorrect, int retryCount) {
     }
 }
