@@ -677,8 +677,12 @@ public class LessonProgressServiceImpl implements LessonProgressService {
         // Optimal time = totalLessons * 5 minutes (300 s) — creator-configurable in future
         long optimalTotalSeconds = Math.max(1L, (long) totalLessons * 300L);
 
-        // 2. Get all enrollments
-        List<CourseEnrollment> enrollments = courseEnrollmentRepo.findByCourseId(courseId);
+        // 2. Get all enrollments — exclude the course creator (they own it, not a student)
+        Long creatorId = course.getCreator();
+        List<CourseEnrollment> enrollments = courseEnrollmentRepo.findByCourseId(courseId)
+                .stream()
+                .filter(e -> !e.getUserId().equals(creatorId))
+                .collect(Collectors.toList());
 
         // 3. Load all progress & quiz attempts for the course in bulk
         List<LessonProgress> allProgress = lessonProgressRepo.findByCourseId(courseId);
@@ -727,7 +731,6 @@ public class LessonProgressServiceImpl implements LessonProgressService {
             double progressPct = completionRatio * 100.0;
 
             // FlaggedCount: only expose to the requesting user themselves or the course creator
-            Long creatorId = course.getCreator();
             boolean isCreator = requestingUserId != null && requestingUserId.equals(creatorId);
             boolean isOwn = requestingUserId != null && requestingUserId.equals(uid);
             int exposedFlagCount = (isCreator || isOwn) ? flaggedCount : 0;
