@@ -221,6 +221,19 @@ function Flashcard({ content }: { content: CoachFlashcardContent }) {
 function CoachBlockRenderer({ block }: { block: CoachBlock }) {
   if (block.type === "text") {
     const text = block.content as CoachTextContent;
+    
+    // Basic bold markdown parser
+    const renderBody = (body: string) => {
+      if (!body) return null;
+      const parts = body.split(/(\*\*.*?\*\*)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
+        }
+        return <span key={i}>{part}</span>;
+      });
+    };
+
     return (
       <div className="mb-4">
         {text.title && (
@@ -228,7 +241,7 @@ function CoachBlockRenderer({ block }: { block: CoachBlock }) {
             {text.title}
           </h4>
         )}
-        <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">{text.body}</p>
+        <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">{renderBody(text.body)}</p>
       </div>
     );
   }
@@ -272,15 +285,15 @@ export default function AiCoach() {
   };
 
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].role === "user") {
+    if (messages.length > 0) {
       scrollToBottom();
     }
-  }, [messages.length]);
+  }, [messages.length, sending]);
 
   const handleInput = () => {
     const el = textareaRef.current;
     if (el) {
-      el.style.height = "24px"; // reset
+      el.style.height = "auto"; // reset
       el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
     }
   };
@@ -363,7 +376,7 @@ export default function AiCoach() {
     
     setInput("");
     if (textareaRef.current) {
-      textareaRef.current.style.height = "24px";
+      textareaRef.current.style.height = "auto";
     }
     setSending(true);
 
@@ -411,7 +424,7 @@ export default function AiCoach() {
     setCurrentSessionId(null);
     setInput("");
     if (textareaRef.current) {
-      textareaRef.current.style.height = "24px";
+      textareaRef.current.style.height = "auto";
     }
     // Mobile only: close sidebar on new chat to jump immediately into typing
     if (window.innerWidth < 768) {
@@ -421,7 +434,7 @@ export default function AiCoach() {
 
   // Group sessions by "Today", "Previous" visually (simplified to just a list here)
   return (
-    <div className="flex h-[calc(100vh-4rem)] max-h-[100dvh] bg-background text-foreground font-sans w-full relative">
+    <div className="flex h-[100vh] bg-background text-foreground font-sans w-full relative overflow-hidden">
       
       {/* Mobile Sidebar Overlay */}
       {/* 
@@ -497,7 +510,7 @@ export default function AiCoach() {
         </header>
 
         {/* Scrollable Conversation */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8" id="chat-container">
+        <div className="flex-1 overflow-y-auto px-4 pb-44" id="chat-container">
           
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto w-full px-4 pt-10 pb-20">
@@ -589,8 +602,8 @@ export default function AiCoach() {
           )}
         </div>
 
-        {/* Input Area (ChatGPT Style Overlay) */}
-        <div className="absolute bottom-0 left-0 w-full pt-4 pb-6 px-4 bg-gradient-to-t from-background via-background to-transparent">
+        {/* Input Area (ChatGPT Style - fixed at bottom) */}
+        <div className="flex-none w-full pt-4 pb-6 px-4 bg-background border-t border-border/30">
           <div className="max-w-3xl mx-auto w-full relative">
             <form 
               onSubmit={onSubmit} 
