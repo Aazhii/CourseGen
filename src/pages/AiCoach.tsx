@@ -16,7 +16,7 @@ import {
 
 type ChatMessage =
   | { role: "user"; text: string }
-  | { role: "assistant"; payload: CoachResponse };
+  | { role: "assistant"; payload?: CoachResponse; textStream?: string };
 
 interface ChatSession {
   id: string;
@@ -218,32 +218,80 @@ function Flashcard({ content }: { content: CoachFlashcardContent }) {
   );
 }
 
-function CoachBlockRenderer({ block }: { block: CoachBlock }) {
+// Basic bold markdown parser
+export function renderBody(body: string) {
+  if (!body) return null;
+  const parts = body.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function TypewriterText({ text, onComplete }: { text: string, onComplete?: () => void }) {
+  const [displayed, setDisplayed] = useState("");
+  
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      // reveal 2 characters at a time for decent speed
+      i += 2;
+      if (i >= text.length) {
+        setDisplayed(text);
+        clearInterval(interval);
+        if (onComplete) onComplete();
+      } else {
+        setDisplayed(text.substring(0, i));
+      }
+    }, 15);
+    
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  return <>{renderBody(displayed)}</>;
+}
+
+function CoachBlockRenderer({ 
+  block, 
+  animate, 
+  onComplete 
+}: { 
+  block: CoachBlock, 
+  animate?: boolean, 
+  onComplete?: () => void 
+}) {
   if (block.type === "text") {
     const text = block.content as CoachTextContent;
-    
-    // Basic bold markdown parser
-    const renderBody = (body: string) => {
-      if (!body) return null;
-      const parts = body.split(/(\*\*.*?\*\*)/g);
-      return parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
-        }
-        return <span key={i}>{part}</span>;
-      });
-    };
+
 
     return (
-      <div className="mb-4">
+      <div className="mb-4 text-foreground">
         {text.title && (
           <h4 className="font-semibold text-foreground mb-2 text-base">
             {text.title}
           </h4>
         )}
-        <p className="text-[15px] leading-relaxed text-foreground whitespace-pre-wrap">{renderBody(text.body)}</p>
+        <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+          {animate ? (
+            <TypewriterText 
+              text={text.body} 
+              onComplete={onComplete} 
+            />
+          ) : (
+            renderBody(text.body)
+          )}
+        </div>
       </div>
     );
+  }
+
+  // If this block is supposed to be animating (meaning it's the active one), 
+  // but it's not a text block (e.g. quiz), we just show it and trigger completion 
+  // immediately or after a short delay so the next block can start.
+  if (animate && onComplete) {
+     setTimeout(onComplete, 300);
   }
 
   if (block.type === "quiz_card") {
@@ -269,6 +317,11 @@ export default function AiCoach() {
   
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // track which message index is currently animating so we don't animate old messages
+  const [animatingMessageIndex, setAnimatingMessageIndex] = useState<number | null>(null);
+  // track which block within the latest message is currently being revealed
+  const [activeBlockIndex, setActiveBlockIndex] = useState(0);
+  
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
@@ -381,6 +434,7 @@ export default function AiCoach() {
     setSending(true);
 
     try {
+      // Revert to fetching the full payload and doing artificial typewriter
       const payload = await getCoachResponse({
         courseId,
         lessonId,
@@ -397,6 +451,9 @@ export default function AiCoach() {
             updatedAt: Date.now(),
             messages: newMessages,
           };
+          // Start animating this new assistant message from the first block
+          setAnimatingMessageIndex(newMessages.length - 1);
+          setActiveBlockIndex(0);
         }
         return updatedSessions;
       });
@@ -557,22 +614,47 @@ export default function AiCoach() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {message.payload.blocks.map((block, blockIndex) => (
-                            <CoachBlockRenderer key={`${index}-${blockIndex}`} block={block} />
-                          ))}
-                          {message.payload.suggestions && message.payload.suggestions.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-4">
-                              {message.payload.suggestions.map((suggestion) => (
-                                <button
-                                  key={suggestion}
-                                  onClick={() => submitMessage(suggestion)}
-                                  disabled={sending}
-                                  className="text-[13px] px-3.5 py-1.5 rounded-full border border-border/80 bg-background text-foreground/80 hover:bg-muted font-medium transition-colors"
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
+                          {message.payload && (
+                            <>
+                              {message.payload.blocks.map((block, blockIndex) => {
+                                const isLatestMessage = index === animatingMessageIndex;
+                                
+                                // Condition 1: If it's the latest message, only show blocks up to activeBlockIndex
+                                if (isLatestMessage && blockIndex > activeBlockIndex) {
+                                  return null;
+                                }
+
+                                return (
+                                  <CoachBlockRenderer 
+                                    key={`${index}-${blockIndex}`} 
+                                    block={block} 
+                                    animate={isLatestMessage && blockIndex === activeBlockIndex} 
+                                    onComplete={() => {
+                                      if (isLatestMessage && blockIndex === activeBlockIndex) {
+                                        setActiveBlockIndex(prev => prev + 1);
+                                      }
+                                    }}
+                                  />
+                                );
+                              })}
+                              
+                              {/* Only show suggestions when everything is done animating */}
+                              {(! (index === animatingMessageIndex && activeBlockIndex < message.payload.blocks.length)) && 
+                               message.payload.suggestions && message.payload.suggestions.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-4">
+                                  {message.payload.suggestions.map((suggestion) => (
+                                    <button
+                                      key={suggestion}
+                                      onClick={() => submitMessage(suggestion)}
+                                      disabled={sending}
+                                      className="text-[13px] px-3.5 py-1.5 rounded-full border border-border/80 bg-background text-foreground/80 hover:bg-muted font-medium transition-colors"
+                                    >
+                                      {suggestion}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
