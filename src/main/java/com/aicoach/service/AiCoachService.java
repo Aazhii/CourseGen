@@ -14,10 +14,13 @@ import com.features.Feature;
 import com.features.FeatureGuard;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class AiCoachService {
@@ -81,6 +84,66 @@ public class AiCoachService {
         } catch (Exception ex) {
             return fallbackResponse(request.getMessage());
         }
+    }
+
+    public SseEmitter streamRespond(Long userId, UserRole role, AiCoachRequest request) throws Exception {
+        if (request == null || request.getCourseId() == null) {
+            throw new IllegalArgumentException("courseId is required");
+        }
+        if (request.getMessage() == null || request.getMessage().isBlank()) {
+            throw new IllegalArgumentException("message is required");
+        }
+
+        featureGuard.requireAccess(Feature.AI_COACH, role);
+
+        Course course = courseRepo.findById(request.getCourseId())
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+
+        if (!course.getCreator().equals(userId)) {
+            throw new IllegalArgumentException("You do not have access to this course");
+        }
+
+        Lesson lesson = null;
+        if (request.getLessonId() != null) {
+            lesson = lessonRepo.findById(request.getLessonId())
+                    .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
+        }
+
+        String context = lesson == null ? "" : truncate(lesson.getContent() == null ? "" : lesson.getContent().toString());
+
+        String prompt = new AiCoachPromptBuilder()
+                .courseTitle(course.getTitle())
+                .lessonTitle(lesson == null ? null : lesson.getTitle())
+                .lessonContext(context)
+                .userMessage(request.getMessage())
+                .build();
+
+        SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout
+        ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
+
+        sseMvcExecutor.execute(() -> {
+            try {
+                Iterable<com.google.genai.types.GenerateContentResponse> stream = geminiConnection.getResponseStream(prompt);
+                for (com.google.genai.types.GenerateContentResponse chunk : stream) {
+                    if (chunk.text() != null) {
+                        emitter.send(SseEmitter.event().data(chunk.text()));
+                    }
+                }
+                emitter.complete();
+            } catch (Exception ex) {
+                try {
+                    // Send fallback JSON on generic failure
+                    AiCoachResponse fallback = fallbackResponse(request.getMessage());
+                    String fbJson = objectMapper.writeValueAsString(fallback);
+                    emitter.send(SseEmitter.event().data(fbJson));
+                    emitter.complete();
+                } catch (Exception internal) {
+                    emitter.completeWithError(internal);
+                }
+            }
+        });
+
+        return emitter;
     }
 
     private AiCoachResponse parseModelResponse(String raw, String userMessage) throws Exception {
