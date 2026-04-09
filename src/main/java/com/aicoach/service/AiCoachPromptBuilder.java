@@ -44,7 +44,9 @@ public class AiCoachPromptBuilder {
                 "## TASK\\n" +
                 "Respond with structured study blocks. If user asks for quiz/study-related activities, include quiz_card and/or flashcard blocks.\\n" +
                 "If user asks for plan or preparation, include one study_plan block.\\n" +
-                "Always include at least one text block.\\n\\n" +
+                "Always include at least one text block.\\n" +
+                "When visuals/examples/resources would improve the answer, include citations with real public links.\\n" +
+                "Citations count must be dynamic based on need (can be 0, 1, or many) and never forced.\\n\\n" +
                 "## OUTPUT FORMAT (STRICT)\\n" +
                 "Return ONLY valid JSON object with this schema: \\\n" +
                 "{\\n" +
@@ -55,13 +57,15 @@ public class AiCoachPromptBuilder {
                 "    { \"type\": \"flashcard\", \"content\": { \"front\": \"...\", \"back\": \"...\" } },\\n" +
                 "    { \"type\": \"study_plan\", \"content\": { \"goal\": \"...\", \"duration\": \"...\", \"steps\": [{ \"title\": \"...\", \"task\": \"...\", \"time\": \"...\" }] } }\\n" +
                 "  ],\\n" +
+                "  \"citations\": [{ \"title\": \"...\", \"url\": \"https://...\", \"description\": \"...\", \"source\": \"...\" }],\\n" +
                 "  \"suggestions\": [\"...\", \"...\", \"...\"]\\n" +
                 "}\\n\\n" +
                 "Rules:\\n" +
                 "- No markdown code fences.\\n" +
                 "- quiz_card must always have exactly 4 options.\\n" +
                 "- Keep text concise and high quality.\\n" +
-                "- suggestions should be quick follow-up prompts.\\n";
+                "- suggestions should be quick follow-up prompts.\\n" +
+                "- citations URLs must be https and from trusted educational/reference sources only.\\n";
 
         return sb;
     }
