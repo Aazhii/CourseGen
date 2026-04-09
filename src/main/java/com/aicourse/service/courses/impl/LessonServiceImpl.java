@@ -1,6 +1,6 @@
 package com.aicourse.service.courses.impl;
 
-import com.aicourse.geminiConnection.GeminiConnection;
+import com.aicourse.ai.AiTextClientRouter;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.aicourse.repo.LessonRepo;
@@ -27,7 +27,7 @@ public class LessonServiceImpl implements LessonService {
     private LessonRepo lessonRepo;
 
     @Autowired
-    private GeminiConnection geminiConnection;
+    private AiTextClientRouter aiTextClient;
 
     @Autowired
     private UserStatsService userStatsService;
@@ -75,7 +75,7 @@ public class LessonServiceImpl implements LessonService {
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for lesson ''{0}''", new Object[]{lessonTitle});
-            String response = geminiConnection.getResponse(prompt);
+            String response = aiTextClient.getResponse(prompt);
             LOGGER.log(Level.FINE, "Received response from AI for lesson ''{0}'' (length: {1})",
                     new Object[]{lessonTitle, response.length()});
 

@@ -2,7 +2,7 @@ package com.aicoach.service;
 
 import com.aicoach.dto.AiCoachRequest;
 import com.aicoach.dto.AiCoachResponse;
-import com.aicourse.geminiConnection.GeminiConnection;
+import com.aicourse.ai.AiTextClientRouter;
 import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.repo.CourseRepo;
@@ -44,7 +44,7 @@ public class AiCoachService {
     );
 
     @Autowired
-    private GeminiConnection geminiConnection;
+    private AiTextClientRouter aiTextClient;
 
     @Autowired
     private CourseRepo courseRepo;
@@ -96,7 +96,7 @@ public class AiCoachService {
 
         String raw;
         try {
-            raw = geminiConnection.getResponse(prompt);
+            raw = aiTextClient.getResponse(prompt);
         } catch (Exception ex) {
             return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
         }
@@ -149,10 +149,10 @@ public class AiCoachService {
 
         sseMvcExecutor.execute(() -> {
             try {
-                Iterable<com.google.genai.types.GenerateContentResponse> stream = geminiConnection.getResponseStream(prompt);
-                for (com.google.genai.types.GenerateContentResponse chunk : stream) {
-                    if (chunk.text() != null) {
-                        emitter.send(SseEmitter.event().data(chunk.text()));
+                Iterable<String> stream = aiTextClient.getResponseStream(prompt);
+                for (String chunk : stream) {
+                    if (chunk != null) {
+                        emitter.send(SseEmitter.event().data(chunk));
                     }
                 }
                 emitter.complete();
