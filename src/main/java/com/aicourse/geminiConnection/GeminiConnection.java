@@ -1,17 +1,20 @@
 package com.aicourse.geminiConnection;
 
+import com.aicourse.ai.AiTextClient;
 import com.google.genai.Client;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Component
-public class GeminiConnection {
+public class GeminiConnection implements AiTextClient {
 
     private static final Logger LOGGER = Logger.getLogger(GeminiConnection.class.getName());
 
@@ -24,6 +27,7 @@ public class GeminiConnection {
         this.apiKeyManager = apiKeyManager;
     }
 
+    @Override
     public String getResponse(String prompt) {
         LOGGER.log(Level.FINE, "Prompt sent to Gemini ({0}) chars", new Object[]{prompt.length()});
         return executeWithFailover(client -> {
@@ -37,15 +41,34 @@ public class GeminiConnection {
         });
     }
 
-    public Iterable<GenerateContentResponse> getResponseStream(String prompt) {
+    @Override
+    public Iterable<String> getResponseStream(String prompt) {
         LOGGER.log(Level.FINE, "Streaming Prompt sent to Gemini ({0}) chars", new Object[]{prompt.length()});
         return executeWithFailover(client -> {
             GenerateContentConfig config = GenerateContentConfig.builder()
                     .responseMimeType("application/json")
                     .build();
 
-            return client.models.generateContentStream(model, prompt, config);
+            Iterable<GenerateContentResponse> stream = client.models.generateContentStream(model, prompt, config);
+            return textChunks(stream);
         });
+    }
+
+    private Iterable<String> textChunks(Iterable<GenerateContentResponse> stream) {
+        return () -> new Iterator<>() {
+            private final Iterator<GenerateContentResponse> delegate = stream.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return delegate.hasNext();
+            }
+
+            @Override
+            public String next() {
+                GenerateContentResponse chunk = delegate.next();
+                return Objects.toString(chunk.text(), "");
+            }
+        };
     }
 
     private <T> T executeWithFailover(Function<Client, T> operation) {

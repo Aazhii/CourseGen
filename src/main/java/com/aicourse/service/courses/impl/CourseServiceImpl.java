@@ -1,6 +1,6 @@
 package com.aicourse.service.courses.impl;
 
-import com.aicourse.geminiConnection.GeminiConnection;
+import com.aicourse.ai.AiTextClientRouter;
 import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
@@ -39,7 +39,7 @@ public class CourseServiceImpl implements CourseService {
     private ModuleRepo moduleRepo;
 
     @Autowired
-    private GeminiConnection geminiConnection;
+    private AiTextClientRouter aiTextClient;
 
     @Autowired
     private FeatureGuard featureGuard;
@@ -100,7 +100,7 @@ public class CourseServiceImpl implements CourseService {
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for course generation: {0}", new Object[]{title});
-            String response = geminiConnection.getResponse(prompt);
+            String response = aiTextClient.getResponse(prompt);
             LOGGER.log(Level.FINE, "Received response from AI");
 
             String cleanJson = JsonParserUtil.extractRawJson(response);
