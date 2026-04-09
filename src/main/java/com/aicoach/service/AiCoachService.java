@@ -16,9 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.net.URI;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,6 +25,23 @@ import java.util.concurrent.Executors;
 public class AiCoachService {
 
     private static final int LESSON_CONTEXT_LIMIT = 3000;
+    private static final int MAX_CITATIONS = 8;
+    private static final Set<String> TRUSTED_DOMAINS = Set.of(
+            "khanacademy.org",
+            "openstax.org",
+            "wikipedia.org",
+            "wikimedia.org",
+            "visualgo.net",
+            "cs.usfca.edu",
+            "geeksforgeeks.org",
+            "leetcode.com",
+            "cses.fi",
+            "projecteuler.net",
+            "hackerrank.com",
+            "coursera.org",
+            "edx.org",
+            "ocw.mit.edu"
+    );
 
     @Autowired
     private GeminiConnection geminiConnection;
@@ -64,7 +80,7 @@ public class AiCoachService {
             lesson = lessonRepo.findById(request.getLessonId())
                     .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
             if (lesson.getModule() == null || lesson.getModule().getCourse() == null ||
-                    !lesson.getModule().getCourse().getId().equals(course.getId())) {
+                    !Objects.equals(lesson.getModule().getCourse().getId(), course.getId())) {
                 throw new IllegalArgumentException("Lesson does not belong to course");
             }
         }
@@ -78,11 +94,17 @@ public class AiCoachService {
                 .userMessage(request.getMessage())
                 .build();
 
+        String raw;
         try {
-            String raw = geminiConnection.getResponse(prompt);
+            raw = geminiConnection.getResponse(prompt);
+        } catch (Exception ex) {
+            return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
+        }
+
+        try {
             return parseModelResponse(raw, request.getMessage());
         } catch (Exception ex) {
-            return fallbackResponse(request.getMessage());
+            return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, false));
         }
     }
 
@@ -107,6 +129,10 @@ public class AiCoachService {
         if (request.getLessonId() != null) {
             lesson = lessonRepo.findById(request.getLessonId())
                     .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
+            if (lesson.getModule() == null || lesson.getModule().getCourse() == null ||
+                    !Objects.equals(lesson.getModule().getCourse().getId(), course.getId())) {
+                throw new IllegalArgumentException("Lesson does not belong to course");
+            }
         }
 
         String context = lesson == null ? "" : truncate(lesson.getContent() == null ? "" : lesson.getContent().toString());
@@ -133,7 +159,7 @@ public class AiCoachService {
             } catch (Exception ex) {
                 try {
                     // Send fallback JSON on generic failure
-                    AiCoachResponse fallback = fallbackResponse(request.getMessage());
+                    AiCoachResponse fallback = fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
                     String fbJson = objectMapper.writeValueAsString(fallback);
                     emitter.send(SseEmitter.event().data(fbJson));
                     emitter.complete();
@@ -195,12 +221,19 @@ public class AiCoachService {
             suggestions = List.of("Give me a quick quiz", "Explain this in simpler words", "Create a 20-minute study plan");
         }
 
+        List<AiCoachResponse.Citation> citations = parseTrustedCitations(root.path("citations"));
+
         response.setBlocks(blocks);
         response.setSuggestions(suggestions);
+        response.setCitations(citations);
         return response;
     }
 
     private AiCoachResponse fallbackResponse(String message) throws Exception {
+        return fallbackResponse(message, null);
+    }
+
+    private AiCoachResponse fallbackResponse(String message, String notice) throws Exception {
         String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
         boolean wantsQuiz = lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
         boolean wantsPlan = lower.contains("plan") || lower.contains("schedule");
@@ -212,7 +245,13 @@ public class AiCoachService {
 
         AiCoachResponse.CoachBlock intro = new AiCoachResponse.CoachBlock();
         intro.setType("text");
-        intro.setContent(objectMapper.readTree("{\"title\":\"AI Coach\",\"body\":\"I can help with explanations, quizzes, flashcards, and study plans for this course.\"}"));
+        String introBody = "I can help with explanations, quizzes, flashcards, and study plans for this course.";
+        if (notice != null && !notice.isBlank()) {
+            introBody = introBody + "\n\n" + notice;
+        }
+        intro.setContent(objectMapper.readTree(objectMapper.writeValueAsString(
+                new TextBlockPayload("AI Coach", introBody)
+        )));
         blocks.add(intro);
 
         if (wantsPlan) {
@@ -231,7 +270,118 @@ public class AiCoachService {
 
         response.setBlocks(blocks);
         response.setSuggestions(List.of("Give me 5 harder quiz questions", "Create flashcards from this topic", "Explain this with a real-world analogy"));
+        response.setCitations(List.of());
         return response;
+    }
+
+    private String fallbackNoticeFor(Exception ex, boolean transportError) {
+        String message = ex == null || ex.getMessage() == null ? "" : ex.getMessage().toLowerCase(Locale.ROOT);
+
+        if (transportError) {
+            if (message.contains("429") || message.contains("quota") || message.contains("rate")) {
+                return "AI service is temporarily rate-limited (quota reached). Please try again in a few minutes.";
+            }
+            if (message.contains("503") || message.contains("high demand") || message.contains("unavailable")) {
+                return "AI service is currently busy. Please retry shortly.";
+            }
+            return "AI service is temporarily unavailable. Please try again.";
+        }
+
+        return "I received a response, but it had an invalid format. Please try again.";
+    }
+
+    private List<AiCoachResponse.Citation> parseTrustedCitations(JsonNode citationsNode) {
+        if (!citationsNode.isArray()) {
+            return List.of();
+        }
+
+        List<AiCoachResponse.Citation> citations = new ArrayList<>();
+        Set<String> seenUrls = new HashSet<>();
+
+        for (JsonNode node : citationsNode) {
+            if (!node.isObject() || citations.size() >= MAX_CITATIONS) {
+                continue;
+            }
+
+            String rawUrl = node.path("url").asText("").trim();
+            String normalizedUrl = normalizeTrustedUrl(rawUrl);
+            if (normalizedUrl == null || !seenUrls.add(normalizedUrl)) {
+                continue;
+            }
+
+            String title = node.path("title").asText("").trim();
+            String description = node.path("description").asText("").trim();
+            String source = node.path("source").asText("").trim();
+
+            AiCoachResponse.Citation citation = new AiCoachResponse.Citation();
+            citation.setUrl(normalizedUrl);
+            citation.setTitle(title.isEmpty() ? "Learning resource" : trimToLimit(title, 120));
+            citation.setDescription(trimToLimit(description, 220));
+            citation.setSource(source.isEmpty() ? extractHost(normalizedUrl) : trimToLimit(source, 80));
+            citations.add(citation);
+        }
+
+        return citations;
+    }
+
+    private String normalizeTrustedUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            URI uri = URI.create(rawUrl.trim());
+            if (uri.getScheme() == null || !"https".equalsIgnoreCase(uri.getScheme())) {
+                return null;
+            }
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return null;
+            }
+
+            String normalizedHost = host.toLowerCase(Locale.ROOT);
+            if (normalizedHost.startsWith("www.")) {
+                normalizedHost = normalizedHost.substring(4);
+            }
+            final String trustedHost = normalizedHost;
+
+            boolean trusted = TRUSTED_DOMAINS.stream().anyMatch(domain ->
+                    trustedHost.equals(domain) || trustedHost.endsWith("." + domain));
+            if (!trusted) {
+                return null;
+            }
+
+            return uri.normalize().toString();
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String extractHost(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            if (host == null) {
+                return "source";
+            }
+            return host.startsWith("www.") ? host.substring(4) : host;
+        } catch (IllegalArgumentException ex) {
+            return "source";
+        }
+    }
+
+    private String trimToLimit(String value, int limit) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim();
+        if (normalized.length() <= limit) {
+            return normalized;
+        }
+        return normalized.substring(0, limit - 3) + "...";
+    }
+
+    private record TextBlockPayload(String title, String body) {
     }
 
     private String sanitizeJson(String raw) {
