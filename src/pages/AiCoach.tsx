@@ -1,12 +1,13 @@
 import { FormEvent, useMemo, useState, useRef, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle, Clock, BookOpen, GraduationCap, Menu, Plus, MessageSquare, X, PanelLeftClose, PanelLeft, MoreHorizontal } from "lucide-react";
+import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle, Clock, BookOpen, GraduationCap, ExternalLink, Menu, Plus, MessageSquare, X, PanelLeftClose, PanelLeft, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getCoachResponse } from "@/services/coachApi";
 import {
   CoachBlock,
+  CoachCitation,
   CoachFlashcardContent,
   CoachQuizCardContent,
   CoachResponse,
@@ -23,6 +24,40 @@ interface ChatSession {
   title: string;
   updatedAt: number;
   messages: ChatMessage[];
+}
+
+function CitationList({ citations }: { citations: CoachCitation[] }) {
+  if (!citations.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-border/60 p-4 bg-muted/20">
+      <h5 className="text-sm font-semibold text-foreground mb-3">References</h5>
+      <div className="space-y-3">
+        {citations.map((citation, index) => (
+          <a
+            key={`${citation.url}-${index}`}
+            href={citation.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-md border border-border/60 px-3.5 py-3 hover:bg-muted/40 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[14px] font-medium text-foreground leading-snug">{citation.title}</p>
+              <ExternalLink className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
+            </div>
+            {citation.description && (
+              <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">{citation.description}</p>
+            )}
+            {citation.source && (
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground/90 mt-2">Source: {citation.source}</p>
+            )}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const quickPrompts = [
@@ -637,7 +672,13 @@ export default function AiCoach() {
                                   />
                                 );
                               })}
-                              
+
+                              {(! (index === animatingMessageIndex && activeBlockIndex < message.payload.blocks.length)) &&
+                                message.payload.citations &&
+                                message.payload.citations.length > 0 && (
+                                  <CitationList citations={message.payload.citations} />
+                              )}
+
                               {/* Only show suggestions when everything is done animating */}
                               {(! (index === animatingMessageIndex && activeBlockIndex < message.payload.blocks.length)) && 
                                message.payload.suggestions && message.payload.suggestions.length > 0 && (
