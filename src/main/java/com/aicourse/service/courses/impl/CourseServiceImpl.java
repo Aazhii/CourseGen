@@ -1,6 +1,7 @@
 package com.aicourse.service.courses.impl;
 
-import com.aicourse.ai.AiTextClientRouter;
+import com.aicourse.ai.AiWorkload;
+import com.aicourse.ai.service.AiDynamicGateway;
 import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
@@ -39,7 +40,7 @@ public class CourseServiceImpl implements CourseService {
     private ModuleRepo moduleRepo;
 
     @Autowired
-    private AiTextClientRouter aiTextClient;
+    private AiDynamicGateway aiDynamicGateway;
 
     @Autowired
     private FeatureGuard featureGuard;
@@ -100,7 +101,7 @@ public class CourseServiceImpl implements CourseService {
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for course generation: {0}", new Object[]{title});
-            String response = aiTextClient.getResponse(prompt);
+            String response = aiDynamicGateway.getResponse(AiWorkload.COURSE_GENERATION, prompt);
             LOGGER.log(Level.FINE, "Received response from AI");
 
             String cleanJson = JsonParserUtil.extractRawJson(response);

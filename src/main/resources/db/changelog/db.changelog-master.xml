@@ -242,4 +242,5 @@
     <include file="db/changelog/db.changelog-project.xml"/>
     <include file="db/changelog/db.changelog-sharing.xml"/>
     <include file="db/changelog/db.changelog-streak-fix.xml"/>
+    <include file="db/changelog/db.changelog-llm-management.xml"/>
 </databaseChangeLog>
