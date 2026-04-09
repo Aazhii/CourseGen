@@ -2,7 +2,8 @@ package com.aicoach.service;
 
 import com.aicoach.dto.AiCoachRequest;
 import com.aicoach.dto.AiCoachResponse;
-import com.aicourse.ai.AiTextClientRouter;
+import com.aicourse.ai.AiWorkload;
+import com.aicourse.ai.service.AiDynamicGateway;
 import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.repo.CourseRepo;
@@ -44,7 +45,7 @@ public class AiCoachService {
     );
 
     @Autowired
-    private AiTextClientRouter aiTextClient;
+    private AiDynamicGateway aiDynamicGateway;
 
     @Autowired
     private CourseRepo courseRepo;
@@ -96,7 +97,7 @@ public class AiCoachService {
 
         String raw;
         try {
-            raw = aiTextClient.getResponse(prompt);
+            raw = aiDynamicGateway.getResponse(AiWorkload.AI_COACH, prompt);
         } catch (Exception ex) {
             return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
         }
@@ -149,7 +150,7 @@ public class AiCoachService {
 
         sseMvcExecutor.execute(() -> {
             try {
-                Iterable<String> stream = aiTextClient.getResponseStream(prompt);
+                Iterable<String> stream = aiDynamicGateway.getResponseStream(AiWorkload.AI_COACH, prompt);
                 for (String chunk : stream) {
                     if (chunk != null) {
                         emitter.send(SseEmitter.event().data(chunk));
