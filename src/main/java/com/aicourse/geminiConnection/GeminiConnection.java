@@ -6,6 +6,7 @@ import com.google.genai.types.GenerateContentResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,54 +15,65 @@ public class GeminiConnection {
 
     private static final Logger LOGGER = Logger.getLogger(GeminiConnection.class.getName());
 
-    @Value("${spring.ai.google.genai.api-key}")
-    private String apiKey;
+    private final GeminiApiKeyManager apiKeyManager;
+
+    @Value("${spring.ai.google.genai.chat.options.model:gemini-2.5-flash}")
+    private String model;
+
+    public GeminiConnection(GeminiApiKeyManager apiKeyManager) {
+        this.apiKeyManager = apiKeyManager;
+    }
 
     public String getResponse(String prompt) {
-
         LOGGER.log(Level.FINE, "Prompt sent to Gemini ({0}) chars", new Object[]{prompt.length()});
-        // Build client WITH API KEY
-        Client client = Client.builder()
-                .apiKey(apiKey)
-                .build();
-
-        try {
+        return executeWithFailover(client -> {
             GenerateContentConfig config = GenerateContentConfig.builder()
                     .responseMimeType("application/json")
                     .build();
 
-            GenerateContentResponse response = client.models.generateContent(
-                    "gemini-2.5-flash", // model name
-                    prompt,
-                    config);
-
-            LOGGER.log(Level.FINE, "Gemini Response received. Length: {0}", new Object[]{response.text().length()});
+            GenerateContentResponse response = client.models.generateContent(model, prompt, config);
+            LOGGER.log(Level.FINE, "Gemini response received. Length: {0}", new Object[]{response.text().length()});
             return response.text();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error communicating with Gemini API: {0}", new Object[]{e.getMessage()});
-            throw e;
-        }
+        });
     }
 
     public Iterable<GenerateContentResponse> getResponseStream(String prompt) {
         LOGGER.log(Level.FINE, "Streaming Prompt sent to Gemini ({0}) chars", new Object[]{prompt.length()});
-        Client client = Client.builder()
-                .apiKey(apiKey)
-                .build();
-
-        try {
+        return executeWithFailover(client -> {
             GenerateContentConfig config = GenerateContentConfig.builder()
                     .responseMimeType("application/json")
                     .build();
 
-            return client.models.generateContentStream(
-                    "gemini-2.5-flash", // model name
-                    prompt,
-                    config);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error streaming from Gemini API: {0}", new Object[]{e.getMessage()});
-            throw e;
+            return client.models.generateContentStream(model, prompt, config);
+        });
+    }
+
+    private <T> T executeWithFailover(Function<Client, T> operation) {
+        RuntimeException lastQuotaOrRateLimitError = null;
+
+        for (int attempt = 0; attempt < apiKeyManager.totalKeyCount(); attempt++) {
+            String key = apiKeyManager.acquireAvailableKey();
+            Client client = Client.builder().apiKey(key).build();
+
+            try {
+                return operation.apply(client);
+            } catch (RuntimeException error) {
+                if (!apiKeyManager.isQuotaOrRateLimitError(error)) {
+                    LOGGER.log(Level.SEVERE, "Gemini API call failed with non-retryable error: {0}", error.getMessage());
+                    throw error;
+                }
+
+                apiKeyManager.markKeyOnCooldown(key);
+                lastQuotaOrRateLimitError = error;
+                LOGGER.log(Level.WARNING, "Gemini API key hit quota/rate limit and is cooled down for 24h. Trying next key.");
+            }
         }
+
+        if (lastQuotaOrRateLimitError != null) {
+            throw new IllegalStateException("All Gemini API keys have hit quota/rate limits and are cooling down.", lastQuotaOrRateLimitError);
+        }
+
+        throw new IllegalStateException("No Gemini API key available.");
     }
 
 }
