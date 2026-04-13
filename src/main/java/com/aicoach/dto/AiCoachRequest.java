@@ -40,5 +40,35 @@ public class AiCoachRequest {
     public void setPreviousQuizQuestions(List<String> previousQuizQuestions) {
         this.previousQuizQuestions = previousQuizQuestions;
     }
-}
 
+    private List<ChatMessage> chatHistory;
+
+    public List<ChatMessage> getChatHistory() {
+        return chatHistory;
+    }
+
+    public void setChatHistory(List<ChatMessage> chatHistory) {
+        this.chatHistory = chatHistory;
+    }
+
+    public static class ChatMessage {
+        private String role;
+        private String text;
+
+        public String getRole() {
+            return role;
+        }
+
+        public void setRole(String role) {
+            this.role = role;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+    }
+}
