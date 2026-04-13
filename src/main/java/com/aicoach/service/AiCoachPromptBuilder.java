@@ -114,8 +114,8 @@ public class AiCoachPromptBuilder {
                 quizConstraint +
                 noRepeatConstraint +
                 "- Keep text concise, highly qualitative, and conversational.\\n" +
-                "- suggestions should be quick follow-up prompts to continue the conversation.\\n" +
-                "- citations URLs must be https and from trusted educational/reference sources only.\\n";
+                "- suggestions should be quick follow-up prompts to continue the conversation. NEVER put URLs here.\\n" +
+                "- citations URLs must be https, and belong STRICTLY in the citations array.\\n";
 
         return sb;
     }
