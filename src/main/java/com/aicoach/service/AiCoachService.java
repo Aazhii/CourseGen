@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -104,15 +106,17 @@ public class AiCoachService {
         try {
             raw = aiDynamicGateway.getResponse(AiWorkload.AI_COACH, prompt);
         } catch (Exception ex) {
-            return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
+            return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true), course, lesson);
         }
 
         try {
             AiCoachResponse parsed = parseModelResponse(raw, request.getMessage());
             AiCoachResponse counted = enforceRequestedQuizCount(parsed, request.getMessage());
-            return deduplicateQuizCards(counted, request.getMessage(), request.getPreviousQuizQuestions());
+            AiCoachResponse filtered = removeUnrequestedQuizCards(counted, request.getMessage());
+            AiCoachResponse deduped = deduplicateQuizCards(filtered, request.getMessage(), request.getPreviousQuizQuestions());
+            return withContextualCitationsIfNeeded(deduped, request.getMessage(), course, lesson);
         } catch (Exception ex) {
-            return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, false));
+            return recoverFromMalformedOutput(raw, request.getMessage(), course, lesson);
         }
     }
 
@@ -156,6 +160,8 @@ public class AiCoachService {
 
         SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout
         ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
+        final Lesson fallbackLesson = lesson;
+        final String userMessage = request.getMessage();
 
         sseMvcExecutor.execute(() -> {
             try {
@@ -169,7 +175,7 @@ public class AiCoachService {
             } catch (Exception ex) {
                 try {
                     // Send fallback JSON on generic failure
-                    AiCoachResponse fallback = fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true));
+                    AiCoachResponse fallback = fallbackResponse(userMessage, fallbackNoticeFor(ex, true), course, fallbackLesson);
                     String fbJson = objectMapper.writeValueAsString(fallback);
                     emitter.send(SseEmitter.event().data(fbJson));
                     emitter.complete();
@@ -187,7 +193,7 @@ public class AiCoachService {
         JsonNode root = objectMapper.readTree(sanitized);
 
         if (!root.isObject()) {
-            return fallbackResponse(userMessage);
+            throw new IllegalArgumentException("AI response is not a JSON object");
         }
 
         AiCoachResponse response = new AiCoachResponse();
@@ -213,7 +219,7 @@ public class AiCoachService {
         }
 
         if (blocks.isEmpty()) {
-            return fallbackResponse(userMessage);
+            throw new IllegalArgumentException("AI response did not include usable content blocks");
         }
 
         List<String> suggestions = new ArrayList<>();
@@ -240,10 +246,14 @@ public class AiCoachService {
     }
 
     private AiCoachResponse fallbackResponse(String message) throws Exception {
-        return fallbackResponse(message, null);
+        return fallbackResponse(message, null, null, null);
     }
 
     private AiCoachResponse fallbackResponse(String message, String notice) throws Exception {
+        return fallbackResponse(message, notice, null, null);
+    }
+
+    private AiCoachResponse fallbackResponse(String message, String notice, Course course, Lesson lesson) throws Exception {
         String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
         boolean wantsQuiz = lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
         boolean wantsPlan = lower.contains("plan") || lower.contains("schedule");
@@ -273,7 +283,7 @@ public class AiCoachService {
             blocks.add(plan);
         }
 
-        if (wantsQuiz || !wantsPlan) {
+        if (wantsQuiz) {
             boolean harder = asksForHarderDifficulty(message);
             for (int i = 1; i <= quizCount; i++) {
                 blocks.add(buildFallbackQuizCard(i, harder));
@@ -282,8 +292,8 @@ public class AiCoachService {
 
         response.setBlocks(blocks);
         response.setSuggestions(List.of("Give me 5 harder quiz questions", "Create flashcards from this topic", "Explain this with a real-world analogy"));
-        response.setCitations(List.of());
-        return response;
+        response.setCitations(buildContextualFallbackCitations(message, course, lesson));
+        return withContextualCitationsIfNeeded(response, message, course, lesson);
     }
 
     private AiCoachResponse enforceRequestedQuizCount(AiCoachResponse response, String userMessage) throws Exception {
@@ -297,6 +307,69 @@ public class AiCoachService {
         if (response.getIntent() == null || response.getIntent().isBlank()) {
             response.setIntent(isQuizRequest(userMessage) ? "quiz" : "explanation");
         }
+        return response;
+    }
+
+    private AiCoachResponse removeUnrequestedQuizCards(AiCoachResponse response, String userMessage) {
+        if (response == null || response.getBlocks() == null || response.getBlocks().isEmpty()) {
+            return response;
+        }
+        if (isQuizRequest(userMessage)) {
+            return response;
+        }
+
+        List<AiCoachResponse.CoachBlock> filtered = new ArrayList<>();
+        for (AiCoachResponse.CoachBlock block : response.getBlocks()) {
+            if (block == null) {
+                continue;
+            }
+            if (!"quiz_card".equals(block.getType())) {
+                filtered.add(block);
+            }
+        }
+
+        if (!filtered.isEmpty()) {
+            response.setBlocks(filtered);
+        }
+        return response;
+    }
+
+    private AiCoachResponse recoverFromMalformedOutput(String raw,
+                                                       String message,
+                                                       Course course,
+                                                       Lesson lesson) throws Exception {
+        String cleaned = sanitizeJson(raw);
+        String body = cleaned == null ? "" : cleaned.trim();
+        if (body.isBlank() || body.equals("{}")) {
+            return fallbackResponse(message, null, course, lesson);
+        }
+
+        // Model returned text but not strict JSON; surface useful content instead of generic failure copy.
+        String compact = body.length() > 1400 ? body.substring(0, 1400) + "..." : body;
+
+        AiCoachResponse response = new AiCoachResponse();
+        response.setIntent(isQuizRequest(message) ? "quiz" : "explanation");
+
+        AiCoachResponse.CoachBlock intro = new AiCoachResponse.CoachBlock();
+        intro.setType("text");
+        intro.setContent(objectMapper.readTree(objectMapper.writeValueAsString(
+                new TextBlockPayload("AI Coach", compact)
+        )));
+
+        List<AiCoachResponse.CoachBlock> blocks = new ArrayList<>();
+        blocks.add(intro);
+
+        if (isQuizRequest(message)) {
+            int count = Math.max(1, extractRequestedQuizCount(message));
+            boolean harder = asksForHarderDifficulty(message);
+            for (int i = 1; i <= count; i++) {
+                blocks.add(buildFallbackQuizCard(i, harder));
+            }
+        }
+
+        response.setBlocks(blocks);
+        response.setSuggestions(List.of("Give me a quick quiz", "Explain this in simpler words", "Share references for this topic"));
+        response.setCitations(buildContextualFallbackCitations(message, course, lesson));
         return response;
     }
 
@@ -371,7 +444,12 @@ public class AiCoachService {
             return false;
         }
         String lower = message.toLowerCase(Locale.ROOT);
-        return lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
+        return lower.contains("quiz")
+                || lower.contains("test me")
+                || lower.contains("mcq")
+                || lower.contains("multiple choice")
+                || lower.contains("practice questions")
+                || lower.contains("mock test");
     }
 
     private boolean asksForHarderDifficulty(String message) {
@@ -440,6 +518,133 @@ public class AiCoachService {
         }
 
         return "I received a response, but it had an invalid format. Please try again.";
+    }
+
+    private AiCoachResponse withContextualCitationsIfNeeded(AiCoachResponse response,
+                                                            String message,
+                                                            Course course,
+                                                            Lesson lesson) {
+        if (response == null) {
+            return response;
+        }
+
+        List<AiCoachResponse.Citation> existing = response.getCitations();
+        if (existing != null && !existing.isEmpty()) {
+            return response;
+        }
+
+        // If user asked for links/examples/resources, or they are in a lesson context, always attach trusted references.
+        if (!shouldIncludeReferences(message) && lesson == null) {
+            return response;
+        }
+
+        response.setCitations(buildContextualFallbackCitations(message, course, lesson));
+        return response;
+    }
+
+    private boolean shouldIncludeReferences(String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("reference")
+                || lower.contains("link")
+                || lower.contains("resource")
+                || lower.contains("source")
+                || lower.contains("example")
+                || lower.contains("image")
+                || lower.contains("problem");
+    }
+
+    private List<AiCoachResponse.Citation> buildContextualFallbackCitations(String message, Course course, Lesson lesson) {
+        String courseTitle = course == null ? "" : Objects.toString(course.getTitle(), "");
+        String lessonTitle = lesson == null ? "" : Objects.toString(lesson.getTitle(), "");
+        String moduleTitle = "";
+        if (lesson != null && lesson.getModule() != null) {
+            moduleTitle = Objects.toString(lesson.getModule().getTitle(), "");
+        }
+
+        String topic = pickTopic(message, lessonTitle, moduleTitle, courseTitle);
+        String encodedTopic = urlEncode(topic);
+
+        List<AiCoachResponse.Citation> citations = new ArrayList<>();
+        addCitation(citations,
+                "Khan Academy: " + topic,
+                "https://www.khanacademy.org/search?page_search_query=" + encodedTopic,
+                "Concept explanations and guided practice related to this topic.");
+        addCitation(citations,
+                "OpenStax resources: " + topic,
+                "https://openstax.org/search?query=" + encodedTopic,
+                "Open educational textbooks and explanations.");
+        addCitation(citations,
+                "Wikipedia overview: " + topic,
+                "https://en.wikipedia.org/wiki/Special:Search?search=" + encodedTopic,
+                "Quick conceptual overview and key terms.");
+
+        String lowerTopic = topic.toLowerCase(Locale.ROOT);
+        if (lowerTopic.contains("tree") || lowerTopic.contains("graph")) {
+            addCitation(citations,
+                    "Data structure visualizer",
+                    "https://visualgo.net/en",
+                    "Interactive visualizations for trees and graph algorithms.");
+        } else if (lowerTopic.contains("code") || lowerTopic.contains("program") || lowerTopic.contains("algorithm")) {
+            addCitation(citations,
+                    "Practice problems: " + topic,
+                    "https://leetcode.com/problemset/?search=" + encodedTopic,
+                    "Coding problems to practice this topic.");
+        } else {
+            addCitation(citations,
+                    "GeeksforGeeks: " + topic,
+                    "https://www.geeksforgeeks.org/?s=" + encodedTopic,
+                    "Extra examples and topic-focused notes.");
+        }
+
+        return citations;
+    }
+
+    private void addCitation(List<AiCoachResponse.Citation> citations,
+                             String title,
+                             String url,
+                             String description) {
+        if (citations.size() >= 4) {
+            return;
+        }
+        String normalizedUrl = normalizeTrustedUrl(url);
+        if (normalizedUrl == null) {
+            return;
+        }
+        for (AiCoachResponse.Citation existing : citations) {
+            if (existing != null && normalizedUrl.equals(existing.getUrl())) {
+                return;
+            }
+        }
+
+        AiCoachResponse.Citation citation = new AiCoachResponse.Citation();
+        citation.setTitle(trimToLimit(title, 120));
+        citation.setUrl(normalizedUrl);
+        citation.setDescription(trimToLimit(description, 220));
+        citation.setSource(extractHost(normalizedUrl));
+        citations.add(citation);
+    }
+
+    private String pickTopic(String message, String lessonTitle, String moduleTitle, String courseTitle) {
+        if (lessonTitle != null && !lessonTitle.isBlank()) {
+            return lessonTitle.trim();
+        }
+        if (moduleTitle != null && !moduleTitle.isBlank()) {
+            return moduleTitle.trim();
+        }
+        if (message != null && !message.isBlank()) {
+            return message.trim();
+        }
+        if (courseTitle != null && !courseTitle.isBlank()) {
+            return courseTitle.trim();
+        }
+        return "study topic";
+    }
+
+    private String urlEncode(String text) {
+        return URLEncoder.encode(Objects.toString(text, "study topic"), StandardCharsets.UTF_8);
     }
 
     private List<AiCoachResponse.Citation> parseTrustedCitations(JsonNode citationsNode) {
