@@ -97,6 +97,7 @@ public class AiCoachService {
                 .lessonContext(context)
                 .userMessage(request.getMessage())
                 .previousQuizQuestions(request.getPreviousQuizQuestions())
+                .chatHistory(request.getChatHistory())
                 .build();
 
         String raw;
@@ -150,6 +151,7 @@ public class AiCoachService {
                 .lessonContext(context)
                 .userMessage(request.getMessage())
                 .previousQuizQuestions(request.getPreviousQuizQuestions())
+                .chatHistory(request.getChatHistory())
                 .build();
 
         SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout

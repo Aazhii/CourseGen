@@ -14,6 +14,7 @@ public class AiCoachPromptBuilder {
     private String lessonContext;
     private String userMessage;
     private java.util.List<String> previousQuizQuestions;
+    private java.util.List<com.aicoach.dto.AiCoachRequest.ChatMessage> chatHistory;
 
     public AiCoachPromptBuilder courseTitle(String courseTitle) {
         this.courseTitle = courseTitle;
@@ -40,6 +41,11 @@ public class AiCoachPromptBuilder {
         return this;
     }
 
+    public AiCoachPromptBuilder chatHistory(java.util.List<com.aicoach.dto.AiCoachRequest.ChatMessage> chatHistory) {
+        this.chatHistory = chatHistory;
+        return this;
+    }
+
     public String build() {
         String safeCourse = courseTitle == null ? "General course" : courseTitle;
         String safeLesson = lessonTitle == null ? "N/A" : lessonTitle;
@@ -59,12 +65,25 @@ public class AiCoachPromptBuilder {
             quizConstraint = "- User requested quiz questions. Return exactly " + exactCount + " quiz_card blocks. " + difficultyHint + "\\n";
         }
 
+        String historyBlock = "";
+        if (chatHistory != null && !chatHistory.isEmpty()) {
+            StringBuilder historySb = new StringBuilder();
+            historySb.append("## RECENT CONVERSATION HISTORY (Context)\\n");
+            for (com.aicoach.dto.AiCoachRequest.ChatMessage msg : chatHistory) {
+                if (msg != null && msg.getRole() != null && msg.getText() != null) {
+                    historySb.append(msg.getRole().toUpperCase()).append(": ").append(msg.getText().replace('\n', ' ')).append("\\n\\n");
+                }
+            }
+            historyBlock = historySb.toString();
+        }
+
         String sb = "You are an empathetic, highly interactive, and expert AI study coach inside a learning platform.\\n" +
                 "Your primary goal is to clarify doubts, keep the user highly engaged, and explain concepts clearly without just repeating lesson materials.\\n" +
                 "Be appreciative of the user's effort, use dynamic and encouraging greetings, and completely AVOID repetitive or predictable conversational flows.\\n\\n" +
                 "## CONTEXT\\n" +
                 "- Course: " + safeCourse + "\\n" +
                 "- Lesson: " + safeLesson + "\\n" +
+                historyBlock +
                 "- User Request: " + safeMessage + "\\n\\n" +
                 "## LESSON SNAPSHOT (For reference context only; do NOT dump this directly back to the user)\\n" +
                 safeContext + "\\n\\n" +
