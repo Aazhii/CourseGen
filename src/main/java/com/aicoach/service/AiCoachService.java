@@ -291,34 +291,11 @@ public class AiCoachService {
             return fallbackResponse(userMessage);
         }
 
-        int requestedQuizCount = extractRequestedQuizCount(userMessage);
-        if (requestedQuizCount <= 1 || !isQuizRequest(userMessage)) {
-            return response;
-        }
-
-        List<AiCoachResponse.CoachBlock> blocks = response.getBlocks();
-        if (blocks == null) {
-            blocks = new ArrayList<>();
-            response.setBlocks(blocks);
-        }
-
-        int currentQuizCount = (int) blocks.stream()
-                .filter(Objects::nonNull)
-                .map(AiCoachResponse.CoachBlock::getType)
-                .filter("quiz_card"::equals)
-                .count();
-
-        if (currentQuizCount >= requestedQuizCount) {
-            return response;
-        }
-
-        boolean harder = asksForHarderDifficulty(userMessage);
-        for (int i = currentQuizCount + 1; i <= requestedQuizCount; i++) {
-            blocks.add(buildFallbackQuizCard(i, harder));
-        }
-
+        // Removed rigid padding logic: It's better UX to show slightly fewer, highly-contextual AI-generated quizzes 
+        // than to pad the response with identical, unhelpful fallback templates.
+        
         if (response.getIntent() == null || response.getIntent().isBlank()) {
-            response.setIntent("quiz");
+            response.setIntent(isQuizRequest(userMessage) ? "quiz" : "explanation");
         }
         return response;
     }
@@ -327,11 +304,6 @@ public class AiCoachService {
                                                  String userMessage,
                                                  List<String> previousQuizQuestions) throws Exception {
         if (response == null || response.getBlocks() == null || response.getBlocks().isEmpty()) {
-            return response;
-        }
-
-        int requestedQuizCount = extractRequestedQuizCount(userMessage);
-        if (requestedQuizCount <= 0) {
             return response;
         }
 
@@ -346,7 +318,6 @@ public class AiCoachService {
         }
 
         List<AiCoachResponse.CoachBlock> retained = new ArrayList<>();
-        int quizIndex = 0;
         for (AiCoachResponse.CoachBlock block : response.getBlocks()) {
             if (block == null || block.getType() == null) {
                 continue;
@@ -359,38 +330,13 @@ public class AiCoachService {
 
             String question = block.getContent() == null ? "" : block.getContent().path("question").asText("");
             String key = fingerprintQuestion(question);
+            // If it's a new unique question, keep it! If it's a duplicate of past session, skip it.
             if (key.isEmpty() || seen.add(key)) {
                 retained.add(block);
-                quizIndex++;
             }
         }
 
-        boolean harder = asksForHarderDifficulty(userMessage);
-        while (quizIndex < requestedQuizCount) {
-            int next = quizIndex + 1;
-            AiCoachResponse.CoachBlock replacement = buildFallbackQuizCard(next, harder);
-            String replacementKey = fingerprintQuestion(replacement.getContent().path("question").asText(""));
-            if (replacementKey.isEmpty() || !seen.add(replacementKey)) {
-                // Ensure uniqueness even if fallback template collides.
-                String altPayload = objectMapper.writeValueAsString(Map.of(
-                        "question", "Quiz " + next + ": Solve a new challenge by applying the lesson concept in a different scenario.",
-                        "options", List.of(
-                                "Reuse the same memorized answer always",
-                                "Analyze the new scenario, then apply the correct concept",
-                                "Skip constraints and guess quickly",
-                                "Ignore edge cases and assumptions"
-                        ),
-                        "correctIndex", 1,
-                        "explanation", "New scenarios require transfer learning: identify constraints, then apply the concept carefully."
-                ));
-                replacement.setContent(objectMapper.readTree(altPayload));
-                replacementKey = fingerprintQuestion(replacement.getContent().path("question").asText(""));
-                seen.add(replacementKey);
-            }
-            retained.add(replacement);
-            quizIndex++;
-        }
-
+        // Removed padding logic that replaced skipped questions with duplicate fallback templates.
         response.setBlocks(retained);
         return response;
     }

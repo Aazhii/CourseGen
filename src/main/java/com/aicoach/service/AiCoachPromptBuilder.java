@@ -54,7 +54,7 @@ public class AiCoachPromptBuilder {
         int requestedQuizCount = extractRequestedQuizCount(safeMessage);
         boolean asksQuiz = isQuizRequest(safeMessage);
         boolean asksHarder = asksForHarderDifficulty(safeMessage);
-        String noRepeatConstraint = buildNoRepeatConstraint(asksQuiz);
+        String noRepeatConstraint = buildNoRepeatConstraint();
 
         String quizConstraint = "";
         if (asksQuiz) {
@@ -161,14 +161,13 @@ public class AiCoachPromptBuilder {
         return 1;
     }
 
-    private String buildNoRepeatConstraint(boolean asksQuiz) {
-        if (!asksQuiz || previousQuizQuestions == null || previousQuizQuestions.isEmpty()) {
+    private String buildNoRepeatConstraint() {
+        if (previousQuizQuestions == null || previousQuizQuestions.isEmpty()) {
             return "";
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("- Do not repeat prior quiz questions from this session.\\n");
-        sb.append("- Prior questions to avoid:\\n");
+        sb.append("- STRICT RULE: NEVER repeat any of the following prior quiz questions or topics from this session:\\n");
 
         int count = 0;
         for (String q : previousQuizQuestions) {
