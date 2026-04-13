@@ -46,10 +46,16 @@ export interface CoachResponse {
   citations?: CoachCitation[];
 }
 
+export interface CoachChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
 export interface CoachRequest {
   courseId: string;
   lessonId?: string;
   message: string;
   previousQuizQuestions?: string[];
+  chatHistory?: CoachChatMessage[];
 }
 

@@ -13,6 +13,7 @@ import {
   CoachResponse,
   CoachStudyPlanContent,
   CoachTextContent,
+  CoachChatMessage,
 } from "@/types/coach";
 
 type ChatMessage =
@@ -24,6 +25,27 @@ interface ChatSession {
   title: string;
   updatedAt: number;
   messages: ChatMessage[];
+}
+
+function extractChatHistory(messages: ChatMessage[]): CoachChatMessage[] {
+  const recentMessages = messages.slice(-5);
+  return recentMessages.map(msg => {
+    if (msg.role === "user") {
+      return { role: "user", text: msg.text };
+    } else {
+      let assistantText = "";
+      if (msg.payload?.blocks) {
+        msg.payload.blocks.forEach(block => {
+          if (block.type === "text") {
+             const textContent = block.content as CoachTextContent;
+             if (textContent.title) assistantText += `**${textContent.title}**\n`;
+             if (textContent.body) assistantText += textContent.body + "\n";
+          }
+        });
+      }
+      return { role: "assistant", text: assistantText.trim() };
+    }
+  });
 }
 
 function extractPreviousQuizQuestions(messages: ChatMessage[]): string[] {
@@ -501,6 +523,7 @@ export default function AiCoach() {
     try {
       const activeSession = sessions.find((s) => s.id === targetSessionId);
       const previousQuizQuestions = extractPreviousQuizQuestions(activeSession?.messages ?? []);
+      const chatHistory = extractChatHistory(activeSession?.messages ?? []);
 
       // Revert to fetching the full payload and doing artificial typewriter
       const payload = await getCoachResponse({
@@ -508,6 +531,7 @@ export default function AiCoach() {
         lessonId,
         message: message.trim(),
         previousQuizQuestions,
+        chatHistory,
       });
       
       setSessions((prev) => {
