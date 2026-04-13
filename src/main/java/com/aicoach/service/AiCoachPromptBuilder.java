@@ -1,6 +1,13 @@
 package com.aicoach.service;
 
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class AiCoachPromptBuilder {
+
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\b(\\d{1,2})\\b");
 
     private String courseTitle;
     private String lessonTitle;
@@ -32,6 +39,18 @@ public class AiCoachPromptBuilder {
         String safeLesson = lessonTitle == null ? "N/A" : lessonTitle;
         String safeContext = lessonContext == null ? "" : lessonContext;
         String safeMessage = userMessage == null ? "" : userMessage;
+        int requestedQuizCount = extractRequestedQuizCount(safeMessage);
+        boolean asksQuiz = isQuizRequest(safeMessage);
+        boolean asksHarder = asksForHarderDifficulty(safeMessage);
+
+        String quizConstraint = "";
+        if (asksQuiz) {
+            int exactCount = Math.max(1, requestedQuizCount);
+            String difficultyHint = asksHarder
+                    ? "Use harder conceptual and application-level questions."
+                    : "Use mixed easy-to-medium conceptual questions.";
+            quizConstraint = "- User requested quiz questions. Return exactly " + exactCount + " quiz_card blocks. " + difficultyHint + "\\n";
+        }
 
         String sb = "You are an AI study coach inside a learning platform.\\n" +
                 "Be fast, specific, and practical.\\n\\n" +
@@ -63,11 +82,53 @@ public class AiCoachPromptBuilder {
                 "Rules:\\n" +
                 "- No markdown code fences.\\n" +
                 "- quiz_card must always have exactly 4 options.\\n" +
+                quizConstraint +
                 "- Keep text concise and high quality.\\n" +
                 "- suggestions should be quick follow-up prompts.\\n" +
                 "- citations URLs must be https and from trusted educational/reference sources only.\\n";
 
         return sb;
+    }
+
+    private boolean isQuizRequest(String message) {
+        String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
+        return lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
+    }
+
+    private boolean asksForHarderDifficulty(String message) {
+        String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
+        return lower.contains("hard") || lower.contains("harder") || lower.contains("advanced");
+    }
+
+    private int extractRequestedQuizCount(String message) {
+        if (!isQuizRequest(message)) {
+            return 0;
+        }
+        Matcher matcher = NUMBER_PATTERN.matcher(message == null ? "" : message);
+        if (matcher.find()) {
+            int parsed = Integer.parseInt(matcher.group(1));
+            return Math.max(1, Math.min(parsed, 15));
+        }
+
+        String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
+        Map<String, Integer> words = Map.ofEntries(
+                Map.entry("one", 1),
+                Map.entry("two", 2),
+                Map.entry("three", 3),
+                Map.entry("four", 4),
+                Map.entry("five", 5),
+                Map.entry("six", 6),
+                Map.entry("seven", 7),
+                Map.entry("eight", 8),
+                Map.entry("nine", 9),
+                Map.entry("ten", 10)
+        );
+        for (Map.Entry<String, Integer> entry : words.entrySet()) {
+            if (lower.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return 1;
     }
 }
 

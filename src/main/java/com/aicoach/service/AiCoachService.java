@@ -21,12 +21,15 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class AiCoachService {
 
     private static final int LESSON_CONTEXT_LIMIT = 3000;
     private static final int MAX_CITATIONS = 8;
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\b(\\d{1,2})\\b");
     private static final Set<String> TRUSTED_DOMAINS = Set.of(
             "khanacademy.org",
             "openstax.org",
@@ -103,7 +106,8 @@ public class AiCoachService {
         }
 
         try {
-            return parseModelResponse(raw, request.getMessage());
+            AiCoachResponse parsed = parseModelResponse(raw, request.getMessage());
+            return enforceRequestedQuizCount(parsed, request.getMessage());
         } catch (Exception ex) {
             return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, false));
         }
@@ -238,6 +242,8 @@ public class AiCoachService {
         String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
         boolean wantsQuiz = lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
         boolean wantsPlan = lower.contains("plan") || lower.contains("schedule");
+        int requestedQuizCount = extractRequestedQuizCount(message);
+        int quizCount = Math.max(1, requestedQuizCount);
 
         AiCoachResponse response = new AiCoachResponse();
         response.setIntent(wantsPlan ? "study_plan" : (wantsQuiz ? "quiz" : "explanation"));
@@ -263,16 +269,129 @@ public class AiCoachService {
         }
 
         if (wantsQuiz || !wantsPlan) {
-            AiCoachResponse.CoachBlock quiz = new AiCoachResponse.CoachBlock();
-            quiz.setType("quiz_card");
-            quiz.setContent(objectMapper.readTree("{\"question\":\"Which approach best improves retention after studying?\",\"options\":[\"Passive rereading\",\"Active recall\",\"Skipping examples\",\"Memorizing without understanding\"],\"correctIndex\":1,\"explanation\":\"Active recall is consistently more effective because it strengthens retrieval pathways.\"}"));
-            blocks.add(quiz);
+            boolean harder = asksForHarderDifficulty(message);
+            for (int i = 1; i <= quizCount; i++) {
+                blocks.add(buildFallbackQuizCard(i, harder));
+            }
         }
 
         response.setBlocks(blocks);
         response.setSuggestions(List.of("Give me 5 harder quiz questions", "Create flashcards from this topic", "Explain this with a real-world analogy"));
         response.setCitations(List.of());
         return response;
+    }
+
+    private AiCoachResponse enforceRequestedQuizCount(AiCoachResponse response, String userMessage) throws Exception {
+        if (response == null) {
+            return fallbackResponse(userMessage);
+        }
+
+        int requestedQuizCount = extractRequestedQuizCount(userMessage);
+        if (requestedQuizCount <= 1 || !isQuizRequest(userMessage)) {
+            return response;
+        }
+
+        List<AiCoachResponse.CoachBlock> blocks = response.getBlocks();
+        if (blocks == null) {
+            blocks = new ArrayList<>();
+            response.setBlocks(blocks);
+        }
+
+        int currentQuizCount = (int) blocks.stream()
+                .filter(Objects::nonNull)
+                .map(AiCoachResponse.CoachBlock::getType)
+                .filter("quiz_card"::equals)
+                .count();
+
+        if (currentQuizCount >= requestedQuizCount) {
+            return response;
+        }
+
+        boolean harder = asksForHarderDifficulty(userMessage);
+        for (int i = currentQuizCount + 1; i <= requestedQuizCount; i++) {
+            blocks.add(buildFallbackQuizCard(i, harder));
+        }
+
+        if (response.getIntent() == null || response.getIntent().isBlank()) {
+            response.setIntent("quiz");
+        }
+        return response;
+    }
+
+    private AiCoachResponse.CoachBlock buildFallbackQuizCard(int sequence, boolean harder) throws Exception {
+        String difficulty = harder ? "hard" : "moderate";
+        String question = "Quiz " + sequence + ": Which study strategy best helps long-term understanding in " + difficulty + " topics?";
+        String explanation = harder
+                ? "For harder topics, combining active recall with spaced repetition and error review improves deep understanding."
+                : "Active recall and spaced repetition improve retention and understanding better than passive review.";
+
+        String payload = objectMapper.writeValueAsString(Map.of(
+                "question", question,
+                "options", List.of(
+                        "Read notes repeatedly without practice",
+                        "Use active recall with spaced repetition",
+                        "Skip practice and watch summaries only",
+                        "Memorize definitions without examples"
+                ),
+                "correctIndex", 1,
+                "explanation", explanation
+        ));
+
+        AiCoachResponse.CoachBlock quiz = new AiCoachResponse.CoachBlock();
+        quiz.setType("quiz_card");
+        quiz.setContent(objectMapper.readTree(payload));
+        return quiz;
+    }
+
+    private boolean isQuizRequest(String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
+    }
+
+    private boolean asksForHarderDifficulty(String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("hard") || lower.contains("harder") || lower.contains("advanced");
+    }
+
+    private int extractRequestedQuizCount(String message) {
+        if (!isQuizRequest(message)) {
+            return 0;
+        }
+        if (message == null || message.isBlank()) {
+            return 1;
+        }
+
+        Matcher matcher = NUMBER_PATTERN.matcher(message);
+        if (matcher.find()) {
+            int parsed = Integer.parseInt(matcher.group(1));
+            return Math.max(1, Math.min(parsed, 15));
+        }
+
+        String lower = message.toLowerCase(Locale.ROOT);
+        Map<String, Integer> words = Map.ofEntries(
+                Map.entry("one", 1),
+                Map.entry("two", 2),
+                Map.entry("three", 3),
+                Map.entry("four", 4),
+                Map.entry("five", 5),
+                Map.entry("six", 6),
+                Map.entry("seven", 7),
+                Map.entry("eight", 8),
+                Map.entry("nine", 9),
+                Map.entry("ten", 10)
+        );
+        for (Map.Entry<String, Integer> entry : words.entrySet()) {
+            if (lower.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return 1;
     }
 
     private String fallbackNoticeFor(Exception ex, boolean transportError) {
