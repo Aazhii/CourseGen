@@ -50,5 +50,6 @@ export interface CoachRequest {
   courseId: string;
   lessonId?: string;
   message: string;
+  previousQuizQuestions?: string[];
 }
 
