@@ -122,7 +122,12 @@ public class AiCoachPromptBuilder {
 
     private boolean isQuizRequest(String message) {
         String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
-        return lower.contains("quiz") || lower.contains("question") || lower.contains("test me");
+        return lower.contains("quiz")
+                || lower.contains("test me")
+                || lower.contains("mcq")
+                || lower.contains("multiple choice")
+                || lower.contains("practice questions")
+                || lower.contains("mock test");
     }
 
     private boolean asksForHarderDifficulty(String message) {
