@@ -117,7 +117,7 @@ public class CourseServiceImpl implements CourseService {
             JsonNode modulesNode = courseJson.get("modules");
             if (modulesNode == null || !modulesNode.isArray()) {
                 LOGGER.log(Level.SEVERE, "Invalid AI response: 'modules' missing or not an array");
-                throw new RuntimeException("Invalid AI response: modules missing");
+                throw new IllegalArgumentException("Invalid AI response: modules missing");
             }
 
             for (JsonNode moduleNode : modulesNode) {

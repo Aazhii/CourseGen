@@ -61,7 +61,7 @@ public class AiDynamicGateway {
         for (int attempt = 0; attempt < context.keys().size(); attempt++) {
             AiLlmApiKey selected = selectAvailableKey(context.provider(), context.keys());
             try {
-                String output = generateOne(context.provider(), selected.getApiKey(), prompt);
+                String output = generateOne(context.provider(), selected.getApiKey(), prompt, workload);
                 recordSuccess(context.provider().getId());
                 return output;
             } catch (RuntimeException ex) {
@@ -84,7 +84,7 @@ public class AiDynamicGateway {
         for (int attempt = 0; attempt < context.keys().size(); attempt++) {
             AiLlmApiKey selected = selectAvailableKey(context.provider(), context.keys());
             try {
-                Iterable<String> stream = generateStream(context.provider(), selected.getApiKey(), prompt);
+                Iterable<String> stream = generateStream(context.provider(), selected.getApiKey(), prompt, workload);
                 recordSuccess(context.provider().getId());
                 return stream;
             } catch (RuntimeException ex) {
@@ -144,48 +144,66 @@ public class AiDynamicGateway {
         keyCooldownUntil.put(keyId, Instant.now().plus(Duration.ofHours(hours)));
     }
 
-    private String generateOne(AiLlmProvider provider, String apiKey, String prompt) {
+    private String generateOne(AiLlmProvider provider, String apiKey, String prompt, AiWorkload workload) {
         if (provider.getProviderType() == AiProviderType.GROQ) {
-            return generateGroqText(provider, apiKey, prompt);
+            return generateGroqText(provider, apiKey, prompt, workload);
         }
-        return generateGeminiText(provider, apiKey, prompt);
+        return generateGeminiText(provider, apiKey, prompt, workload);
     }
 
-    private Iterable<String> generateStream(AiLlmProvider provider, String apiKey, String prompt) {
+    private Iterable<String> generateStream(AiLlmProvider provider, String apiKey, String prompt, AiWorkload workload) {
         if (provider.getProviderType() == AiProviderType.GROQ) {
-            return generateGroqStream(provider, apiKey, prompt);
+            return generateGroqStream(provider, apiKey, prompt, workload);
         }
 
         Client client = Client.builder().apiKey(apiKey).build();
-        GenerateContentConfig config = GenerateContentConfig.builder()
-                .responseMimeType("application/json")
-                .build();
+        GenerateContentConfig.Builder configBuilder = GenerateContentConfig.builder();
+        if (requiresJsonOutput(workload)) {
+            configBuilder.responseMimeType("application/json");
+        }
+        GenerateContentConfig config = configBuilder.build();
         Iterable<GenerateContentResponse> stream = client.models.generateContentStream(provider.getModelName(), prompt, config);
         return textChunks(stream);
     }
 
-    private String generateGeminiText(AiLlmProvider provider, String apiKey, String prompt) {
+    private String generateGeminiText(AiLlmProvider provider, String apiKey, String prompt, AiWorkload workload) {
         try (Client client = Client.builder().apiKey(apiKey).build()) {
-            GenerateContentConfig config = GenerateContentConfig.builder()
-                    .responseMimeType("application/json")
-                    .build();
+            GenerateContentConfig.Builder configBuilder = GenerateContentConfig.builder();
+            if (requiresJsonOutput(workload)) {
+                configBuilder.responseMimeType("application/json");
+            }
+            GenerateContentConfig config = configBuilder.build();
 
             GenerateContentResponse response = client.models.generateContent(provider.getModelName(), prompt, config);
             return response.text();
         }
     }
 
-    private String generateGroqText(AiLlmProvider provider, String apiKey, String prompt) {
+    private String generateGroqText(AiLlmProvider provider, String apiKey, String prompt, AiWorkload workload) {
         try {
             String target = provider.getBaseUrl() == null || provider.getBaseUrl().isBlank()
                     ? DEFAULT_GROQ_BASE_URL
                     : provider.getBaseUrl();
 
-            String body = objectMapper.writeValueAsString(Map.of(
-                    "model", provider.getModelName(),
-                    "messages", List.of(Map.of("role", "user", "content", prompt)),
-                    "temperature", 0.2
-            ));
+            boolean jsonOutput = requiresJsonOutput(workload);
+            List<Map<String, String>> messages = new ArrayList<>();
+            if (jsonOutput) {
+                messages.add(Map.of(
+                        "role", "system",
+                        "content", "Return only valid JSON. Do not use markdown fences or extra text."
+                ));
+            }
+            messages.add(Map.of("role", "user", "content", prompt));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("model", provider.getModelName());
+            payload.put("messages", messages);
+            payload.put("temperature", jsonOutput ? 0.0 : 0.2);
+            if (jsonOutput) {
+                payload.put("response_format", Map.of("type", "json_object"));
+            }
+
+            String body = objectMapper.writeValueAsString(payload);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(target))
@@ -228,18 +246,29 @@ public class AiDynamicGateway {
         };
     }
 
-    private Iterable<String> generateGroqStream(AiLlmProvider provider, String apiKey, String prompt) {
+    private Iterable<String> generateGroqStream(AiLlmProvider provider, String apiKey, String prompt, AiWorkload workload) {
         String target = provider.getBaseUrl() == null || provider.getBaseUrl().isBlank()
                 ? DEFAULT_GROQ_BASE_URL
                 : provider.getBaseUrl();
 
         try {
-            String body = objectMapper.writeValueAsString(Map.of(
-                    "model", provider.getModelName(),
-                    "messages", List.of(Map.of("role", "user", "content", prompt)),
-                    "temperature", 0.2,
-                    "stream", true
-            ));
+            boolean jsonOutput = requiresJsonOutput(workload);
+            List<Map<String, String>> messages = new ArrayList<>();
+            if (jsonOutput) {
+                messages.add(Map.of(
+                        "role", "system",
+                        "content", "Return only valid JSON. Do not use markdown fences or extra text."
+                ));
+            }
+            messages.add(Map.of("role", "user", "content", prompt));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("model", provider.getModelName());
+            payload.put("messages", messages);
+            payload.put("temperature", jsonOutput ? 0.0 : 0.2);
+            payload.put("stream", true);
+
+            String body = objectMapper.writeValueAsString(payload);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(target))
@@ -384,14 +413,14 @@ public class AiDynamicGateway {
 
         try {
             if (providerType == AiProviderType.GROQ) {
-                String test = generateGroqText(probeProvider, apiKey.trim(), "Reply with exactly: ok");
+                String test = generateGroqText(probeProvider, apiKey.trim(), "Reply with exactly: ok", AiWorkload.AI_COACH);
                 if (test == null || test.isBlank()) {
                     throw new IllegalArgumentException("Groq test response was empty");
                 }
                 return;
             }
 
-            String test = generateGeminiText(probeProvider, apiKey.trim(), "Reply with exactly: ok");
+            String test = generateGeminiText(probeProvider, apiKey.trim(), "Reply with exactly: ok", AiWorkload.AI_COACH);
             if (test == null || test.isBlank()) {
                 throw new IllegalArgumentException("Gemini test response was empty");
             }
@@ -411,6 +440,10 @@ public class AiDynamicGateway {
         ProviderRuntimeState state = providerRuntime.computeIfAbsent(providerId, ignored -> new ProviderRuntimeState());
         state.lastError = ex.getMessage();
         state.lastErrorAt = Instant.now();
+    }
+
+    private boolean requiresJsonOutput(AiWorkload workload) {
+        return workload == AiWorkload.COURSE_GENERATION || workload == AiWorkload.LESSON_GENERATION;
     }
 
     private boolean isQuotaOrRateLimitError(Throwable error) {
