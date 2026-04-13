@@ -26,6 +26,36 @@ interface ChatSession {
   messages: ChatMessage[];
 }
 
+function extractPreviousQuizQuestions(messages: ChatMessage[]): string[] {
+  const seen = new Set<string>();
+  const questions: string[] = [];
+
+  for (const message of messages) {
+    if (message.role !== "assistant" || !message.payload?.blocks) {
+      continue;
+    }
+
+    for (const block of message.payload.blocks) {
+      if (block.type !== "quiz_card") {
+        continue;
+      }
+      const content = block.content as CoachQuizCardContent;
+      const question = (content?.question ?? "").trim();
+      if (!question) {
+        continue;
+      }
+      const key = question.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      questions.push(question);
+    }
+  }
+
+  return questions.slice(-8);
+}
+
 function CitationList({ citations }: { citations: CoachCitation[] }) {
   if (!citations.length) {
     return null;
@@ -469,11 +499,15 @@ export default function AiCoach() {
     setSending(true);
 
     try {
+      const activeSession = sessions.find((s) => s.id === targetSessionId);
+      const previousQuizQuestions = extractPreviousQuizQuestions(activeSession?.messages ?? []);
+
       // Revert to fetching the full payload and doing artificial typewriter
       const payload = await getCoachResponse({
         courseId,
         lessonId,
         message: message.trim(),
+        previousQuizQuestions,
       });
       
       setSessions((prev) => {
