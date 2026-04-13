@@ -13,6 +13,7 @@ public class AiCoachPromptBuilder {
     private String lessonTitle;
     private String lessonContext;
     private String userMessage;
+    private java.util.List<String> previousQuizQuestions;
 
     public AiCoachPromptBuilder courseTitle(String courseTitle) {
         this.courseTitle = courseTitle;
@@ -34,6 +35,11 @@ public class AiCoachPromptBuilder {
         return this;
     }
 
+    public AiCoachPromptBuilder previousQuizQuestions(java.util.List<String> previousQuizQuestions) {
+        this.previousQuizQuestions = previousQuizQuestions;
+        return this;
+    }
+
     public String build() {
         String safeCourse = courseTitle == null ? "General course" : courseTitle;
         String safeLesson = lessonTitle == null ? "N/A" : lessonTitle;
@@ -42,6 +48,7 @@ public class AiCoachPromptBuilder {
         int requestedQuizCount = extractRequestedQuizCount(safeMessage);
         boolean asksQuiz = isQuizRequest(safeMessage);
         boolean asksHarder = asksForHarderDifficulty(safeMessage);
+        String noRepeatConstraint = buildNoRepeatConstraint(asksQuiz);
 
         String quizConstraint = "";
         if (asksQuiz) {
@@ -52,20 +59,23 @@ public class AiCoachPromptBuilder {
             quizConstraint = "- User requested quiz questions. Return exactly " + exactCount + " quiz_card blocks. " + difficultyHint + "\\n";
         }
 
-        String sb = "You are an AI study coach inside a learning platform.\\n" +
-                "Be fast, specific, and practical.\\n\\n" +
+        String sb = "You are an empathetic, highly interactive, and expert AI study coach inside a learning platform.\\n" +
+                "Your primary goal is to clarify doubts, keep the user highly engaged, and explain concepts clearly without just repeating lesson materials.\\n" +
+                "Be appreciative of the user's effort, use dynamic and encouraging greetings, and completely AVOID repetitive or predictable conversational flows.\\n\\n" +
                 "## CONTEXT\\n" +
                 "- Course: " + safeCourse + "\\n" +
                 "- Lesson: " + safeLesson + "\\n" +
                 "- User Request: " + safeMessage + "\\n\\n" +
-                "## LESSON SNAPSHOT\\n" +
+                "## LESSON SNAPSHOT (For reference context only; do NOT dump this directly back to the user)\\n" +
                 safeContext + "\\n\\n" +
-                "## TASK\\n" +
-                "Respond with structured study blocks. If user asks for quiz/study-related activities, include quiz_card and/or flashcard blocks.\\n" +
-                "If user asks for plan or preparation, include one study_plan block.\\n" +
-                "Always include at least one text block.\\n" +
-                "When visuals/examples/resources would improve the answer, include citations with real public links.\\n" +
-                "Citations count must be dynamic based on need (can be 0, 1, or many) and never forced.\\n\\n" +
+                "## TASK & DYNAMIC GUIDELINES\\n" +
+                "1. EXPLAIN CLEARLY: If the user asks a question or has a doubt, provide a clear, fresh, and engaging explanation. Provide clear explanations for everything the user asks.\\n" +
+                "2. NO REPEATING CONTENT: Do not give the user all the quizzes or content that were already generated in the lesson snapshot. Create NEW, relevant quizzes ONLY when requested.\\n" +
+                "3. BE INTERACTIVE & APPRECIATIVE: Keep the tone dynamic and rewarding. Encourage the user so they want to keep learning. Avoid repeating the same kind of greetings.\\n" +
+                "4. USE STRUCTURED BLOCKS: Return structured JSON blocks. Always include at least one `text` block to communicate natively.\\n" +
+                "    Optionally include `quiz_card` or `flashcard` if testing knowledge helps clarify their doubt or if they explicitly ask for it.\\n" +
+                "    If the user asks for a plan, include a `study_plan` block.\\n" +
+                "    When visuals, examples, or external resources would help, include citations with real public links (citations count is strictly dynamic based on need).\\n\\n" +
                 "## OUTPUT FORMAT (STRICT)\\n" +
                 "Return ONLY valid JSON object with this schema: \\\n" +
                 "{\\n" +
@@ -83,8 +93,9 @@ public class AiCoachPromptBuilder {
                 "- No markdown code fences.\\n" +
                 "- quiz_card must always have exactly 4 options.\\n" +
                 quizConstraint +
-                "- Keep text concise and high quality.\\n" +
-                "- suggestions should be quick follow-up prompts.\\n" +
+                noRepeatConstraint +
+                "- Keep text concise, highly qualitative, and conversational.\\n" +
+                "- suggestions should be quick follow-up prompts to continue the conversation.\\n" +
                 "- citations URLs must be https and from trusted educational/reference sources only.\\n";
 
         return sb;
@@ -129,6 +140,33 @@ public class AiCoachPromptBuilder {
             }
         }
         return 1;
+    }
+
+    private String buildNoRepeatConstraint(boolean asksQuiz) {
+        if (!asksQuiz || previousQuizQuestions == null || previousQuizQuestions.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("- Do not repeat prior quiz questions from this session.\\n");
+        sb.append("- Prior questions to avoid:\\n");
+
+        int count = 0;
+        for (String q : previousQuizQuestions) {
+            if (q == null || q.isBlank()) {
+                continue;
+            }
+            count++;
+            if (count > 8) {
+                break;
+            }
+            sb.append("  - ").append(q.replace('\n', ' ').trim()).append("\\n");
+        }
+
+        if (count == 0) {
+            return "";
+        }
+        return sb.toString();
     }
 }
 

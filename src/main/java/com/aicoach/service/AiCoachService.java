@@ -96,6 +96,7 @@ public class AiCoachService {
                 .lessonTitle(lesson == null ? null : lesson.getTitle())
                 .lessonContext(context)
                 .userMessage(request.getMessage())
+                .previousQuizQuestions(request.getPreviousQuizQuestions())
                 .build();
 
         String raw;
@@ -107,7 +108,8 @@ public class AiCoachService {
 
         try {
             AiCoachResponse parsed = parseModelResponse(raw, request.getMessage());
-            return enforceRequestedQuizCount(parsed, request.getMessage());
+            AiCoachResponse counted = enforceRequestedQuizCount(parsed, request.getMessage());
+            return deduplicateQuizCards(counted, request.getMessage(), request.getPreviousQuizQuestions());
         } catch (Exception ex) {
             return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, false));
         }
@@ -147,6 +149,7 @@ public class AiCoachService {
                 .lessonTitle(lesson == null ? null : lesson.getTitle())
                 .lessonContext(context)
                 .userMessage(request.getMessage())
+                .previousQuizQuestions(request.getPreviousQuizQuestions())
                 .build();
 
         SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout
@@ -318,6 +321,78 @@ public class AiCoachService {
         return response;
     }
 
+    private AiCoachResponse deduplicateQuizCards(AiCoachResponse response,
+                                                 String userMessage,
+                                                 List<String> previousQuizQuestions) throws Exception {
+        if (response == null || response.getBlocks() == null || response.getBlocks().isEmpty()) {
+            return response;
+        }
+
+        int requestedQuizCount = extractRequestedQuizCount(userMessage);
+        if (requestedQuizCount <= 0) {
+            return response;
+        }
+
+        Set<String> seen = new HashSet<>();
+        if (previousQuizQuestions != null) {
+            for (String oldQuestion : previousQuizQuestions) {
+                String key = fingerprintQuestion(oldQuestion);
+                if (!key.isEmpty()) {
+                    seen.add(key);
+                }
+            }
+        }
+
+        List<AiCoachResponse.CoachBlock> retained = new ArrayList<>();
+        int quizIndex = 0;
+        for (AiCoachResponse.CoachBlock block : response.getBlocks()) {
+            if (block == null || block.getType() == null) {
+                continue;
+            }
+
+            if (!"quiz_card".equals(block.getType())) {
+                retained.add(block);
+                continue;
+            }
+
+            String question = block.getContent() == null ? "" : block.getContent().path("question").asText("");
+            String key = fingerprintQuestion(question);
+            if (key.isEmpty() || seen.add(key)) {
+                retained.add(block);
+                quizIndex++;
+            }
+        }
+
+        boolean harder = asksForHarderDifficulty(userMessage);
+        while (quizIndex < requestedQuizCount) {
+            int next = quizIndex + 1;
+            AiCoachResponse.CoachBlock replacement = buildFallbackQuizCard(next, harder);
+            String replacementKey = fingerprintQuestion(replacement.getContent().path("question").asText(""));
+            if (replacementKey.isEmpty() || !seen.add(replacementKey)) {
+                // Ensure uniqueness even if fallback template collides.
+                String altPayload = objectMapper.writeValueAsString(Map.of(
+                        "question", "Quiz " + next + ": Solve a new challenge by applying the lesson concept in a different scenario.",
+                        "options", List.of(
+                                "Reuse the same memorized answer always",
+                                "Analyze the new scenario, then apply the correct concept",
+                                "Skip constraints and guess quickly",
+                                "Ignore edge cases and assumptions"
+                        ),
+                        "correctIndex", 1,
+                        "explanation", "New scenarios require transfer learning: identify constraints, then apply the concept carefully."
+                ));
+                replacement.setContent(objectMapper.readTree(altPayload));
+                replacementKey = fingerprintQuestion(replacement.getContent().path("question").asText(""));
+                seen.add(replacementKey);
+            }
+            retained.add(replacement);
+            quizIndex++;
+        }
+
+        response.setBlocks(retained);
+        return response;
+    }
+
     private AiCoachResponse.CoachBlock buildFallbackQuizCard(int sequence, boolean harder) throws Exception {
         String difficulty = harder ? "hard" : "moderate";
         String question = "Quiz " + sequence + ": Which study strategy best helps long-term understanding in " + difficulty + " topics?";
@@ -392,6 +467,15 @@ public class AiCoachService {
             }
         }
         return 1;
+    }
+
+    private String fingerprintQuestion(String question) {
+        if (question == null) {
+            return "";
+        }
+        return question.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
     }
 
     private String fallbackNoticeFor(Exception ex, boolean transportError) {
