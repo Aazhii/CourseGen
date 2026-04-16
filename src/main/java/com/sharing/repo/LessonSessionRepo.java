@@ -8,7 +8,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface LessonSessionRepo extends JpaRepository<LessonSession, Long> {
-    Optional<LessonSession> findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(Long lessonId, Long userId);
+    @Query(value = "select * from lesson_sessions ls where ls.lesson_id = :lessonId and ls.user_id = :userId and ls.ended_at is null order by ls.started_at desc limit 1", nativeQuery = true)
+    Optional<LessonSession> findTopByLessonIdAndUserIdAndEndedAtIsNullOrderByStartedAtDesc(@Param("lessonId") Long lessonId,
+                                                                                           @Param("userId") Long userId);
 
     @Query("select coalesce(sum(ls.durationSeconds), 0) from LessonSession ls where ls.lessonId = :lessonId and ls.userId = :userId")
     Long sumDurationSecondsForLessonUser(@Param("lessonId") Long lessonId, @Param("userId") Long userId);
