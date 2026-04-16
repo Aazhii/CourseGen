@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderOpen, Trophy, Plus, FileText, ChevronUp, Sun, Moon, User, LogOut } from "lucide-react";
+import { LayoutDashboard, FolderOpen, Trophy, Plus, FileText, ChevronUp, Sun, Moon, User, LogOut, Bot } from "lucide-react";
 import { projects } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchCourses } from "@/services/courseApi";
+import { useFeature } from "@/hooks/useFeature";
 import GlobalSearch from "@/components/GlobalSearch";
 
 const navItems = [
@@ -26,6 +27,7 @@ export default function AppSidebar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const adminPanel = useFeature("ADMIN_PANEL");
 
   useEffect(() => {
     let mounted = true;
@@ -112,6 +114,20 @@ export default function AppSidebar() {
             {item.label}
           </Link>
         ))}
+        {!adminPanel.loading && adminPanel.allowed && (
+          <Link
+            to="/admin/llm"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              location.pathname === "/admin/llm"
+                ? "bg-primary/15 text-primary shadow-sm"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <Bot className="h-4 w-4" />
+            LLM Admin
+          </Link>
+        )}
       </nav>
 
       {/* Projects */}

@@ -21,6 +21,7 @@ import Profile from "./pages/Profile";
 import JoinCourse from "./pages/JoinCourse";
 import Notifications from "./pages/Notifications";
 import AiCoach from "./pages/AiCoach";
+import LlmAdmin from "./pages/LlmAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/admin/llm" element={<LlmAdmin />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

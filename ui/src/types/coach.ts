@@ -32,15 +32,30 @@ export interface CoachBlock {
   content: CoachTextContent | CoachQuizCardContent | CoachFlashcardContent | CoachStudyPlanContent;
 }
 
+export interface CoachCitation {
+  title: string;
+  url: string;
+  description?: string;
+  source?: string;
+}
+
 export interface CoachResponse {
   intent: string;
   blocks: CoachBlock[];
   suggestions: string[];
+  citations?: CoachCitation[];
+}
+
+export interface CoachChatMessage {
+  role: "user" | "assistant";
+  text: string;
 }
 
 export interface CoachRequest {
   courseId: string;
   lessonId?: string;
   message: string;
+  previousQuizQuestions?: string[];
+  chatHistory?: CoachChatMessage[];
 }
 
