@@ -1,13 +1,19 @@
 package com.aicourse.service.courses;
 
+import com.aicourse.dto.CourseBuilderRequest;
 import com.aicourse.model.Course;
 import com.aicourse.model.Module;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Map;
 
 public interface CourseService {
+
+    Course saveBuiltCourse(CourseBuilderRequest payload, Authentication auth) throws Exception;
+
+    JsonNode generateCourseOutlineOnly(Map<String, String> payload, Authentication auth) throws Exception;
 
     Course generateCourse(Map<String, String> payload, Authentication auth) throws Exception;
 
