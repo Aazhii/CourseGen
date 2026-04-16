@@ -1,10 +1,12 @@
 package com.aicourse.controller;
 
+import com.aicourse.dto.CourseBuilderRequest;
 import com.aicourse.model.Course;
 import com.aicourse.model.Module;
 import com.aicourse.service.courses.impl.CourseServiceImpl;
 import com.aicourse.utils.api.ApiResponse;
 import com.auth.model.UserPrincipal;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -33,6 +35,30 @@ public class CourseController {
             return course;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error generating course: {0}", new Object[]{e.getMessage()});
+            throw e;
+        }
+    }
+
+    @PostMapping("/generate-outline")
+    public JsonNode generateOutline(@RequestBody Map<String, String> payload, Authentication auth) throws Exception {
+        LOGGER.log(Level.INFO, "Request received to generate course outline ONLY: {0}", new Object[]{payload.get("title")});
+        try {
+            return courseServiceImpl.generateCourseOutlineOnly(payload, auth);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error generating course outline: {0}", new Object[]{e.getMessage()});
+            throw e;
+        }
+    }
+
+    @PostMapping("/build")
+    public Course saveBuiltCourse(@RequestBody CourseBuilderRequest payload, Authentication auth) throws Exception {
+        LOGGER.log(Level.INFO, "Request received to build custom course: {0}", new Object[]{payload.getTitle()});
+        try {
+            Course course = courseServiceImpl.saveBuiltCourse(payload, auth);
+            LOGGER.log(Level.INFO, "Custom course built successfully with ID: {0}", new Object[]{course.getId()});
+            return course;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error building custom course: {0}", new Object[]{e.getMessage()});
             throw e;
         }
     }

@@ -1,6 +1,5 @@
 package com.aicourse.model;
 
-import com.aicourse.utils.json.JsonNodeConverter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,6 +35,9 @@ public class Lesson implements Persistable<Long> {
     @JoinColumn(name = "module_id")
     @JsonIgnore
     private Module module;
+
+    @Column(name = "sort_order", nullable = false)
+    private Integer order = 0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -77,4 +79,12 @@ public class Lesson implements Persistable<Long> {
     public void setEnriched(boolean enriched) { isEnriched = enriched; }
     public Module getModule() { return module; }
     public void setModule(Module module) { this.module = module; }
+
+    public Integer getOrder() {
+        return order;
+    }
+
+    public void setOrder(Integer order) {
+        this.order = order;
+    }
 }

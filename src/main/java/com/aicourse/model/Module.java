@@ -1,9 +1,12 @@
 package com.aicourse.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
-import org.springframework.data.domain.Persistable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.domain.Persistable;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,6 +27,20 @@ public class Module implements Persistable<Long> {
     @JoinColumn(name = "course_id", nullable = false)
     @JsonIgnore
     private Course course;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "learning_objectives", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode learningObjectives;
+
+    @Column(name = "assessment", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode assessment;
+
+    @Column(name = "sort_order", nullable = false)
+    private Integer order = 0;
 
     @OneToMany(
             mappedBy = "module",
@@ -70,4 +87,36 @@ public class Module implements Persistable<Long> {
     public void setCourse(Course course) { this.course = course; }
     public List<Lesson> getLessons() { return lessons; }
     public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public JsonNode getLearningObjectives() {
+        return learningObjectives;
+    }
+
+    public void setLearningObjectives(JsonNode learningObjectives) {
+        this.learningObjectives = learningObjectives;
+    }
+
+    public JsonNode getAssessment() {
+        return assessment;
+    }
+
+    public void setAssessment(JsonNode assessment) {
+        this.assessment = assessment;
+    }
+
+    public Integer getOrder() {
+        return order;
+    }
+
+    public void setOrder(Integer order) {
+        this.order = order;
+    }
 }

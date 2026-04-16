@@ -1,7 +1,10 @@
 package com.aicourse.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
 
 import java.time.OffsetDateTime;
@@ -47,6 +50,35 @@ public class Course implements Persistable<Long> {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
+
+    @Column(name = "category")
+    private String category;
+
+    @Column(name = "difficulty")
+    private String difficulty;
+
+    @Column(name = "estimated_duration_value")
+    private Integer estimatedDurationValue;
+
+    @Column(name = "estimated_duration_unit")
+    private String estimatedDurationUnit;
+
+    @Column(name = "thumbnail_url", length = 1500)
+    private String thumbnailUrl;
+
+    @Column(name = "visibility")
+    private String visibility;
+
+    @Column(name = "enrollment_type")
+    private String enrollmentType;
+
+    @Column(name = "tags_json", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode tagsJson;
+
+    @Column(name = "final_exam", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode finalExam;
 
     // --- Persistable ---
     @Override
@@ -115,5 +147,77 @@ public class Course implements Persistable<Long> {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getDifficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
+
+    public Integer getEstimatedDurationValue() {
+        return estimatedDurationValue;
+    }
+
+    public void setEstimatedDurationValue(Integer estimatedDurationValue) {
+        this.estimatedDurationValue = estimatedDurationValue;
+    }
+
+    public String getEstimatedDurationUnit() {
+        return estimatedDurationUnit;
+    }
+
+    public void setEstimatedDurationUnit(String estimatedDurationUnit) {
+        this.estimatedDurationUnit = estimatedDurationUnit;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
+    public String getEnrollmentType() {
+        return enrollmentType;
+    }
+
+    public void setEnrollmentType(String enrollmentType) {
+        this.enrollmentType = enrollmentType;
+    }
+
+    public JsonNode getTagsJson() {
+        return tagsJson;
+    }
+
+    public void setTagsJson(JsonNode tagsJson) {
+        this.tagsJson = tagsJson;
+    }
+
+    public JsonNode getFinalExam() {
+        return finalExam;
+    }
+
+    public void setFinalExam(JsonNode finalExam) {
+        this.finalExam = finalExam;
     }
 }
