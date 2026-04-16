@@ -1,6 +1,7 @@
 package com.aicourse.service.courses.impl;
 
-import com.aicourse.geminiConnection.GeminiConnection;
+import com.aicourse.ai.AiWorkload;
+import com.aicourse.ai.service.AiDynamicGateway;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.aicourse.repo.LessonRepo;
@@ -27,7 +28,7 @@ public class LessonServiceImpl implements LessonService {
     private LessonRepo lessonRepo;
 
     @Autowired
-    private GeminiConnection geminiConnection;
+    private AiDynamicGateway aiDynamicGateway;
 
     @Autowired
     private UserStatsService userStatsService;
@@ -75,7 +76,7 @@ public class LessonServiceImpl implements LessonService {
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for lesson ''{0}''", new Object[]{lessonTitle});
-            String response = geminiConnection.getResponse(prompt);
+            String response = aiDynamicGateway.getResponse(AiWorkload.LESSON_GENERATION, prompt);
             LOGGER.log(Level.FINE, "Received response from AI for lesson ''{0}'' (length: {1})",
                     new Object[]{lessonTitle, response.length()});
 
@@ -84,7 +85,7 @@ public class LessonServiceImpl implements LessonService {
             // Validate JSON before parsing
             if (!JsonParserUtil.isValidJson(cleanJson)) {
                 LOGGER.log(Level.SEVERE, "AI response is not valid JSON for lesson: {0}", new Object[]{lessonTitle});
-                throw new RuntimeException("AI generated invalid JSON content for lesson: " + lessonTitle);
+                throw new IllegalArgumentException("AI generated invalid JSON content for lesson: " + lessonTitle);
             }
             
             JsonNode contentJson = JsonParserUtil.parseStringToJsonObject(cleanJson);
@@ -92,7 +93,7 @@ public class LessonServiceImpl implements LessonService {
             // Additional validation: ensure it's an array
             if (!contentJson.isArray()) {
                 LOGGER.log(Level.SEVERE, "AI response is not a JSON array for lesson: {0}", new Object[]{lessonTitle});
-                throw new RuntimeException("AI content must be a JSON array of lesson blocks for lesson: " + lessonTitle);
+                throw new IllegalArgumentException("AI content must be a JSON array of lesson blocks for lesson: " + lessonTitle);
             }
 
             LOGGER.log(Level.FINE, "Successfully parsed {0} content blocks for lesson: {1}",
