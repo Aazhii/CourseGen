@@ -89,6 +89,33 @@ export async function createCourse(data: any) {
 }
 
 /**
+ * Create a custom built course directly via JSON
+ */
+export async function saveBuiltCourse(data: any) {
+  const response = await apiFetch('/api/courses/build', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return normalizeCourse(unwrapApiData<any>(response));
+}
+
+/**
+ * Generate editable AI scaffold draft (modules + lessons + lesson content blocks, no saving)
+ */
+export async function generateCourseOutlineAPI(data: any) {
+  const payload = {
+    ...data,
+    title: data?.title ?? data?.topic,
+  };
+
+  const response = await apiFetch('/api/courses/generate-outline', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return unwrapApiData<any>(response);
+}
+
+/**
  * Fetch all courses for the current user
  */
 export async function fetchCourses() {
