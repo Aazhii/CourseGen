@@ -189,6 +189,29 @@ public class LessonProgressController {
     }
 
     /**
+     * Get completed lesson IDs for the current user in a course
+     */
+    @GetMapping("/courses/{courseId}/completed-lessons")
+    public ResponseEntity<ApiResponse<List<Long>>> getCompletedLessonIds(
+            @PathVariable Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to fetch completed lesson IDs for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            List<Long> response = lessonProgressService.getCompletedLessonIds(courseId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Completed lesson IDs fetched successfully", response));
+        } catch (SharedCourseContentLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching completed lesson IDs: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error fetching completed lesson IDs: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get all user's course progress
      */
     @GetMapping("/my-progress")
