@@ -85,8 +85,8 @@ public class JWTService {
         return expired;
     }
 
-    private Date extractExpiration(String token) {
+    // changed visibility to public so blacklist service can read expiry
+    public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 }
-
