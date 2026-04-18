@@ -4,6 +4,7 @@ import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles } from "lucid
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { deleteCourse, getCourseById } from "@/services/courseApi";
+import { getCompletedLessonIds } from "@/services/progressApi";
 import { toast } from "sonner";
 
 export default function CourseDetail() {
@@ -18,8 +19,38 @@ export default function CourseDetail() {
       if (!courseId) return;
       setLoading(true);
       try {
-        const data = await getCourseById(courseId);
-        if (mounted) setCourse(data);
+        const [data, completedIds] = await Promise.all([
+          getCourseById(courseId),
+          getCompletedLessonIds(courseId).catch(() => [] as string[]),
+        ]);
+
+        const completedSet = new Set(completedIds);
+        const rawModules = Array.isArray(data?.modules) ? data.modules : [];
+
+        let completedLessons = 0;
+        const modulesWithCompletion = rawModules.map((module: any) => {
+          const rawLessons = Array.isArray(module?.lessons) ? module.lessons : [];
+          const lessons = rawLessons.map((lesson: any) => {
+            const isCompleted = completedSet.has(String(lesson?.id));
+            if (isCompleted) completedLessons += 1;
+            return {
+              ...lesson,
+              completed: isCompleted,
+            };
+          });
+          return {
+            ...module,
+            lessons,
+          };
+        });
+
+        if (mounted) {
+          setCourse({
+            ...data,
+            modules: modulesWithCompletion,
+            completedLessons,
+          });
+        }
       } catch (error) {
         console.error("Failed to load course:", error);
         if (mounted) setCourse(null);

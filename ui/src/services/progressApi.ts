@@ -29,6 +29,15 @@ export const getCourseProgress = async (courseId: string) => {
 };
 
 /**
+ * Get completed lesson IDs for current user in a course
+ */
+export const getCompletedLessonIds = async (courseId: string): Promise<string[]> => {
+  const res = await apiFetch(`/api/progress/courses/${courseId}/completed-lessons`);
+  const data = unwrapApiData<any>(res);
+  return Array.isArray(data) ? data.map((id) => String(id)) : [];
+};
+
+/**
  * Get user's overall progress
  */
 export const getMyProgress = async () => {
