@@ -386,6 +386,21 @@ public class LessonProgressServiceImpl implements LessonProgressService {
     }
 
     @Override
+    public List<Long> getCompletedLessonIds(Long courseId, Long userId) throws Exception {
+        LOGGER.log(Level.INFO, "Fetching completed lesson IDs for user {0} in course {1}", new Object[]{userId, courseId});
+
+        sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        getOrCreateEnrollment(courseId, userId);
+
+        return lessonProgressRepo.findByUserIdAndCourseId(userId, courseId).stream()
+                .filter(progress -> Boolean.TRUE.equals(progress.getIsCompleted()))
+                .map(LessonProgress::getLessonId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<CourseProgressResponse> getUserAllProgress(Long userId) throws Exception {
         LOGGER.log(Level.INFO, "Fetching all course progress for user {0}", userId);
 
