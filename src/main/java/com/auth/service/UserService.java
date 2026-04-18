@@ -11,9 +11,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -73,6 +79,26 @@ public class UserService {
 
             if (authentication.isAuthenticated()) {
                 LOGGER.log(Level.INFO, "Authentication successful for user: {0}", new Object[]{user.getUsername()});
+
+                // Set the SecurityContext for the current thread
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // Persist SecurityContext into HTTP session so subsequent requests with the same
+                // JSESSIONID are treated as authenticated for this principal.
+                try {
+                    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                    if (attrs != null) {
+                        HttpServletRequest currentRequest = attrs.getRequest();
+                        if (currentRequest != null) {
+                            HttpSession session = currentRequest.getSession(true);
+                            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                                    SecurityContextHolder.getContext());
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Unable to persist security context to session: {0}", new Object[]{e.getMessage()});
+                }
+
                 String token = jwtService.generateToken(user.getUsername());
                 Users currentUser = userRepo.findByUsername(user.getUsername());
                 return new LoginResponse(token, new UserResponse(currentUser));

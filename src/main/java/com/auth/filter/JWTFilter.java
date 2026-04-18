@@ -1,6 +1,7 @@
 package com.auth.filter;
 
 import com.auth.jwt.JWTService;
+import com.auth.jwt.TokenBlacklistService;
 import com.auth.service.UserDetailService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -28,6 +29,9 @@ public class JWTFilter extends OncePerRequestFilter {
 
     @Autowired
     private JWTService jwtService;
+
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
 
     @Autowired
     private ApplicationContext context;
@@ -68,6 +72,19 @@ public class JWTFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Check if the token was revoked/blacklisted
+        try {
+            if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(token)) {
+                LOGGER.log(Level.WARNING, "JWTFilter: Token is blacklisted for user {0}", new Object[]{username});
+                SecurityContextHolder.clearContext();
+                writeUnauthorized(response, "JWT token has been revoked. Please login again.");
+                return;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "JWTFilter: Error checking blacklist: {0}", new Object[]{e.getMessage()});
+            // proceed - blacklist failure should not crash auth
+        }
+
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             try {
@@ -103,4 +120,3 @@ public class JWTFilter extends OncePerRequestFilter {
     }
 
 }
-
