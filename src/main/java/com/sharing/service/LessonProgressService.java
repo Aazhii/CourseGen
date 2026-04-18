@@ -31,6 +31,11 @@ public interface LessonProgressService {
     CourseProgressResponse getUserCourseProgress(Long courseId, Long userId) throws Exception;
 
     /**
+     * Get completed lesson IDs for the current user in a course
+     */
+    List<Long> getCompletedLessonIds(Long courseId, Long userId) throws Exception;
+
+    /**
      * Get all user's course progress
      */
     List<CourseProgressResponse> getUserAllProgress(Long userId) throws Exception;
