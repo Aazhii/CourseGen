@@ -243,6 +243,7 @@
     <include file="db/changelog/db.changelog-sharing.xml"/>
     <include file="db/changelog/db.changelog-streak-fix.xml"/>
     <include file="db/changelog/db.changelog-llm-management.xml"/>
+    <include file="db/changelog/db.changelog-mcp-audit.xml"/>
     <include file="db/changelog/db.changelog-dynamic-course-builder.xml"/>
     <include file="db/changelog/db.changelog-rich-media-studio.xml"/>
 </databaseChangeLog>

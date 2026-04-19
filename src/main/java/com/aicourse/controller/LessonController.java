@@ -1,11 +1,13 @@
 package com.aicourse.controller;
 
+import com.aicourse.mcp.service.McpFacadeService;
 import com.aicourse.model.Lesson;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.service.courses.impl.LessonServiceImpl;
 import com.aicourse.utils.api.ApiResponse;
 import com.auth.model.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,6 +29,12 @@ public class LessonController {
     @Autowired
     private CourseService courseService;
 
+    @Autowired
+    private McpFacadeService mcpFacadeService;
+
+    @Value("${mcp.enabled:false}")
+    private boolean mcpEnabled;
+
     @PostMapping("/{courseId}/modules/{moduleId}/lessons/{lessonId}/generate")
     public ResponseEntity<Lesson> generateLesson(@PathVariable Long courseId, @PathVariable Long moduleId,
                                                  @PathVariable Long lessonId, Authentication authentication) throws Exception {
@@ -34,12 +42,17 @@ public class LessonController {
                 new Object[]{lessonId, moduleId, courseId});
         try {
 
-            if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal)) {
+            if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
-            Long userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
-            Lesson lesson = lessonServiceImpl.generateLessonContent(courseId, moduleId, lessonId, userId);
+            Lesson lesson;
+            if (mcpEnabled) {
+                lesson = mcpFacadeService.generateLesson(courseId, moduleId, lessonId, principal);
+            } else {
+                Long userId = principal.getUser().getId();
+                lesson = lessonServiceImpl.generateLessonContent(courseId, moduleId, lessonId, userId);
+            }
 
             LOGGER.log(Level.INFO, "Lesson ID: {0} generated successfully", new Object[]{lessonId});
             return ResponseEntity.ok(lesson);

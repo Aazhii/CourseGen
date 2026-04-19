@@ -3,9 +3,11 @@ package com.aicoach.controller;
 import com.aicoach.dto.AiCoachRequest;
 import com.aicoach.dto.AiCoachResponse;
 import com.aicoach.service.AiCoachService;
+import com.aicourse.mcp.service.McpFacadeService;
 import com.aicourse.utils.api.ApiResponse;
 import com.auth.model.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,6 +24,12 @@ public class AiCoachController {
     @Autowired
     private AiCoachService aiCoachService;
 
+    @Autowired
+    private McpFacadeService mcpFacadeService;
+
+    @Value("${mcp.enabled:false}")
+    private boolean mcpEnabled;
+
     @PostMapping("/respond")
     public ResponseEntity<ApiResponse<AiCoachResponse>> respond(@RequestBody AiCoachRequest request,
                                                                 Authentication authentication) throws Exception {
@@ -29,8 +37,13 @@ public class AiCoachController {
             return ResponseEntity.status(401).build();
         }
 
-        Long userId = principal.getUser().getId();
-        AiCoachResponse response = aiCoachService.respond(userId, principal.getUser().getRoles(), request);
+        AiCoachResponse response;
+        if (mcpEnabled) {
+            response = mcpFacadeService.coachRespond(request, principal);
+        } else {
+            Long userId = principal.getUser().getId();
+            response = aiCoachService.respond(userId, principal.getUser().getRoles(), request);
+        }
         return ResponseEntity.ok(ApiResponse.success("Coach response generated", response));
     }
 
@@ -46,4 +59,3 @@ public class AiCoachController {
         return ResponseEntity.ok(emitter);
     }
 }
-
