@@ -75,47 +75,39 @@ public class LessonServiceImpl implements LessonService {
                 .build();
 
         try {
-            LOGGER.log(Level.FINE, "Sending prompt to AI for lesson ''{0}''", new Object[]{lessonTitle});
+            LOGGER.log(Level.INFO, "Sending prompt to AI for block-based lesson ''{0}''", new Object[]{lessonTitle});
             String response = aiDynamicGateway.getResponse(AiWorkload.LESSON_GENERATION, prompt);
-            LOGGER.log(Level.FINE, "Received response from AI for lesson ''{0}'' (length: {1})",
-                    new Object[]{lessonTitle, response.length()});
 
             String cleanJson = JsonParserUtil.extractRawJson(response);
-
-            // Validate JSON before parsing
-            if (!JsonParserUtil.isValidJson(cleanJson)) {
-                LOGGER.log(Level.SEVERE, "AI response is not valid JSON for lesson: {0}", new Object[]{lessonTitle});
-                throw new IllegalArgumentException("AI generated invalid JSON content for lesson: " + lessonTitle);
-            }
-            
             JsonNode contentJson = JsonParserUtil.parseStringToJsonObject(cleanJson);
 
-            // Additional validation: ensure it's an array
             if (!contentJson.isArray()) {
-                LOGGER.log(Level.SEVERE, "AI response is not a JSON array for lesson: {0}", new Object[]{lessonTitle});
-                throw new IllegalArgumentException("AI content must be a JSON array of lesson blocks for lesson: " + lessonTitle);
+                throw new IllegalArgumentException("AI content must be a JSON array of lesson blocks");
             }
-
-            LOGGER.log(Level.FINE, "Successfully parsed {0} content blocks for lesson: {1}",
-                    new Object[]{contentJson.size(), lessonTitle});
 
             lesson.setContent(contentJson);
             lesson.setEnriched(true);
+
+            // Optionally set estimated minutes based on block count
+            lesson.setEstimatedMinutes(contentJson.size() * 2); 
 
             if (userId != null) {
                 userStatsService.recordLessonCompleted(userId, courseId);
             }
 
-            Lesson savedLesson = lessonRepo.save(lesson);
-
-            LOGGER.log(Level.INFO, "Lesson ID: {0} content generated and saved successfully with {1} blocks",
-                    new Object[]{lessonId, contentJson.size()});
-            return savedLesson;
+            return lessonRepo.save(lesson);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to generate content for lesson ID: {0}: {1}",
-                    new Object[]{lessonId, e.getMessage()});
+            LOGGER.log(Level.SEVERE, "Failed to generate lesson content", e);
             throw e;
         }
+    }
+
+    @Transactional
+    public Lesson saveLessonContent(Long lessonId, String contentMd, Long userId) throws Exception {
+        Lesson lesson = lessonRepo.findById(lessonId).orElseThrow(() -> new RuntimeException("Lesson not found"));
+        sharedCourseAccessGuard.assertContentAccessAllowed(lesson.getModule().getCourse().getId(), userId);
+        lesson.setContentMd(contentMd);
+        return lessonRepo.save(lesson);
     }
 
     @Override
