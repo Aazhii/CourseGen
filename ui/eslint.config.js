@@ -3,6 +3,11 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import { deserialize, serialize } from "node:v8";
+
+if (typeof globalThis.structuredClone !== "function") {
+  globalThis.structuredClone = (value) => deserialize(serialize(value));
+}
 
 export default tseslint.config(
   { ignores: ["dist"] },
