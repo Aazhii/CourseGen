@@ -1,7 +1,9 @@
 package com.aicourse.controller;
 
 import com.aicourse.model.Lesson;
+import com.aicourse.service.courses.CourseService;
 import com.aicourse.service.courses.impl.LessonServiceImpl;
+import com.aicourse.utils.api.ApiResponse;
 import com.auth.model.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,6 +23,9 @@ public class LessonController {
 
     @Autowired
     private LessonServiceImpl lessonServiceImpl;
+
+    @Autowired
+    private CourseService courseService;
 
     @PostMapping("/{courseId}/modules/{moduleId}/lessons/{lessonId}/generate")
     public ResponseEntity<Lesson> generateLesson(@PathVariable Long courseId, @PathVariable Long moduleId,
@@ -59,5 +65,25 @@ public class LessonController {
             LOGGER.log(Level.SEVERE, "Error fetching lesson ID: {0}: {1}", new Object[]{id, e.getMessage()});
             throw e;
         }
+    }
+
+    @PostMapping("/{courseId}/modules/{moduleId}/lessons")
+    public ResponseEntity<Lesson> addLesson(@PathVariable Long courseId, @PathVariable Long moduleId, @RequestBody Map<String, String> payload) throws Exception {
+        String title = payload.getOrDefault("title", "New Lesson");
+        Lesson lesson = courseService.addLesson(moduleId, title);
+        return ResponseEntity.ok(lesson);
+    }
+
+    @PutMapping("/{courseId}/modules/{moduleId}/lessons/{lessonId}")
+    public ResponseEntity<ApiResponse<Void>> renameLesson(@PathVariable Long courseId, @PathVariable Long moduleId, @PathVariable Long lessonId, @RequestBody Map<String, String> payload) throws Exception {
+        String title = payload.get("title");
+        courseService.renameLesson(lessonId, title);
+        return ResponseEntity.ok(ApiResponse.success("Lesson renamed", null));
+    }
+
+    @DeleteMapping("/{courseId}/modules/{moduleId}/lessons/{lessonId}")
+    public ResponseEntity<ApiResponse<Void>> deleteLesson(@PathVariable Long courseId, @PathVariable Long moduleId, @PathVariable Long lessonId) throws Exception {
+        courseService.deleteLesson(lessonId);
+        return ResponseEntity.ok(ApiResponse.success("Lesson deleted", null));
     }
 }

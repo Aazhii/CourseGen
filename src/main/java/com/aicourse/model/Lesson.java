@@ -28,6 +28,12 @@ public class Lesson implements Persistable<Long> {
 
     private JsonNode content;
 
+    @Column(name = "content_md", columnDefinition = "TEXT")
+    private String contentMd;
+
+    @Column(name = "estimated_minutes")
+    private Integer estimatedMinutes;
+
     @Column(name = "is_enriched", nullable = false)
     private boolean isEnriched = false;
 
@@ -75,6 +81,22 @@ public class Lesson implements Persistable<Long> {
     public void setTitle(String title) { this.title = title; }
     public JsonNode getContent() { return content; }
     public void setContent(JsonNode content) { this.content = content; }
+
+    public String getContentMd() {
+        return contentMd;
+    }
+
+    public void setContentMd(String contentMd) {
+        this.contentMd = contentMd;
+    }
+
+    public Integer getEstimatedMinutes() {
+        return estimatedMinutes;
+    }
+
+    public void setEstimatedMinutes(Integer estimatedMinutes) {
+        this.estimatedMinutes = estimatedMinutes;
+    }
     public boolean isEnriched() { return isEnriched; }
     public void setEnriched(boolean enriched) { isEnriched = enriched; }
     public Module getModule() { return module; }

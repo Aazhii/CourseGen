@@ -25,6 +25,12 @@ public class Course implements Persistable<Long> {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "source", length = 255)
+    private String source = "ai";
+
+    @Column(columnDefinition = "TEXT")
+    private String topic;
+
     // Auth0 sub
     @Column(nullable = false)
     private Long creator;
@@ -114,6 +120,22 @@ public class Course implements Persistable<Long> {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 
     public Long getCreator() {
         return creator;

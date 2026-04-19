@@ -7,6 +7,7 @@ import com.aicourse.model.Course;
 import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.aicourse.repo.CourseRepo;
+import com.aicourse.repo.LessonRepo;
 import com.aicourse.repo.ModuleRepo;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
@@ -57,6 +58,9 @@ public class CourseServiceImpl implements CourseService {
 
     @Autowired
     private SharedCourseAccessGuard sharedCourseAccessGuard;
+
+    @Autowired
+    private LessonRepo lessonRepo;
 
     @Override
     @Transactional
@@ -387,5 +391,59 @@ public class CourseServiceImpl implements CourseService {
         courseRepo.save(course);
 
         LOGGER.log(Level.INFO, "Course with ID: {0} activated successfully", new Object[]{courseId});
+    }
+
+    @Override
+    @Transactional
+    public Module addModule(Long courseId, String title) throws Exception {
+        Course course = courseRepo.findById(courseId).orElseThrow(() -> new IllegalArgumentException("Course not found: " + courseId));
+        Module module = new Module();
+        module.setId(SnowflakeIdGenerator.generateId());
+        module.setTitle(title);
+        module.setCourse(course);
+        module.setOrder(course.getModules().size());
+        return moduleRepo.save(module);
+    }
+
+    @Override
+    @Transactional
+    public void renameModule(Long moduleId, String title) throws Exception {
+        Module module = moduleRepo.findById(moduleId).orElseThrow(() -> new IllegalArgumentException("Module not found: " + moduleId));
+        module.setTitle(title);
+        moduleRepo.save(module);
+    }
+
+    @Override
+    @Transactional
+    public void deleteModule(Long moduleId) throws Exception {
+        moduleRepo.deleteById(moduleId);
+    }
+
+    @Override
+    @Transactional
+    public Lesson addLesson(Long moduleId, String title) throws Exception {
+        Module module = moduleRepo.findById(moduleId).orElseThrow(() -> new IllegalArgumentException("Module not found: " + moduleId));
+        Lesson lesson = new Lesson();
+        lesson.setId(SnowflakeIdGenerator.generateId());
+        lesson.setTitle(title);
+        lesson.setModule(module);
+        lesson.setOrder(module.getLessons().size());
+        lesson.setContent(JsonParserUtil.parseStringToJsonObject("[]"));
+        lesson.setContentMd("");
+        return lessonRepo.save(lesson);
+    }
+
+    @Override
+    @Transactional
+    public void renameLesson(Long lessonId, String title) throws Exception {
+        Lesson lesson = lessonRepo.findById(lessonId).orElseThrow(() -> new IllegalArgumentException("Lesson not found: " + lessonId));
+        lesson.setTitle(title);
+        lessonRepo.save(lesson);
+    }
+
+    @Override
+    @Transactional
+    public void deleteLesson(Long lessonId) throws Exception {
+        lessonRepo.deleteById(lessonId);
     }
 }

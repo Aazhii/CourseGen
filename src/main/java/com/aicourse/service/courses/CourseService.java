@@ -2,6 +2,7 @@ package com.aicourse.service.courses;
 
 import com.aicourse.dto.CourseBuilderRequest;
 import com.aicourse.model.Course;
+import com.aicourse.model.Lesson;
 import com.aicourse.model.Module;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.security.core.Authentication;
@@ -32,5 +33,17 @@ public interface CourseService {
     void deactivateCourse(Long courseId) throws Exception;
 
     void activateCourse(Long courseId) throws Exception;
+
+    Module addModule(Long courseId, String title) throws Exception;
+
+    void renameModule(Long moduleId, String title) throws Exception;
+
+    void deleteModule(Long moduleId) throws Exception;
+
+    Lesson addLesson(Long moduleId, String title) throws Exception;
+
+    void renameLesson(Long lessonId, String title) throws Exception;
+
+    void deleteLesson(Long lessonId) throws Exception;
 
 }
