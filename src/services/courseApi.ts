@@ -195,9 +195,10 @@ export async function generateLessonContent(
     const mcpResponse = await executeMcpTool<any>({
       tool: 'lesson.generate',
       input: {
-        courseId: Number(courseId),
-        moduleId: Number(moduleId),
-        lessonId: Number(lessonId),
+        // Keep Snowflake IDs as strings to avoid JS number precision loss.
+        courseId,
+        moduleId,
+        lessonId,
       },
     });
 
