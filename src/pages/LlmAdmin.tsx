@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useFeature } from "@/hooks/useFeature";
 import {
   fetchLlmProviderHealth,
   fetchLlmProviders,
   fetchLlmRoutes,
+  fetchMcpAuditFilterOptions,
+  fetchMcpAuditLogs,
   upsertLlmProvider,
   upsertLlmRoute,
+  type McpAuditLogItem,
   type LlmProvider,
+  type LlmProviderPayload,
   type ProviderType,
   type WorkloadType,
 } from "@/services/llmAdminApi";
@@ -69,6 +73,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { USE_MCP_CLIENT } from "@/constants";
 
 const WORKLOADS: WorkloadType[] = ["COURSE_GENERATION", "LESSON_GENERATION", "AI_COACH"];
 
@@ -88,6 +93,24 @@ export default function LlmAdmin() {
   const [error, setError] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit">("routing");
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditItems, setAuditItems] = useState<McpAuditLogItem[]>([]);
+  const [auditTotalPages, setAuditTotalPages] = useState(0);
+  const [auditTotalItems, setAuditTotalItems] = useState(0);
+  const [auditFilterOptions, setAuditFilterOptions] = useState<{ tools: string[]; statuses: string[] }>({
+    tools: [],
+    statuses: [],
+  });
+  const [auditFilters, setAuditFilters] = useState({
+    tool: "",
+    status: "",
+    fromLocal: "",
+    toLocal: "",
+    page: 0,
+    size: 20,
+  });
+  const auditFiltersRef = useRef(auditFilters);
 
   const [form, setForm] = useState({
     code: "",
@@ -103,6 +126,10 @@ export default function LlmAdmin() {
   const providerCodes = useMemo(() => providers.map((p) => p.code), [providers]);
   const staleReference = lastHealthPollSuccessAt ?? healthPollStartedAt;
   const isHealthStale = !loading && healthClockTick - staleReference > 45_000;
+
+  useEffect(() => {
+    auditFiltersRef.current = auditFilters;
+  }, [auditFilters]);
 
   useEffect(() => {
     if (adminFeature.loading || !adminFeature.allowed) {
@@ -178,6 +205,72 @@ export default function LlmAdmin() {
     }
   }
 
+  function toIsoDate(value: string): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return undefined;
+    }
+    return parsed.toISOString();
+  }
+
+  const loadAuditFilterOptions = useCallback(async () => {
+    try {
+      const options = await fetchMcpAuditFilterOptions();
+      setAuditFilterOptions({
+        tools: Array.isArray(options?.tools) ? options.tools : [],
+        statuses: Array.isArray(options?.statuses) ? options.statuses : [],
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to load audit filter options";
+      toast.error(msg);
+    }
+  }, []);
+
+  const loadAuditLogs = useCallback(async (filters: typeof auditFilters, nextPage?: number) => {
+    setAuditLoading(true);
+    try {
+      const page = typeof nextPage === "number" ? nextPage : filters.page;
+      const result = await fetchMcpAuditLogs({
+        tool: filters.tool || undefined,
+        status: filters.status || undefined,
+        from: toIsoDate(filters.fromLocal),
+        to: toIsoDate(filters.toLocal),
+        page,
+        size: filters.size,
+      });
+      setAuditItems(Array.isArray(result.items) ? result.items : []);
+      setAuditTotalItems(result.totalItems ?? 0);
+      setAuditTotalPages(result.totalPages ?? 0);
+      setAuditFilters((prev) => ({ ...prev, page: result.page ?? page }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to load audit logs";
+      toast.error(msg);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (adminFeature.loading || !adminFeature.allowed) {
+      return;
+    }
+    if (activeTab !== "audit") {
+      return;
+    }
+
+    loadAuditFilterOptions();
+    loadAuditLogs(auditFiltersRef.current);
+  }, [adminFeature.loading, adminFeature.allowed, activeTab, loadAuditFilterOptions, loadAuditLogs]);
+
+  function applyAuditFilters() {
+    const nextFilters = { ...auditFilters, page: 0 };
+    setAuditFilters(nextFilters);
+    loadAuditLogs(nextFilters, 0);
+  }
+
   async function saveProvider() {
     setSaving(true);
     setError("");
@@ -187,7 +280,7 @@ export default function LlmAdmin() {
         .map((line) => line.trim())
         .filter(Boolean);
 
-      const payload: any = {
+      const payload: LlmProviderPayload = {
         code: form.code,
         displayName: form.displayName,
         providerType: form.providerType,
@@ -300,6 +393,10 @@ export default function LlmAdmin() {
             )} />
             {isHealthStale ? "Health Stale" : "System Healthy"}
           </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-background/50 text-xs font-medium text-muted-foreground">
+            <Database className="w-3.5 h-3.5" />
+            Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -313,7 +410,7 @@ export default function LlmAdmin() {
         </div>
       </div>
 
-      <Tabs defaultValue="routing" className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "routing" | "providers" | "audit")} className="w-full">
         <div className="flex items-center justify-between mb-2">
           <TabsList className="bg-muted/50 p-1 border">
             <TabsTrigger value="routing" className="gap-2">
@@ -323,6 +420,10 @@ export default function LlmAdmin() {
             <TabsTrigger value="providers" className="gap-2">
               <Server className="w-4 h-4" />
               Provider Registry
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="gap-2">
+              <Activity className="w-4 h-4" />
+              Audit Logs
             </TabsTrigger>
           </TabsList>
         </div>
@@ -736,6 +837,148 @@ export default function LlmAdmin() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-6 mt-0">
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                MCP Audit Log Explorer
+              </CardTitle>
+              <CardDescription>
+                Review MCP tool activity with filters by tool, status, and time range.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="space-y-2">
+                  <Label>Tool</Label>
+                  <Select
+                    value={auditFilters.tool || "__all__"}
+                    onValueChange={(value) => setAuditFilters((prev) => ({ ...prev, tool: value === "__all__" ? "" : value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All tools" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All tools</SelectItem>
+                      {auditFilterOptions.tools.map((tool) => (
+                        <SelectItem key={tool} value={tool}>{tool}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={auditFilters.status || "__all__"}
+                    onValueChange={(value) => setAuditFilters((prev) => ({ ...prev, status: value === "__all__" ? "" : value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All statuses</SelectItem>
+                      {auditFilterOptions.statuses.map((status) => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>From</Label>
+                  <Input
+                    type="datetime-local"
+                    value={auditFilters.fromLocal}
+                    onChange={(e) => setAuditFilters((prev) => ({ ...prev, fromLocal: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>To</Label>
+                  <Input
+                    type="datetime-local"
+                    value={auditFilters.toLocal}
+                    onChange={(e) => setAuditFilters((prev) => ({ ...prev, toLocal: e.target.value }))}
+                  />
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <Button onClick={applyAuditFilters} disabled={auditLoading} className="w-full">
+                    {auditLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Apply"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/60 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[1320px]">
+                    <div className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/30">
+                      <div>Time</div>
+                      <div>Tool</div>
+                      <div>Status</div>
+                      <div className="whitespace-nowrap">User</div>
+                      <div className="whitespace-nowrap">Latency</div>
+                      <div>Error</div>
+                    </div>
+
+                    <div className="max-h-[420px] overflow-y-auto">
+                  {auditItems.length === 0 ? (
+                    <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                      {auditLoading ? "Loading audit logs..." : "No audit logs found for selected filters."}
+                    </div>
+                  ) : (
+                    auditItems.map((item) => (
+                      <div key={item.id} className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-xs border-t border-border/40 hover:bg-muted/20 transition-colors">
+                        <div className="font-medium text-foreground/90 whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</div>
+                        <div className="font-mono text-[11px] text-foreground/80 break-all">{item.tool}</div>
+                        <div>
+                          <Badge variant={item.status === "SUCCESS" ? "default" : "destructive"} className="text-[10px]">
+                            {item.status}
+                          </Badge>
+                        </div>
+                        <div className="text-foreground/80 whitespace-nowrap">{item.userId ?? "-"}</div>
+                        <div className="text-foreground/80 whitespace-nowrap">{item.latencyMs != null ? `${item.latencyMs}ms` : "-"}</div>
+                        <div className="text-muted-foreground break-words">{item.errorMessage || "-"}</div>
+                      </div>
+                    ))
+                  )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <div className="text-muted-foreground">
+                  {auditTotalItems} record{auditTotalItems === 1 ? "" : "s"} total
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadAuditLogs(auditFilters, Math.max(auditFilters.page - 1, 0))}
+                    disabled={auditLoading || auditFilters.page <= 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-muted-foreground text-xs">
+                    Page {auditFilters.page + 1} / {Math.max(auditTotalPages, 1)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadAuditLogs(auditFilters, auditFilters.page + 1)}
+                    disabled={auditLoading || auditFilters.page + 1 >= auditTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
       

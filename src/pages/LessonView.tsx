@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams, Link, useSearchParams } from "react-router-dom";
-import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles, Edit3 } from "lucide-react";
+import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles, Edit3, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LessonContentRenderer from "@/components/lesson/LessonContentRenderer";
 import { LessonData } from "@/types/lessonContent";
@@ -8,6 +8,7 @@ import { getLessonWithGeneration } from "@/services/lessonService";
 import { getCourseById } from "@/services/courseApi";
 import { markLessonComplete, markLessonIncomplete, startLessonSession, stopLessonSession } from "@/services/progressApi";
 import { toast } from "sonner";
+import { USE_MCP_CLIENT } from "@/constants";
 
 export default function LessonView() {
   const { courseId, lessonId } = useParams();
@@ -15,7 +16,7 @@ export default function LessonView() {
   const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
-  const [lesson, setLesson] = useState<any>(null);
+  const [lesson, setLesson] = useState<LessonData | null>(null);
   const [courseTitle, setCourseTitle] = useState("Course");
   const [completed, setCompleted] = useState(false);
   
@@ -49,7 +50,7 @@ export default function LessonView() {
 
         if (mounted) {
           setLesson(normalized);
-          setCompleted(Boolean((normalized as any)?.completed));
+          setCompleted(Boolean((normalized as { completed?: boolean } | null)?.completed));
         }
       } catch (error) {
         console.error("Failed to load lesson:", error);
@@ -117,6 +118,11 @@ export default function LessonView() {
     }
   };
 
+  const lessonBlocks = useMemo(() => {
+    const blocks = (lesson as { content?: unknown } | null)?.content;
+    return Array.isArray(blocks) ? blocks : [];
+  }, [lesson]);
+
   if (loading) {
     return <div className="p-8 text-muted-foreground">Loading lesson...</div>;
   }
@@ -137,6 +143,10 @@ export default function LessonView() {
           </Link>
           
           <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-background/50 text-xs font-medium text-muted-foreground">
+              <Database className="w-3.5 h-3.5" />
+              Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
+            </div>
             {isEditMode && (
               <Button 
                 variant="outline" 
@@ -193,8 +203,8 @@ export default function LessonView() {
       </div>
 
       <div className="mx-auto max-w-4xl px-6 pb-20">
-        {lesson.content.length > 0 ? (
-          <LessonContentRenderer blocks={lesson.content} courseId={courseId} lessonId={lessonId} />
+        {lessonBlocks.length > 0 ? (
+          <LessonContentRenderer blocks={lessonBlocks} courseId={courseId} lessonId={lessonId} />
         ) : (
           <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
             Lesson content is not available yet.
