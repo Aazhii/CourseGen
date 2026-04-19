@@ -1,5 +1,5 @@
 import { useCourseBuilder } from "@/context/CourseBuilderContext";
-import { Module, Lesson } from "@/types/course-builder";
+import type { Module, Lesson } from "@/types/course-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
