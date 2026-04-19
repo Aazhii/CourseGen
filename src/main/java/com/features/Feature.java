@@ -13,6 +13,9 @@ public enum Feature {
     // Lesson features
     LESSON_GENERATE,
 
+    // Study assistant features
+    AI_COACH,
+
     // Premium-only features
     ADVANCED_COURSE_SETTINGS,  // custom quiz count, file upload, etc. (future)
     API_KEY_COURSE_GENERATION, // user provides own API key (future)

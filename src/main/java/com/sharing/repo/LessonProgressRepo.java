@@ -24,5 +24,6 @@ public interface LessonProgressRepo extends JpaRepository<LessonProgress, Long> 
     int countByUserIdAndIsCompletedTrue(Long userId);
 
     int countByCourseIdAndIsCompletedTrue(Long courseId);
-}
 
+    Optional<LessonProgress> findTopByUserIdAndCourseIdOrderByLastActivityAtDesc(Long userId, Long courseId);
+}

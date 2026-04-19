@@ -1,6 +1,6 @@
 package com.project.controller;
 
-import com.aicourse.model.UserPrincipal;
+import com.auth.model.UserPrincipal;
 import com.project.dto.CreateProjectRequest;
 import com.project.dto.ProjectResponse;
 import com.project.service.ProjectService;

@@ -1,11 +1,11 @@
 package com.sharing.controller;
 
 import com.aicourse.model.Course;
-import com.aicourse.model.UserPrincipal;
-import com.aicourse.model.Users;
 import com.aicourse.repo.CourseRepo;
-import com.aicourse.repo.UserRepo;
 import com.aicourse.utils.api.ApiResponse;
+import com.auth.model.UserPrincipal;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.sharing.dto.EnrollmentResponse;
 import com.sharing.model.CourseEnrollment;
 import com.sharing.model.EnrollmentStatus;
@@ -287,6 +287,24 @@ public class InviteController {
                     .orElse("Unknown User");
         }
 
+        int moduleCount = (course.getModules() != null) ? course.getModules().size() : 0;
+        int lessonCount = 0;
+        if (course.getModules() != null) {
+            lessonCount = course.getModules().stream()
+                    .mapToInt(m -> m.getLessons() != null ? m.getLessons().size() : 0)
+                    .sum();
+        }
+
+        String studentName = userRepo.findById(enrollment.getUserId())
+                .map(Users::getDisplayName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElseGet(() -> userRepo.findById(enrollment.getUserId())
+                        .map(Users::getUsername)
+                        .orElse("Unknown User"));
+        String studentHandle = userRepo.findById(enrollment.getUserId())
+                .map(Users::getUsername)
+                .orElse("");
+
         return new EnrollmentResponse(
                 enrollment.getId(),
                 enrollment.getCourseId(),
@@ -295,10 +313,15 @@ public class InviteController {
                 enrollment.getEnrolledAt(),
                 enrollment.getProgressPercentage(),
                 course.getTitle(),
+                course.getDescription(),
                 enrollment.getIsRead(),
                 enrollment.getInviteStatus(),
                 enrollment.getInvitedBy(),
-                invitedByName
+                invitedByName,
+                moduleCount,
+                lessonCount,
+                studentName,
+                studentHandle
         );
     }
 }

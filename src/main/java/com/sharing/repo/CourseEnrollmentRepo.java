@@ -2,6 +2,8 @@ package com.sharing.repo;
 
 import com.sharing.model.CourseEnrollment;
 import com.sharing.model.EnrollmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,8 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
 
     List<CourseEnrollment> findByCourseId(Long courseId);
 
+    Page<CourseEnrollment> findByCourseId(Long courseId, Pageable pageable);
+
     List<CourseEnrollment> findByUserIdAndStatus(Long userId, EnrollmentStatus status);
 
     List<CourseEnrollment> findByCourseIdAndStatus(Long courseId, EnrollmentStatus status);
@@ -27,6 +31,13 @@ public interface CourseEnrollmentRepo extends JpaRepository<CourseEnrollment, Lo
     int countByUserId(Long userId);
 
     int countByCourseIdAndUserId(Long courseId, Long userId);
+
+    int countByCourseId(Long courseId);
+
+    @Query(value = "select * from course_enrollments where course_id = :courseId order by enrolled_at desc limit :limit offset :offset", nativeQuery = true)
+    List<CourseEnrollment> findByCourseIdPaged(@Param("courseId") Long courseId,
+                                               @Param("limit") int limit,
+                                               @Param("offset") int offset);
 
     // --- Sharing / invite specific queries ---
 

@@ -1,23 +1,23 @@
 package com.leaderboard.service.impl;
 
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
 import com.leaderboard.dto.LeaderboardResponseDTO;
 import com.leaderboard.dto.PagedLeaderboardDTO;
 import com.leaderboard.dto.UserRankDTO;
 import com.leaderboard.model.UserStats;
 import com.leaderboard.repository.UserStatsRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
-    private static final long CACHE_TTL_MS = 3 * 60 * 1000L; // 3 min for leaderboard cache
-
-    private final AtomicReference<List<UserStats>> cachedLeaderboard = new AtomicReference<>(null);
-    private volatile long lastFetchedAt = 0L; // timestamp of last DB fetch
+    @Autowired
+    private UserRepo userRepo;
 
     public GlobalLeaderboardService(UserStatsRepository userStatsRepository) {
         super(userStatsRepository);
@@ -30,7 +30,7 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
 
     @Override
     public PagedLeaderboardDTO getTopGlobalUsers(int page, int size) {
-        List<UserStats> all = getOrLoadLeaderboard();
+        List<UserStats> all = fetchAllOrdered();
         return paginate(all, page, size);
     }
 
@@ -40,7 +40,12 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
         AtomicInteger rank = new AtomicInteger(1);
         for (UserStats user : all) {
             if (userId.equals(user.getUserId())) {
-                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user));
+                Users u = userRepo.findById(userId).orElse(null);
+                String displayName = (u != null && u.getDisplayName() != null && !u.getDisplayName().isBlank())
+                        ? u.getDisplayName()
+                        : (u != null ? u.getUsername() : "Unknown");
+                String handle = u != null ? u.getUsername() : "";
+                return new UserRankDTO(rank.get(), user.getUserId(), getScore(user), displayName, handle, user.getTotalCoursesCreated(), user.getCurrentStreak(), user.getWeeklyPoints());
             }
             rank.incrementAndGet();
         }
@@ -56,28 +61,21 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
         int fromIndex = Math.min(page * size, total);
         int toIndex = Math.min(fromIndex + size, total);
 
-        List<LeaderboardResponseDTO> paged = buildLeaderBoard(all.subList(fromIndex, toIndex));
+        List<LeaderboardResponseDTO> paged = buildLeaderBoard(all.subList(fromIndex, toIndex), fromIndex);
+
+        // Populate displayName and handle
+        for (LeaderboardResponseDTO dto : paged) {
+            userRepo.findById(dto.getUserId()).ifPresent(u -> {
+                String displayName = (u.getDisplayName() == null || u.getDisplayName().isBlank())
+                        ? u.getUsername()
+                        : u.getDisplayName();
+                dto.setDisplayName(displayName);
+                dto.setHandle(u.getUsername());
+                dto.setUsername(displayName);
+            });
+        }
 
         int totalPages = (int) Math.ceil((double) total / size);
         return new PagedLeaderboardDTO(paged, page, size, total, totalPages);
-    }
-
-    /**
-     * Returns leaderboard from cache if within TTL window,
-     * otherwise fetches fresh data from DB and resets the timer.
-     */
-    private List<UserStats> getOrLoadLeaderboard() {
-        Long curTime = System.currentTimeMillis();
-        List<UserStats> cachedLeaderBoard = cachedLeaderboard.get();
-
-        if (cachedLeaderBoard != null && (curTime - lastFetchedAt) < CACHE_TTL_MS) {
-            return cachedLeaderBoard;
-        }
-
-        // Cache expired or empty — fetch from DB
-        List<UserStats> newLeaderBoard = userStatsRepository.findAllOrderByTotalPoints();
-        cachedLeaderboard.set(newLeaderBoard);
-        lastFetchedAt = curTime;
-        return newLeaderBoard;
     }
 }

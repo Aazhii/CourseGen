@@ -1,7 +1,6 @@
 package com.sharing.service;
 
-import com.sharing.dto.CourseProgressResponse;
-import com.sharing.dto.EnrollmentResponse;
+import com.sharing.dto.*;
 import com.sharing.model.EnrollmentStatus;
 
 import java.util.List;
@@ -18,10 +17,23 @@ public interface LessonProgressService {
      */
     void markLessonIncomplete(Long lessonId, Long courseId, Long userId) throws Exception;
 
+    void startLessonSession(Long lessonId, Long courseId, Long userId) throws Exception;
+
+    void stopLessonSession(Long lessonId, Long courseId, Long userId) throws Exception;
+
+    void recordQuizAttempt(Long lessonId, Long courseId, Long userId, int quizIndex, boolean correct) throws Exception;
+
+    SharedCourseUsageResponse getSharedCourseUsage(Long courseId, Long childUserId, Long creatorId) throws Exception;
+
     /**
      * Get user's progress in a course
      */
     CourseProgressResponse getUserCourseProgress(Long courseId, Long userId) throws Exception;
+
+    /**
+     * Get completed lesson IDs for the current user in a course
+     */
+    List<Long> getCompletedLessonIds(Long courseId, Long userId) throws Exception;
 
     /**
      * Get all user's course progress
@@ -37,6 +49,8 @@ public interface LessonProgressService {
      * Get all enrollments for a course
      */
     List<EnrollmentResponse> getCourseEnrollments(Long courseId) throws Exception;
+
+    PagedResponse<EnrollmentResponse> getCourseEnrollmentsPaged(Long courseId, int page, int size) throws Exception;
 
     /**
      * Enroll user in a course
@@ -57,5 +71,11 @@ public interface LessonProgressService {
      * Get total lessons in a course
      */
     int getTotalLessonsInCourse(Long courseId) throws Exception;
-}
 
+    /**
+     * Get course leaderboard
+     */
+    List<CourseLeaderboardEntry> getCourseLeaderboard(Long courseId, Long requestingUserId) throws Exception;
+
+    PagedResponse<CourseLeaderboardEntry> getCourseLeaderboardPaged(Long courseId, Long requestingUserId, int page, int size) throws Exception;
+}
