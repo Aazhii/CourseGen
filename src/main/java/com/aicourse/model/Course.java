@@ -73,10 +73,10 @@ public class Course implements Persistable<Long> {
     private String thumbnailUrl;
 
     @Column(name = "visibility")
-    private String visibility;
+    private String visibility = "PRIVATE";
 
     @Column(name = "enrollment_type")
-    private String enrollmentType;
+    private String enrollmentType = "open";
 
     @Column(name = "tags_json", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
@@ -107,6 +107,12 @@ public class Course implements Persistable<Long> {
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
+        if (visibility == null || visibility.isBlank()) {
+            visibility = "PRIVATE";
+        }
+        if (enrollmentType == null || enrollmentType.isBlank()) {
+            enrollmentType = "open";
+        }
     }
 
     @PreUpdate
