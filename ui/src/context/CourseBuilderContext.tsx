@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
-import { Course, Module, Lesson, ContentBlock, Quiz } from "@/types/course-builder";
+import type { Course, Module, Lesson, ContentBlock, Quiz } from "@/types/course-builder";
 
 type CourseBuilderState = {
   course: Course;

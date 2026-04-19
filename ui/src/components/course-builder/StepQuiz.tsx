@@ -1,5 +1,5 @@
 import { useCourseBuilder } from "@/context/CourseBuilderContext";
-import { Quiz, QuizQuestion } from "@/types/course-builder";
+import type { Quiz, QuizQuestion } from "@/types/course-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

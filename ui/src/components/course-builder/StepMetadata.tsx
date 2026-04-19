@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Sparkles, UploadCloud } from "lucide-react";
-import { ContentBlock, Module } from "@/types/course-builder";
+import type { ContentBlock, Module } from "@/types/course-builder";
 import { toast } from "sonner";
 import { generateCourseOutlineAPI } from "@/services/courseApi";
 

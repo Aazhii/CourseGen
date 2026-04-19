@@ -1,4 +1,4 @@
-import { ExtractedContent } from "@/types/course-builder";
+import type { ExtractedContent } from "@/types/course-builder";
 
 // The python backend URL should come from an env config, for now we mock it
 const PYTHON_BACKEND_URL = import.meta.env.VITE_PYTHON_BACKEND_URL || "http://localhost:8000";

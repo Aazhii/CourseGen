@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useCourseBuilder } from "@/context/CourseBuilderContext";
-import { ContentBlock } from "@/types/course-builder";
+import type { ContentBlock } from "@/types/course-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Type, Video, Link as LinkIcon, FileText, Code, Sparkles, BrainCircuit, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Plus, Type, Video, Link as LinkIcon, FileText, Code, Sparkles, BrainCircuit, ArrowUp, ArrowDown, Trash2, Image as ImageIcon } from "lucide-react";
+import { LessonMediaPicker } from "./LessonMediaPicker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +18,8 @@ import {
 export function ContentEditor() {
   const { state, dispatch } = useCourseBuilder();
   const { course, selectedLessonId } = state;
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [targetBlockId, setTargetBlockId] = useState<string | null>(null);
 
   // Find the selected lesson deeply
   let selectedLesson = null;
@@ -57,6 +62,9 @@ export function ContentEditor() {
         break;
       case "code":
         newBlock = { id: crypto.randomUUID(), type, language: "javascript", code: "", order };
+        break;
+      case "image":
+        newBlock = { id: crypto.randomUUID(), type, url: "", alt: "", prompt: "", order };
         break;
       case "ai-generated":
         newBlock = { id: crypto.randomUUID(), type, prompt: "", content: "", order };
@@ -183,6 +191,56 @@ export function ContentEditor() {
               <p className="text-xs text-muted-foreground">Configure in the Assessment Tab.</p>
             </div>
           )}
+
+          {block.type === "image" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-muted-foreground pb-2">
+                <ImageIcon className="w-4 h-4"/> 
+                <span className="text-sm font-medium">Lesson Image</span>
+              </div>
+              
+              {block.url ? (
+                <div className="relative group/img rounded-lg overflow-hidden border">
+                  <img src={block.url} alt={block.alt} className="w-full h-auto max-h-80 object-contain bg-muted" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                     <Button variant="secondary" size="sm" onClick={() => setIsMediaPickerOpen(true)}>Change Image</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="w-full h-32 border-dashed border-2 flex flex-col gap-2"
+                  onClick={() => {
+                    setTargetBlockId(block.id);
+                    setIsMediaPickerOpen(true);
+                  }}
+                >
+                  <ImageIcon className="w-8 h-8 opacity-20" />
+                  <span>Add Image</span>
+                </Button>
+              )}
+              
+              <div className="grid grid-cols-1 gap-4 mt-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Alt Text (Accessibility)</Label>
+                  <Input 
+                    placeholder="Describe this image..." 
+                    value={block.alt} 
+                    onChange={(e) => updateBlock(block.id, { alt: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Generation Prompt (Reference)</Label>
+                  <Textarea 
+                    placeholder="What should this image show?" 
+                    value={block.prompt} 
+                    onChange={(e) => updateBlock(block.id, { prompt: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -218,6 +276,7 @@ export function ContentEditor() {
                 <DropdownMenuItem onClick={() => addBlock("link")}><LinkIcon className="w-4 h-4 mr-2"/> Reference Link</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => addBlock("file")}><FileText className="w-4 h-4 mr-2"/> Document / File</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => addBlock("code")}><Code className="w-4 h-4 mr-2"/> Code Snippet</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => addBlock("image")}><ImageIcon className="w-4 h-4 mr-2"/> Image / Diagram</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => addBlock("quiz")}><BrainCircuit className="w-4 h-4 mr-2"/> Inline Quiz</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => addBlock("ai-generated")} className="text-primary"><Sparkles className="w-4 h-4 mr-2"/> AI Content</DropdownMenuItem>
               </DropdownMenuContent>
@@ -225,6 +284,18 @@ export function ContentEditor() {
           </div>
         </div>
       </ScrollArea>
+
+      <LessonMediaPicker 
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        lessonId={selectedLesson.id}
+        onSelect={(url) => {
+          if (targetBlockId) {
+            updateBlock(targetBlockId, { url });
+          }
+          setIsMediaPickerOpen(false);
+        }}
+      />
     </div>
   );
 }
