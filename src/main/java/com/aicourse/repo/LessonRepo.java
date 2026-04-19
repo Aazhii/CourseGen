@@ -9,6 +9,9 @@ import java.util.List;
 
 public interface LessonRepo extends JpaRepository<Lesson, Long> {
     List<Lesson> findByModuleTitle(String course);
+
+    List<Lesson> findByModule_Id(Long moduleId);
+
     @Query(
             value = """
             SELECT *

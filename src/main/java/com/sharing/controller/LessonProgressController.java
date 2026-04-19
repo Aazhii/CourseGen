@@ -1,9 +1,8 @@
 package com.sharing.controller;
 
-import com.aicourse.model.UserPrincipal;
 import com.aicourse.utils.api.ApiResponse;
-import com.sharing.dto.CourseProgressResponse;
-import com.sharing.dto.EnrollmentResponse;
+import com.auth.model.UserPrincipal;
+import com.sharing.dto.*;
 import com.sharing.exception.SharedCourseContentLockedException;
 import com.sharing.model.EnrollmentStatus;
 import com.sharing.service.LessonProgressService;
@@ -82,6 +81,88 @@ public class LessonProgressController {
     }
 
     /**
+     * Start a lesson session
+     */
+    @PostMapping("/lessons/{lessonId}/session/start")
+    public ResponseEntity<ApiResponse<Void>> startLessonSession(
+            @PathVariable Long lessonId,
+            @RequestParam Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to start lesson session for {0}", lessonId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            lessonProgressService.startLessonSession(lessonId, courseId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Lesson session started", null));
+        } catch (SharedCourseContentLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error starting lesson session: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error starting lesson session: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Stop a lesson session
+     */
+    @PostMapping("/lessons/{lessonId}/session/stop")
+    public ResponseEntity<ApiResponse<Void>> stopLessonSession(
+            @PathVariable Long lessonId,
+            @RequestParam Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to stop lesson session for {0}", lessonId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            lessonProgressService.stopLessonSession(lessonId, courseId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Lesson session stopped", null));
+        } catch (SharedCourseContentLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error stopping lesson session: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error stopping lesson session: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Record a quiz attempt
+     */
+    @PostMapping("/lessons/{lessonId}/quiz-attempts")
+    public ResponseEntity<ApiResponse<Void>> recordQuizAttempt(
+            @PathVariable Long lessonId,
+            @RequestParam Long courseId,
+            @RequestBody QuizAttemptRequest payload,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to record quiz attempt for {0}", lessonId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            if (payload == null || payload.getQuizIndex() == null || payload.getCorrect() == null) {
+                throw new IllegalArgumentException("quizIndex and correct are required");
+            }
+            lessonProgressService.recordQuizAttempt(
+                    lessonId,
+                    courseId,
+                    principal.getUser().getId(),
+                    payload.getQuizIndex(),
+                    payload.getCorrect()
+            );
+            return ResponseEntity.ok(ApiResponse.success("Quiz attempt recorded", null));
+        } catch (SharedCourseContentLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error recording quiz attempt: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error recording quiz attempt: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get user's progress in a specific course
      */
     @GetMapping("/courses/{courseId}")
@@ -104,6 +185,29 @@ public class LessonProgressController {
             LOGGER.log(Level.SEVERE, "Error fetching course progress: {0}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("Error fetching course progress: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get completed lesson IDs for the current user in a course
+     */
+    @GetMapping("/courses/{courseId}/completed-lessons")
+    public ResponseEntity<ApiResponse<List<Long>>> getCompletedLessonIds(
+            @PathVariable Long courseId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to fetch completed lesson IDs for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            List<Long> response = lessonProgressService.getCompletedLessonIds(courseId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Completed lesson IDs fetched successfully", response));
+        } catch (SharedCourseContentLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching completed lesson IDs: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error fetching completed lesson IDs: " + e.getMessage()));
         }
     }
 
@@ -154,12 +258,14 @@ public class LessonProgressController {
      * Get all enrollments for a course (admin/creator only)
      */
     @GetMapping("/courses/{courseId}/enrollments")
-    public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getCourseEnrollments(
-            @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<PagedResponse<EnrollmentResponse>>> getCourseEnrollments(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         LOGGER.log(Level.INFO, "Request received to fetch enrollments for course: {0}", courseId);
         try {
-            List<EnrollmentResponse> response = lessonProgressService.getCourseEnrollments(courseId);
+            PagedResponse<EnrollmentResponse> response = lessonProgressService.getCourseEnrollmentsPaged(courseId, page, size);
 
             LOGGER.log(Level.INFO, "Course enrollments fetched successfully");
             return ResponseEntity.ok(ApiResponse.success("Course enrollments fetched successfully", response));
@@ -195,7 +301,49 @@ public class LessonProgressController {
                     .body(ApiResponse.failure("Error updating enrollment status: " + e.getMessage()));
         }
     }
+
+    /**
+     * Get shared course usage report
+     */
+    @GetMapping("/courses/{courseId}/users/{userId}/report")
+    public ResponseEntity<ApiResponse<SharedCourseUsageResponse>> getSharedCourseUsage(
+            @PathVariable Long courseId,
+            @PathVariable Long userId,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to fetch shared course usage for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            SharedCourseUsageResponse response = lessonProgressService
+                    .getSharedCourseUsage(courseId, userId, principal.getUser().getId());
+            return ResponseEntity.ok(ApiResponse.success("Shared course usage fetched successfully", response));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching shared course usage: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error fetching shared course usage: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get course leaderboard (accessible by creator or any enrolled user)
+     */
+    @GetMapping("/courses/{courseId}/leaderboard")
+    public ResponseEntity<ApiResponse<PagedResponse<CourseLeaderboardEntry>>> getCourseLeaderboard(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+
+        LOGGER.log(Level.INFO, "Request received to fetch leaderboard for course: {0}", courseId);
+        try {
+            UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+            PagedResponse<CourseLeaderboardEntry> entries = lessonProgressService
+                    .getCourseLeaderboardPaged(courseId, principal.getUser().getId(), page, size);
+            return ResponseEntity.ok(ApiResponse.success("Leaderboard fetched successfully", entries));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching leaderboard: {0}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("Error fetching leaderboard: " + e.getMessage()));
+        }
+    }
 }
-
-
-

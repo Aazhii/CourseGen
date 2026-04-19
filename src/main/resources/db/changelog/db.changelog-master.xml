@@ -184,6 +184,16 @@
             </column>
         </createTable>
     </changeSet>
+
+    <changeSet id="users-display-name" author="ari">
+        <addColumn tableName="users">
+            <column name="display_name" type="VARCHAR(255)"/>
+        </addColumn>
+        <update tableName="users">
+            <column name="display_name" valueComputed="username"/>
+        </update>
+    </changeSet>
+
     <changeSet id="increase-title-lengths-v2" author="ari">
         <validCheckSum>ANY</validCheckSum>
         <modifyDataType tableName="courses" columnName="title" newDataType="VARCHAR(1000)"/>
@@ -231,5 +241,7 @@
     <include file="db/changelog/db.changelog-leaderboard.xml"/>
     <include file="db/changelog/db.changelog-project.xml"/>
     <include file="db/changelog/db.changelog-sharing.xml"/>
-<!--    <include file="db/changelog/db.changelog-populateDb.xml"/>-->
+    <include file="db/changelog/db.changelog-streak-fix.xml"/>
+    <include file="db/changelog/db.changelog-llm-management.xml"/>
+    <include file="db/changelog/db.changelog-dynamic-course-builder.xml"/>
 </databaseChangeLog>

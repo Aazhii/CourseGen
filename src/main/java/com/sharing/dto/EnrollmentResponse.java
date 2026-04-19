@@ -12,10 +12,15 @@ public class EnrollmentResponse {
     private OffsetDateTime enrolledAt;
     private Double progressPercentage;
     private String courseName;
+    private String courseDescription;
     private Boolean isRead;
     private String inviteStatus;
     private Long invitedBy;
     private String invitedByName;
+    private int moduleCount;
+    private int lessonCount;
+    private String userName;
+    private String userHandle;
 
     // --- Constructors ---
     public EnrollmentResponse() {
@@ -34,7 +39,8 @@ public class EnrollmentResponse {
 
     public EnrollmentResponse(Long id, Long courseId, Long userId, EnrollmentStatus status,
                               OffsetDateTime enrolledAt, Double progressPercentage, String courseName,
-                              Boolean isRead, String inviteStatus, Long invitedBy, String invitedByName) {
+                              String courseDescription, Boolean isRead, String inviteStatus,
+                              Long invitedBy, String invitedByName, int moduleCount, int lessonCount, String userName, String userHandle) {
         this.id = id;
         this.courseId = courseId;
         this.userId = userId;
@@ -42,10 +48,15 @@ public class EnrollmentResponse {
         this.enrolledAt = enrolledAt;
         this.progressPercentage = progressPercentage;
         this.courseName = courseName;
+        this.courseDescription = courseDescription;
         this.isRead = isRead;
         this.inviteStatus = inviteStatus;
         this.invitedBy = invitedBy;
         this.invitedByName = invitedByName;
+        this.moduleCount = moduleCount;
+        this.lessonCount = lessonCount;
+        this.userName = userName;
+        this.userHandle = userHandle;
     }
 
     // --- Getters and Setters ---
@@ -105,6 +116,14 @@ public class EnrollmentResponse {
         this.courseName = courseName;
     }
 
+    public String getCourseDescription() {
+        return courseDescription;
+    }
+
+    public void setCourseDescription(String courseDescription) {
+        this.courseDescription = courseDescription;
+    }
+
     public Boolean getIsRead() {
         return isRead;
     }
@@ -136,5 +155,36 @@ public class EnrollmentResponse {
     public void setInvitedByName(String invitedByName) {
         this.invitedByName = invitedByName;
     }
-}
 
+    public int getModuleCount() {
+        return moduleCount;
+    }
+
+    public void setModuleCount(int moduleCount) {
+        this.moduleCount = moduleCount;
+    }
+
+    public int getLessonCount() {
+        return lessonCount;
+    }
+
+    public void setLessonCount(int lessonCount) {
+        this.lessonCount = lessonCount;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserHandle() {
+        return userHandle;
+    }
+
+    public void setUserHandle(String userHandle) {
+        this.userHandle = userHandle;
+    }
+}

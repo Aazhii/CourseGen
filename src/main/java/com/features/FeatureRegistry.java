@@ -1,6 +1,6 @@
 package com.features;
 
-import com.aicourse.enums.UserRole;
+import com.auth.enums.UserRole;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -56,6 +56,15 @@ public class FeatureRegistry {
 
         // ── LESSON_GENERATE ────────────────────────────────
         register(Feature.LESSON_GENERATE,
+                Map.of(
+                        UserRole.USER, FeatureConfig.UNLIMITED,
+                        UserRole.PREMIUM_USER, FeatureConfig.UNLIMITED,
+                        UserRole.ADMIN, FeatureConfig.UNLIMITED
+                )
+        );
+
+        // ── AI_COACH ───────────────────────────────────────
+        register(Feature.AI_COACH,
                 Map.of(
                         UserRole.USER, FeatureConfig.UNLIMITED,
                         UserRole.PREMIUM_USER, FeatureConfig.UNLIMITED,

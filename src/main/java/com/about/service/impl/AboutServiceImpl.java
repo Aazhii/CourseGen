@@ -4,9 +4,9 @@ import com.about.pojo.ChangePasswordRequestPojo;
 import com.about.pojo.ProfileResponsePojo;
 import com.about.pojo.UpdateProfileRequestPojo;
 import com.about.service.AboutService;
-import com.aicourse.model.Users;
-import com.aicourse.repo.UserRepo;
-import com.aicourse.service.UserService;
+import com.auth.model.Users;
+import com.auth.repo.UserRepo;
+import com.auth.service.UserService;
 import com.leaderboard.model.UserStats;
 import com.leaderboard.repository.UserStatsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 @Service
 public class AboutServiceImpl implements AboutService {
@@ -22,6 +23,7 @@ public class AboutServiceImpl implements AboutService {
     private static final Logger LOGGER = Logger.getLogger(AboutServiceImpl.class.getName());
 
     private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final Pattern HANDLE_PATTERN = Pattern.compile("^[a-z0-9._]{6,25}$");
 
     @Autowired
     private UserRepo userRepo;
@@ -33,6 +35,9 @@ public class AboutServiceImpl implements AboutService {
         LOGGER.log(Level.INFO, "Fetching profile for userId: {0}", userId);
 
         Users user = findUserOrThrow(userId);
+        String displayName = (user.getDisplayName() == null || user.getDisplayName().isBlank())
+                ? user.getUsername()
+                : user.getDisplayName();
 
         // UserStats row might not exist yet if the user never completed a lesson
         ProfileResponsePojo.StatsSnapshot stats = userStatsRepository
@@ -43,6 +48,7 @@ public class AboutServiceImpl implements AboutService {
         return new ProfileResponsePojo(
                 user.getId(),
                 user.getUsername(),
+                displayName,
                 user.getRoles(),
                 user.getCreatedAt(),
                 stats
@@ -53,33 +59,40 @@ public class AboutServiceImpl implements AboutService {
     public ProfileResponsePojo updateProfile(Long userId, UpdateProfileRequestPojo request) throws Exception {
         LOGGER.log(Level.INFO, "Updating profile for userId: {0}", userId);
 
-        String newUsername = request.getNewUsername();
-
-        // Validation
-        if (newUsername == null || newUsername.isBlank()) {
-            throw new IllegalArgumentException("Username cannot be blank.");
+        String requestedDisplayName = request.getDisplayName();
+        if ((requestedDisplayName == null || requestedDisplayName.isBlank()) && request.getNewUsername() != null) {
+            requestedDisplayName = request.getNewUsername();
         }
-
-        newUsername = newUsername.trim();
+        String requestedHandle = request.getHandle();
 
         Users user = findUserOrThrow(userId);
 
-        // No-op if username is unchanged
-        if (user.getUsername().equals(newUsername)) {
-            LOGGER.log(Level.INFO, "Username unchanged for userId: {0}", userId);
-            return getProfile(userId);
+        if (requestedDisplayName != null) {
+            String trimmed = requestedDisplayName.trim();
+            if (trimmed.isBlank()) {
+                throw new IllegalArgumentException("Display name cannot be blank.");
+            }
+            user.setDisplayName(trimmed);
         }
 
-        // Check uniqueness — is this username already taken by someone else?
-        Users existing = userRepo.findByUsername(newUsername);
-        if (existing != null && !existing.getId().equals(userId)) {
-            throw new IllegalArgumentException("Username '" + newUsername + "' is already taken.");
+        if (requestedHandle != null) {
+            String trimmedHandle = requestedHandle.trim();
+            if (!HANDLE_PATTERN.matcher(trimmedHandle).matches()) {
+                throw new IllegalArgumentException("User ID must be 6-25 characters and use only lowercase letters, numbers, '.' or '_' .");
+            }
+
+            if (!user.getUsername().equals(trimmedHandle)) {
+                Users existing = userRepo.findByUsername(trimmedHandle);
+                if (existing != null && !existing.getId().equals(userId)) {
+                    throw new IllegalArgumentException("User ID '" + trimmedHandle + "' is already taken.");
+                }
+                user.setUsername(trimmedHandle);
+            }
         }
 
-        user.setUsername(newUsername);
         userRepo.save(user);
 
-        LOGGER.log(Level.INFO, "Username updated successfully for userId: {0}", userId);
+        LOGGER.log(Level.INFO, "Profile updated successfully for userId: {0}", userId);
         return getProfile(userId);
     }
 

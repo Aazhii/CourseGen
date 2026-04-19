@@ -8,7 +8,7 @@ import com.leaderboard.service.LeaderboardService;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractLeaderboardService implements LeaderboardService{
+public abstract class AbstractLeaderboardService implements LeaderboardService {
 
     protected final UserStatsRepository userStatsRepository;
 
@@ -16,18 +16,22 @@ public abstract class AbstractLeaderboardService implements LeaderboardService{
         this.userStatsRepository = userStatsRepository;
     }
 
-    protected List<LeaderboardResponseDTO> buildLeaderBoard(List<UserStats> stats){
+    protected List<LeaderboardResponseDTO> buildLeaderBoard(List<UserStats> stats, int offset) {
 
-        AtomicInteger rank = new AtomicInteger(1);
+        AtomicInteger rank = new AtomicInteger(offset + 1);
 
         return stats.stream()
                 .map(user -> new LeaderboardResponseDTO(
                         rank.getAndIncrement(),
                         user.getUserId(),
-                        getScore(user)
-                        )
-
-                    ).toList();
+                        getScore(user),
+                        null, // displayName will be populated later
+                        null, // handle will be populated later
+                        user.getTotalCoursesCreated(),
+                        user.getCurrentStreak(),
+                        user.getWeeklyPoints()
+                ))
+                .toList();
     }
 
     protected abstract int getScore(UserStats user);

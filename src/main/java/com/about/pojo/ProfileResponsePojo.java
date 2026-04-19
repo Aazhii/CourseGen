@@ -1,6 +1,6 @@
 package com.about.pojo;
 
-import com.aicourse.enums.UserRole;
+import com.auth.enums.UserRole;
 
 import java.time.OffsetDateTime;
 
@@ -8,6 +8,7 @@ public class ProfileResponsePojo {
 
     private Long id;
     private String username;
+    private String displayName;
     private UserRole role;
     private OffsetDateTime createdAt;
     private StatsSnapshot stats;
@@ -16,10 +17,11 @@ public class ProfileResponsePojo {
     public ProfileResponsePojo() {
     }
 
-    public ProfileResponsePojo(Long id, String username, UserRole role,
+    public ProfileResponsePojo(Long id, String username, String displayName, UserRole role,
                                OffsetDateTime createdAt, StatsSnapshot stats) {
         this.id = id;
         this.username = username;
+        this.displayName = displayName;
         this.role = role;
         this.createdAt = createdAt;
         this.stats = stats;
@@ -40,6 +42,18 @@ public class ProfileResponsePojo {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getHandle() {
+        return username;
     }
 
     public UserRole getRole() {
