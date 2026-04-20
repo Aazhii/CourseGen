@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Edit3, Loader2 } from "lucide-react";
+import { useParams, Link } from "react-router-dom";
+import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { deleteCourse, getCourseById } from "@/services/courseApi";
@@ -9,15 +9,8 @@ import { toast } from "sonner";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Sticky Edit Mode logic
-  const [isEditMode, setIsEditMode] = useState<boolean>(() => {
-    if (searchParams.get("edit") === "1") return true;
-    const sticky = localStorage.getItem(`course_edit_mode_${courseId}`);
-    return sticky === "true";
-  });
-  
+  const isEditMode = false;
+
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -164,23 +157,6 @@ export default function CourseDetail() {
     };
   }, [courseId]);
 
-  // Sync edit mode to URL & LocalStorage
-  useEffect(() => {
-    localStorage.setItem(`course_edit_mode_${courseId}`, String(isEditMode));
-    
-    const currentEdit = searchParams.get("edit") === "1";
-    if (isEditMode !== currentEdit) {
-      if (isEditMode) {
-        searchParams.set("edit", "1");
-      } else {
-        searchParams.delete("edit");
-      }
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [isEditMode, courseId, searchParams, setSearchParams]);
-
-  const toggleEditMode = () => setIsEditMode(prev => !prev);
-
   const modules = useMemo(() => (Array.isArray(course?.modules) ? course.modules : []), [course]);
 
   const handleDelete = async () => {
@@ -221,14 +197,6 @@ export default function CourseDetail() {
           </Button>
         </Link>
         <div className="flex items-center gap-3">
-          <Button 
-            variant={isEditMode ? "default" : "outline"}
-            className="gap-2"
-            onClick={toggleEditMode}
-          >
-            <Edit3 className="h-4 w-4" />
-            {isEditMode ? "Done Editing" : "Edit Details"}
-          </Button>
           <Link to={`/courses/${course.id || courseId}/coach`}>
             <Button variant="outline" className="gap-2">
               <Sparkles className="h-4 w-4 text-purple-500" />
@@ -360,7 +328,7 @@ export default function CourseDetail() {
                          </Button>
                       )}
                     </div>
-                    <Link to={`/courses/${course.id || courseId}/lessons/${lesson.id}?moduleId=${module.id}${isEditMode ? '&edit=1' : ''}`}>
+                    <Link to={`/courses/${course.id || courseId}/lessons/${lesson.id}?moduleId=${module.id}`}>
                       <Button variant={isEditMode ? "outline" : "default"} size="sm" className="gap-1.5 shrink-0">
                         {isEditMode ? "Edit Content" : <> <Play className="h-3 w-3" /> Start </>}
                       </Button>
