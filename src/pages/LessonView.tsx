@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams, Link, useSearchParams } from "react-router-dom";
-import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles, Edit3, Database } from "lucide-react";
+import { useLocation, useParams, Link } from "react-router-dom";
+import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LessonContentRenderer from "@/components/lesson/LessonContentRenderer";
 import { LessonData } from "@/types/lessonContent";
@@ -13,16 +13,12 @@ import { USE_MCP_CLIENT } from "@/constants";
 export default function LessonView() {
   const { courseId, lessonId } = useParams();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [courseTitle, setCourseTitle] = useState("Course");
   const [completed, setCompleted] = useState(false);
   
-  // Edit Mode state
-  const isEditMode = searchParams.get("edit") === "1";
-
   const moduleIdFromQuery =
     new URLSearchParams(location.search).get("moduleId") || undefined;
 
@@ -135,7 +131,7 @@ export default function LessonView() {
     <div className="animate-fade-in min-h-screen">
       <div className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-6 py-3">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <Link to={`/courses/${courseId}${isEditMode ? '?edit=1' : ''}`}>
+          <Link to={`/courses/${courseId}`}>
             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
               <ChevronLeft className="h-4 w-4" />
               Back to Course
@@ -147,21 +143,7 @@ export default function LessonView() {
               <Database className="w-3.5 h-3.5" />
               Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
             </div>
-            {isEditMode && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2 border-primary/50 text-primary hover:bg-primary/5"
-                onClick={() => {
-                   // Redirect to the wizard builder for this lesson
-                   window.location.href = `/courses/${courseId}/edit?lessonId=${lessonId}`;
-                }}
-              >
-                <Edit3 className="h-4 w-4" />
-                Edit Blocks
-              </Button>
-            )}
-            
+
             <Button
               variant={completed ? "outline" : "default"}
               size="sm"
@@ -172,7 +154,7 @@ export default function LessonView() {
               {completed ? "Completed ✓" : "Mark Complete"}
             </Button>
 
-            <Link to={`/courses/${courseId}/lessons/${lessonId}/coach${isEditMode ? '?edit=1' : ''}`}>
+            <Link to={`/courses/${courseId}/lessons/${lessonId}/coach`}>
               <Button variant="outline" size="sm" className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 AI Coach

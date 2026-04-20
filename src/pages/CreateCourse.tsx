@@ -28,7 +28,7 @@ function CourseBuilderWizard({ onBack }: { onBack: () => void }) {
         toast.loading("Publishing built course...", { id: "publish" });
         const createdCourse = await saveBuiltCourse(state.course);
         toast.success("Course published successfully!", { id: "publish" });
-        navigate(`/courses/${createdCourse.id}?edit=1`);
+        navigate(`/courses/${createdCourse.id}`);
       } catch (e: any) {
         toast.error(`Publish failed: ${e.message}`, { id: "publish" });
       } finally {
