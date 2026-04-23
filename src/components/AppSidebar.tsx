@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FolderOpen, Trophy, Plus, FileText, ChevronUp, Sun, Moon, User, LogOut, Bot } from "lucide-react";
-import { projects } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { fetchCourses } from "@/services/courseApi";
 import { useFeature } from "@/hooks/useFeature";
 import GlobalSearch from "@/components/GlobalSearch";
+import { createProject, getMyProjects, type Project } from "@/services/projectApi";
+import { toast } from "sonner";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -23,6 +24,11 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
   const [courses, setCourses] = useState<any[]>([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -43,12 +49,55 @@ export default function AppSidebar() {
     return () => { mounted = false; };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    async function loadProjects() {
+      try {
+        setProjectsLoading(true);
+        const list = await getMyProjects();
+        if (mounted) setProjects(list);
+      } catch {
+        if (mounted) setProjects([]);
+      } finally {
+        if (mounted) setProjectsLoading(false);
+      }
+    }
+    loadProjects();
+    return () => { mounted = false; };
+  }, []);
+
   const displayName = user?.displayName ?? user?.username ?? "User";
   const avatarLetter = displayName[0]?.toUpperCase() ?? "U";
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleCreateProject = async () => {
+    const name = newProjectName.trim();
+    if (!name) {
+      toast.error("Project name is required");
+      return;
+    }
+
+    try {
+      setCreatingProject(true);
+      const created = await createProject({
+        name,
+        description: newProjectDescription.trim() || undefined,
+      });
+      setProjects((prev) => [created, ...prev]);
+      setProjectDialogOpen(false);
+      setNewProjectName("");
+      setNewProjectDescription("");
+      toast.success("Project created");
+      navigate(`/projects/${created.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create project");
+    } finally {
+      setCreatingProject(false);
+    }
   };
 
   return (
@@ -77,15 +126,26 @@ export default function AppSidebar() {
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">What are you working on?</label>
-                <Input placeholder="Name your project" />
+                <Input
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Name your project"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">What are you trying to achieve?</label>
-                <Textarea placeholder="Describe your project, goals, subject, etc..." className="min-h-[120px]" />
+                <Textarea
+                  value={newProjectDescription}
+                  onChange={(e) => setNewProjectDescription(e.target.value)}
+                  placeholder="Describe your project, goals, subject, etc..."
+                  className="min-h-[120px]"
+                />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" onClick={() => setProjectDialogOpen(false)}>Cancel</Button>
-                <Button onClick={() => setProjectDialogOpen(false)}>Create project</Button>
+                <Button onClick={handleCreateProject} disabled={creatingProject}>
+                  {creatingProject ? "Creating..." : "Create project"}
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -134,20 +194,35 @@ export default function AppSidebar() {
       <div className="mt-6 flex-1 overflow-y-auto px-3">
         <div className="mb-2 flex items-center justify-between px-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Projects</span>
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setProjectDialogOpen(true)}
+            aria-label="Create project"
+          >
             <Plus className="h-4 w-4" />
           </button>
         </div>
         <div className="space-y-0.5">
-          {projects.map((p) => (
-            <Link
-              key={p.id}
-              to={`/projects/${p.id}`}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-            >
-              {p.name}
-            </Link>
-          ))}
+          {projectsLoading ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Loading projects...</div>
+          ) : projects.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No projects yet</div>
+          ) : (
+            projects.slice(0, 8).map((p) => (
+              <Link
+                key={p.id}
+                to={`/projects/${p.id}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                  location.pathname === `/projects/${p.id}`
+                    ? "bg-primary/15 text-primary border-l-2 border-primary"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent"
+                )}
+              >
+                <span className="truncate">{p.name}</span>
+              </Link>
+            ))
+          )}
         </div>
 
         <div className="mt-6 mb-2 flex items-center px-3">

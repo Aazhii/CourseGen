@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CourseBuilderProvider, useCourseBuilder } from "@/context/CourseBuilderContext";
 import { WizardStepper } from "@/components/course-builder/WizardStepper";
 import { StepMetadata } from "@/components/course-builder/StepMetadata";
@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { saveBuiltCourse, createCourse } from "@/services/courseApi";
+import { addCourseToProject, getProjectById } from "@/services/projectApi";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, Library, PenLine, ChevronRight, Loader2 } from "lucide-react";
 
 // --- Original Power User Wizard (moved to a component) ---
@@ -87,7 +88,34 @@ function CourseEntryScreen() {
   const [mode, setMode] = useState<"entry" | "blank">("entry");
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get("projectId") || "";
+
+  useEffect(() => {
+    const initialTopic = searchParams.get("topic");
+    if (initialTopic) {
+      setTopic(initialTopic);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProjectName() {
+      if (!projectId) return;
+      try {
+        const project = await getProjectById(projectId);
+        if (mounted) setSelectedProjectName(project.name);
+      } catch {
+        if (mounted) setSelectedProjectName(null);
+      }
+    }
+    loadProjectName();
+    return () => {
+      mounted = false;
+    };
+  }, [projectId]);
 
   const handleAIGenerate = async () => {
     if (!topic.trim()) {
@@ -98,10 +126,14 @@ function CourseEntryScreen() {
       setGenerating(true);
       toast.loading("Generating your course...", { id: "generate" });
       const created = await createCourse({ topic: topic, difficulty: "Beginner", duration: "2 Hours" });
+      if (projectId) {
+        await addCourseToProject(projectId, created.id);
+      }
       toast.success("Course generated!", { id: "generate" });
       navigate(`/courses/${created.id}`); // View mode by default
     } catch (e: any) {
       toast.error(`Generation failed: ${e.message}`, { id: "generate" });
+    } finally {
       setGenerating(false);
     }
   };
@@ -130,6 +162,11 @@ function CourseEntryScreen() {
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
             What do you want to learn or build today?
           </h1>
+          {projectId && (
+            <p className="text-sm text-primary font-medium">
+              Generating into project: {selectedProjectName || "Selected Project"}
+            </p>
+          )}
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Get started instantly with AI, pick a proven template, or start from scratch with full control.
           </p>
