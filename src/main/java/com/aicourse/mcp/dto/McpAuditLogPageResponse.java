@@ -3,7 +3,6 @@ package com.aicourse.mcp.dto;
 import java.util.List;
 
 public class McpAuditLogPageResponse {
-
     private List<McpAuditLogResponse> items;
     private int page;
     private int size;
