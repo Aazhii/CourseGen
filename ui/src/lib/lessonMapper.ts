@@ -79,6 +79,41 @@ function coerceBlock(raw: any): LessonBlock | null {
     };
   }
 
+  if (type === "video") {
+    const url = typeof content?.url === "string" ? content.url : typeof raw?.url === "string" ? raw.url : "";
+    if (!url) return null;
+    return {
+      type: "youtube",
+      content: {
+        url,
+        title: typeof content?.title === "string" ? content.title : typeof raw?.title === "string" ? raw.title : undefined,
+      },
+    };
+  }
+
+  if (type === "image") {
+    const url = typeof content?.url === "string" ? content.url : typeof raw?.url === "string" ? raw.url : "";
+    if (!url) return null;
+    return {
+      type: "image",
+      content: {
+        url,
+        alt:
+          typeof content?.alt === "string"
+            ? content.alt
+            : typeof raw?.alt === "string"
+              ? raw.alt
+              : "Lesson image",
+        prompt:
+          typeof content?.prompt === "string"
+            ? content.prompt
+            : typeof raw?.prompt === "string"
+              ? raw.prompt
+              : undefined,
+      },
+    };
+  }
+
   if (type === "reference" && Array.isArray(content)) {
     const refs = content
       .map((item: any) => ({
@@ -153,14 +188,22 @@ export function parseLessonBlocks(raw: unknown): LessonBlock[] {
  * Normalizes raw lesson response from backend into typed LessonData
  */
 export function normalizeLessonData(raw: any): LessonData {
-  const blocks = parseLessonBlocks(raw?.content);
+  const contentSource =
+    raw?.content ??
+    raw?.contentBlocks ??
+    raw?.blocks ??
+    raw?.contentMd ??
+    raw?.content_md ??
+    raw?.markdown ??
+    "";
+  const blocks = parseLessonBlocks(contentSource);
 
   return {
     id: String(raw?.id || ""),
     title: String(raw?.title || "Untitled Lesson"),
     content: blocks,
     new: Boolean(raw?.new),
-    enriched: Boolean(raw?.enriched),
+    enriched: Boolean(raw?.enriched ?? raw?.isEnriched ?? raw?.is_enriched),
   };
 }
 
@@ -168,7 +211,15 @@ export function normalizeLessonData(raw: any): LessonData {
  * Checks if lesson needs content generation
  */
 export function needsLessonGeneration(lesson: any): boolean {
-  const blocks = parseLessonBlocks(lesson?.content);
+  const contentSource =
+    lesson?.content ??
+    lesson?.contentBlocks ??
+    lesson?.blocks ??
+    lesson?.contentMd ??
+    lesson?.content_md ??
+    lesson?.markdown ??
+    "";
+  const blocks = parseLessonBlocks(contentSource);
   return blocks.length === 0 || lesson?.enriched === false || lesson?.new === true;
 }
 

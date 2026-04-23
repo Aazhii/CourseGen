@@ -45,6 +45,7 @@ export type ContentBlock =
   | { id: string; type: "file"; fileName: string; fileUrl: string; extractedContent?: ExtractedContent; order: number }
   | { id: string; type: "quiz"; quiz: Quiz; order: number }
   | { id: string; type: "code"; language: string; code: string; order: number }
+  | { id: string; type: "image"; url: string; alt: string; prompt: string; order: number }
   | { id: string; type: "ai-generated"; prompt: string; content: string; order: number };
 
 export type Quiz = {

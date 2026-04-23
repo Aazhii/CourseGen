@@ -8,6 +8,7 @@ import LessonQuizBlock from "./LessonQuizBlock";
 import LessonCodeBlock from "./LessonCodeBlock";
 import LessonYoutubeBlock from "./LessonYoutubeBlock";
 import LessonReferenceBlock from "./LessonReferenceBlock";
+import LessonImageBlock from "./LessonImageBlock";
 
 interface Props {
   blocks: LessonBlock[];
@@ -38,6 +39,8 @@ export default function LessonContentRenderer({ blocks, courseId, lessonId }: Pr
             return <LessonYoutubeBlock key={index} block={block} />;
           case "reference":
             return <LessonReferenceBlock key={index} block={block} />;
+          case "image":
+            return <LessonImageBlock key={index} block={block} />;
           default:
             return null;
         }

@@ -61,6 +61,15 @@ export interface LessonReference {
   }>;
 }
 
+export interface LessonImage {
+  type: "image";
+  content: {
+    url: string;
+    alt: string;
+    prompt?: string;
+  };
+}
+
 export type LessonBlock =
   | LessonHeading
   | LessonText
@@ -70,7 +79,8 @@ export type LessonBlock =
   | LessonCode
   | LessonYoutube
   | LessonHtml
-  | LessonReference;
+  | LessonReference
+  | LessonImage;
 
 export interface LessonData {
   id: string;

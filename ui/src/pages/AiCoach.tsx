@@ -1,10 +1,11 @@
 import { FormEvent, useMemo, useState, useRef, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle, Clock, BookOpen, GraduationCap, ExternalLink, Menu, Plus, MessageSquare, X, PanelLeftClose, PanelLeft, MoreHorizontal } from "lucide-react";
+import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle, Clock, BookOpen, GraduationCap, ExternalLink, Menu, Plus, MessageSquare, X, PanelLeftClose, PanelLeft, MoreHorizontal, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getCoachResponse } from "@/services/coachApi";
+import { USE_MCP_CLIENT } from "@/constants";
 import {
   CoachBlock,
   CoachCitation,
@@ -20,6 +21,10 @@ type ChatMessage =
   | { role: "user"; text: string }
   | { role: "assistant"; payload?: CoachResponse; textStream?: string };
 
+function normalizeCoachBlocks(payload?: CoachResponse): CoachBlock[] {
+  return Array.isArray(payload?.blocks) ? payload.blocks : [];
+}
+
 interface ChatSession {
   id: string;
   title: string;
@@ -34,8 +39,9 @@ function extractChatHistory(messages: ChatMessage[]): CoachChatMessage[] {
       return { role: "user", text: msg.text };
     } else {
       let assistantText = "";
-      if (msg.payload?.blocks) {
-        msg.payload.blocks.forEach(block => {
+      const blocks = normalizeCoachBlocks(msg.payload);
+      if (blocks.length > 0) {
+        blocks.forEach(block => {
           if (block.type === "text") {
              const textContent = block.content as CoachTextContent;
              if (textContent.title) assistantText += `**${textContent.title}**\n`;
@@ -53,11 +59,12 @@ function extractPreviousQuizQuestions(messages: ChatMessage[]): string[] {
   const questions: string[] = [];
 
   for (const message of messages) {
-    if (message.role !== "assistant" || !message.payload?.blocks) {
+    const blocks = message.role === "assistant" ? normalizeCoachBlocks(message.payload) : [];
+    if (blocks.length === 0) {
       continue;
     }
 
-    for (const block of message.payload.blocks) {
+    for (const block of blocks) {
       if (block.type !== "quiz_card") {
         continue;
       }
@@ -165,7 +172,9 @@ function migrateToSessions(raw: string): ChatSession[] {
          }
          return parsed as ChatSession[];
       }
-    } catch {}
+    } catch {
+      // Ignore malformed local cache and start with a clean session list.
+    }
     return [];
 }
 
@@ -306,7 +315,7 @@ function Flashcard({ content }: { content: CoachFlashcardContent }) {
 }
 
 // Basic bold markdown parser
-export function renderBody(body: string) {
+function renderBody(body: string) {
   if (!body) return null;
   const parts = body.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
@@ -450,7 +459,7 @@ export default function AiCoach() {
 
     try {
       const raw = localStorage.getItem(chatStorageKey);
-      let loadedSessions = migrateToSessions(raw || "[]");
+      const loadedSessions = migrateToSessions(raw || "[]");
       loadedSessions.sort((a,b) => b.updatedAt - a.updatedAt);
       
       setSessions(loadedSessions);
@@ -499,7 +508,7 @@ export default function AiCoach() {
       ]);
     } else {
       setSessions((prev) => {
-        let updatedSessions = [...prev];
+        const updatedSessions = [...prev];
         const idx = updatedSessions.findIndex((s) => s.id === targetSessionId);
         if (idx >= 0) {
           const newMessages = [...updatedSessions[idx].messages, userMessage].slice(-MAX_PERSISTED_MESSAGES);
@@ -535,7 +544,7 @@ export default function AiCoach() {
       });
       
       setSessions((prev) => {
-        let updatedSessions = [...prev];
+        const updatedSessions = [...prev];
         const idx = updatedSessions.findIndex((s) => s.id === targetSessionId);
         if (idx >= 0) {
           const newMessages = [...updatedSessions[idx].messages, { role: "assistant", payload } as ChatMessage].slice(-MAX_PERSISTED_MESSAGES);
@@ -651,6 +660,10 @@ export default function AiCoach() {
           )} */}
           <div className="font-semibold text-foreground md:hidden mx-auto pr-10">AI Coach</div>
           <div className="ml-auto hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-background/50 text-xs font-medium text-muted-foreground">
+              <Database className="w-3.5 h-3.5" />
+              Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
+            </div>
             <Link to={lessonId ? `/courses/${courseId}/lessons/${lessonId}` : `/courses/${courseId}`}>
               <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground">
                 <ChevronLeft className="w-4 h-4" /> Back to course
@@ -709,7 +722,7 @@ export default function AiCoach() {
                         <div className="space-y-4">
                           {message.payload && (
                             <>
-                              {message.payload.blocks.map((block, blockIndex) => {
+                              {normalizeCoachBlocks(message.payload).map((block, blockIndex) => {
                                 const isLatestMessage = index === animatingMessageIndex;
                                 
                                 // Condition 1: If it's the latest message, only show blocks up to activeBlockIndex
@@ -731,14 +744,14 @@ export default function AiCoach() {
                                 );
                               })}
 
-                              {(! (index === animatingMessageIndex && activeBlockIndex < message.payload.blocks.length)) &&
+                              {(! (index === animatingMessageIndex && activeBlockIndex < normalizeCoachBlocks(message.payload).length)) &&
                                 message.payload.citations &&
                                 message.payload.citations.length > 0 && (
                                   <CitationList citations={message.payload.citations} />
                               )}
 
                               {/* Only show suggestions when everything is done animating */}
-                              {(! (index === animatingMessageIndex && activeBlockIndex < message.payload.blocks.length)) && 
+                              {(! (index === animatingMessageIndex && activeBlockIndex < normalizeCoachBlocks(message.payload).length)) &&
                                message.payload.suggestions && message.payload.suggestions.length > 0 && (
                                 <div className="flex flex-wrap gap-2 pt-4">
                                   {message.payload.suggestions.map((suggestion) => (

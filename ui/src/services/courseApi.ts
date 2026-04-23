@@ -1,4 +1,6 @@
 import { apiFetch } from './apiClient';
+import { executeMcpTool } from './mcpApi';
+import { USE_MCP_CLIENT } from '@/constants';
 
 export interface Course {
   id: string;
@@ -189,6 +191,23 @@ export async function generateLessonContent(
   moduleId: string,
   lessonId: string
 ) {
+  if (USE_MCP_CLIENT) {
+    const mcpResponse = await executeMcpTool<any>({
+      tool: 'lesson.generate',
+      input: {
+        // Keep Snowflake IDs as strings to avoid JS number precision loss.
+        courseId,
+        moduleId,
+        lessonId,
+      },
+    });
+
+    if (!mcpResponse?.success) {
+      throw new Error(mcpResponse?.error || 'MCP lesson.generate failed');
+    }
+    return mcpResponse.data;
+  }
+
   return apiFetch(
     `/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/generate`,
     {
