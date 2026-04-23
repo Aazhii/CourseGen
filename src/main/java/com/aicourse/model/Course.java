@@ -25,6 +25,12 @@ public class Course implements Persistable<Long> {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "source", length = 255)
+    private String source = "ai";
+
+    @Column(columnDefinition = "TEXT")
+    private String topic;
+
     // Auth0 sub
     @Column(nullable = false)
     private Long creator;
@@ -67,10 +73,10 @@ public class Course implements Persistable<Long> {
     private String thumbnailUrl;
 
     @Column(name = "visibility")
-    private String visibility;
+    private String visibility = "PRIVATE";
 
     @Column(name = "enrollment_type")
-    private String enrollmentType;
+    private String enrollmentType = "open";
 
     @Column(name = "tags_json", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
@@ -101,6 +107,12 @@ public class Course implements Persistable<Long> {
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
+        if (visibility == null || visibility.isBlank()) {
+            visibility = "PRIVATE";
+        }
+        if (enrollmentType == null || enrollmentType.isBlank()) {
+            enrollmentType = "open";
+        }
     }
 
     @PreUpdate
@@ -114,6 +126,22 @@ public class Course implements Persistable<Long> {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
 
     public Long getCreator() {
         return creator;

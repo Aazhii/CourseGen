@@ -14,13 +14,13 @@ public class LessonProgress {
     @Id
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "lesson_id", nullable = false)
     private Long lessonId;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(name = "course_id", nullable = false)
     private Long courseId;
 
     @Column(name = "is_completed", nullable = false)
