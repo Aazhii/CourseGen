@@ -79,6 +79,13 @@ public class LessonServiceImpl implements LessonService {
             String response = aiDynamicGateway.getResponse(AiWorkload.LESSON_GENERATION, prompt);
 
             String cleanJson = JsonParserUtil.extractRawJson(response);
+
+            // Validate JSON before parsing
+            if (!JsonParserUtil.isValidJson(cleanJson)) {
+                LOGGER.log(Level.SEVERE, "AI response is not valid JSON for lesson: {0}", new Object[]{lessonTitle});
+                throw new IllegalArgumentException("AI generated invalid JSON content for lesson: " + lessonTitle);
+            }
+            
             JsonNode contentJson = JsonParserUtil.parseStringToJsonObject(cleanJson);
 
             if (!contentJson.isArray()) {
