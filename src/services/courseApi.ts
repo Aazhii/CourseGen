@@ -1,29 +1,7 @@
 import { apiFetch } from './apiClient';
 import { executeMcpTool } from './mcpApi';
 import { USE_MCP_CLIENT } from '@/constants';
-
-export interface Course {
-  id: string;
-  title: string;
-  description?: string;
-  topic?: string;
-  difficulty?: string;
-  duration?: string;
-  moduleCount?: number;
-  lessonCount?: number;
-  modules?: any[];
-  active?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: any;
-}
-
-export interface CourseCreatePayload {
-  topic: string;
-  difficulty?: string;
-  duration?: string;
-  projectId?: string;
-}
+import { Course, CourseCreatePayload } from '@/types/course';
 
 function unwrapApiData<T>(payload: any): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {

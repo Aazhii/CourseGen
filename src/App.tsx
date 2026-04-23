@@ -24,6 +24,8 @@ import AiCoach from "./pages/AiCoach";
 import LlmAdmin from "./pages/LlmAdmin";
 import NotFound from "./pages/NotFound";
 
+import LandingPage from "./pages/LandingPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,11 +38,13 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/welcome" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/join/:token" element={<JoinCourse />} />
                 <Route element={<AppLayout />}>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/courses/:courseId" element={<CourseDetail />} />
                   <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonView />} />
                   <Route path="/courses/:courseId/coach" element={<AiCoach />} />
