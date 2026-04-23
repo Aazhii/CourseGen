@@ -25,4 +25,12 @@ public interface ProjectService {
     void addCourseToProject(Long projectId, Long courseId, Long userId) throws Exception;
 
     void removeCourseFromProject(Long projectId, Long courseId, Long userId) throws Exception;
+
+    java.util.List<com.project.dto.ProjectPromptResponse> getProjectPrompts(Long projectId, Long userId) throws Exception;
+
+    com.project.dto.ProjectPromptResponse saveProjectPrompt(Long projectId, Long userId, com.project.dto.ProjectPromptRequest request) throws Exception;
+
+    void deleteProjectPrompt(Long projectId, String promptId, Long userId) throws Exception;
+
+    com.project.dto.ProjectPromptResponse markPromptAsUsed(Long projectId, String promptId, Long userId) throws Exception;
 }

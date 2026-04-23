@@ -9,8 +9,12 @@ import com.features.Feature;
 import com.features.FeatureGuard;
 import com.leaderboard.model.impl.UserStatsService;
 import com.project.dto.CreateProjectRequest;
+import com.project.dto.ProjectPromptRequest;
+import com.project.dto.ProjectPromptResponse;
 import com.project.dto.ProjectResponse;
 import com.project.model.Project;
+import com.project.model.ProjectPrompt;
+import com.project.repo.ProjectPromptRepo;
 import com.project.repo.ProjectRepo;
 import com.project.service.ProjectService;
 import jakarta.transaction.Transactional;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -34,6 +39,9 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Autowired
     private CourseRepo courseRepo;
+
+    @Autowired
+    private ProjectPromptRepo projectPromptRepo;
 
     @Autowired
     private FeatureGuard featureGuard;
@@ -181,6 +189,87 @@ public class ProjectServiceImpl implements ProjectService {
         courseRepo.save(course);
         LOGGER.log(Level.INFO, "Course {0} removed from project {1}",
                 new Object[]{courseId, projectId});
+    }
+
+    @Override
+    public List<ProjectPromptResponse> getProjectPrompts(Long projectId, Long userId) {
+        findAndVerifyOwner(projectId, userId);
+        List<ProjectPrompt> prompts = projectPromptRepo.findByProjectIdOrderByUpdatedAtDesc(projectId);
+        return prompts.stream().map(this::toPromptResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ProjectPromptResponse saveProjectPrompt(Long projectId, Long userId, ProjectPromptRequest request) {
+        findAndVerifyOwner(projectId, userId);
+
+        if (request.getText() == null || request.getText().trim().isBlank()) {
+            throw new IllegalArgumentException("Prompt cannot be empty");
+        }
+
+        Optional<ProjectPrompt> existing = projectPromptRepo.findByProjectIdAndTextIgnoreCase(projectId, request.getText().trim());
+
+        ProjectPrompt prompt;
+        if (existing.isPresent()) {
+            prompt = existing.get();
+            prompt.setText(request.getText().trim());
+            if (request.getRelatedCourseId() != null) prompt.setRelatedCourseId(request.getRelatedCourseId());
+            if (request.getRelatedCourseTitle() != null) prompt.setRelatedCourseTitle(request.getRelatedCourseTitle());
+        } else {
+            prompt = new ProjectPrompt();
+            prompt.setProjectId(projectId);
+            prompt.setText(request.getText().trim());
+            prompt.setRelatedCourseId(request.getRelatedCourseId());
+            prompt.setRelatedCourseTitle(request.getRelatedCourseTitle());
+        }
+
+        ProjectPrompt saved = projectPromptRepo.save(prompt);
+        return toPromptResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProjectPrompt(Long projectId, String promptId, Long userId) {
+        findAndVerifyOwner(projectId, userId);
+
+        ProjectPrompt prompt = projectPromptRepo.findById(promptId)
+                .orElseThrow(() -> new RuntimeException("Prompt not found"));
+
+        if (!prompt.getProjectId().equals(projectId)) {
+            throw new SecurityException("Prompt does not belong to this project");
+        }
+
+        projectPromptRepo.delete(prompt);
+    }
+
+    @Override
+    @Transactional
+    public ProjectPromptResponse markPromptAsUsed(Long projectId, String promptId, Long userId) {
+        findAndVerifyOwner(projectId, userId);
+
+        ProjectPrompt prompt = projectPromptRepo.findById(promptId)
+                .orElseThrow(() -> new RuntimeException("Prompt not found"));
+
+        if (!prompt.getProjectId().equals(projectId)) {
+            throw new SecurityException("Prompt does not belong to this project");
+        }
+
+        prompt.setLastUsedAt(java.time.OffsetDateTime.now());
+        ProjectPrompt saved = projectPromptRepo.save(prompt);
+        return toPromptResponse(saved);
+    }
+
+    private ProjectPromptResponse toPromptResponse(ProjectPrompt prompt) {
+        return new ProjectPromptResponse(
+                prompt.getId(),
+                prompt.getProjectId(),
+                prompt.getText(),
+                prompt.getRelatedCourseId(),
+                prompt.getRelatedCourseTitle(),
+                prompt.getCreatedAt(),
+                prompt.getUpdatedAt(),
+                prompt.getLastUsedAt()
+        );
     }
 
     private Project findAndVerifyOwner(Long projectId, Long userId) {

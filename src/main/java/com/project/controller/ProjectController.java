@@ -145,4 +145,66 @@ public class ProjectController {
         }
     }
 
+    @GetMapping("/{id}/prompts")
+    public ResponseEntity<?> getProjectPrompts(@PathVariable Long id, Authentication auth) {
+        try {
+            java.util.List<com.project.dto.ProjectPromptResponse> prompts = projectService.getProjectPrompts(id, getUserId(auth));
+            return ResponseEntity.ok(prompts);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to fetch prompts for project {0}: {1}", new Object[]{id, e.getMessage()});
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to fetch prompts.");
+        }
+    }
+
+    @PostMapping("/{id}/prompts")
+    public ResponseEntity<?> saveProjectPrompt(@PathVariable Long id, @RequestBody com.project.dto.ProjectPromptRequest request, Authentication auth) {
+        try {
+            com.project.dto.ProjectPromptResponse response = projectService.saveProjectPrompt(id, getUserId(auth), request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to save prompt for project {0}: {1}", new Object[]{id, e.getMessage()});
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to save prompt.");
+        }
+    }
+
+    @DeleteMapping("/{id}/prompts/{promptId}")
+    public ResponseEntity<?> deleteProjectPrompt(@PathVariable Long id, @PathVariable String promptId, Authentication auth) {
+        try {
+            projectService.deleteProjectPrompt(id, promptId, getUserId(auth));
+            return ResponseEntity.ok("Prompt deleted.");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to delete prompt {0} for project {1}: {2}", new Object[]{promptId, id, e.getMessage()});
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete prompt.");
+        }
+    }
+
+    @PutMapping("/{id}/prompts/{promptId}/use")
+    public ResponseEntity<?> markPromptAsUsed(@PathVariable Long id, @PathVariable String promptId, Authentication auth) {
+        try {
+            com.project.dto.ProjectPromptResponse response = projectService.markPromptAsUsed(id, promptId, getUserId(auth));
+            return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to mark prompt {0} as used for project {1}: {2}", new Object[]{promptId, id, e.getMessage()});
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update prompt.");
+        }
+    }
+
 }
