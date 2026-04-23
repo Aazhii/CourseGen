@@ -123,13 +123,14 @@ public class LessonPromptBuilder {
             sb.append("Use well-known educational channels (e.g., freeCodeCamp, Fireship, Traversy Media, CS50, MIT OpenCourseWare, etc.). ");
             sb.append("The URL must be a valid youtube.com/watch?v= link.\n");
         }
+        sb.append("6. Include \"image\" blocks where visual aids would be helpful. Use descriptive placeholder URLs or leave the URL empty if you cannot find a specific one, but provide a high-quality 'alt' and 'prompt' for what the image should show.\n");
         if (quizCount > 0) {
-            sb.append("6. Exactly ").append(quizCount).append(" \"quiz\" block(s) to test understanding, placed near the end\n");
+            sb.append("7. Exactly ").append(quizCount).append(" \"quiz\" block(s) to test understanding, placed near the end\n");
         }
         if (includeReferences) {
-            sb.append("7. A \"reference\" block at the very end with 3-5 real, authoritative external links (official docs, Wikipedia, reputable tutorials)\n");
+            sb.append("8. A \"reference\" block at the very end with 3-5 real, authoritative external links (official docs, Wikipedia, reputable tutorials)\n");
         }
-        sb.append("8. A \"heading\" block titled \"Conclusion\" followed by 1-2 summary \"text\" blocks\n\n");
+        sb.append("9. A \"heading\" block titled \"Conclusion\" followed by 1-2 summary \"text\" blocks\n\n");
 
         // ---- STRICT JSON SCHEMA ----
         sb.append("## BLOCK TYPE SCHEMAS (follow EXACTLY)\n\n");
@@ -140,6 +141,10 @@ public class LessonPromptBuilder {
         sb.append("### text\n");
         sb.append("Supports inline markdown: **bold**, *italic*, `code`\n");
         sb.append("```json\n{ \"type\": \"text\", \"content\": \"Paragraph text here with **bold** and `inline code`.\" }\n```\n\n");
+
+        sb.append("### image\n");
+        sb.append("content is an object with \"url\" (string), \"alt\" (string), and \"prompt\" (description for AI generation).\n");
+        sb.append("```json\n{ \"type\": \"image\", \"content\": { \"url\": \"\", \"alt\": \"Description of image\", \"prompt\": \"A detailed prompt for generating this image...\" } }\n```\n\n");
 
         sb.append("### list\n");
         sb.append("content is a JSON array of strings. Supports **bold** markdown in items.\n");
@@ -215,7 +220,7 @@ public class LessonPromptBuilder {
         sb.append("- Be minified or properly formatted but containing only the array\n\n");
         sb.append("Allowed block types: ");
 
-        StringBuilder types = new StringBuilder("\"heading\", \"text\", \"list\", \"table\"");
+        StringBuilder types = new StringBuilder("\"heading\", \"text\", \"image\", \"list\", \"table\"");
         if (includeCodeExamples) types.append(", \"code\"");
         if (quizCount > 0) types.append(", \"quiz\"");
         if (youtubeCount > 0) types.append(", \"youtube\"");

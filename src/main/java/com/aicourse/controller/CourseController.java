@@ -151,6 +151,26 @@ public class CourseController {
         }
     }
 
+    @PostMapping("/{courseId}/modules")
+    public ResponseEntity<Module> addModule(@PathVariable Long courseId, @RequestBody Map<String, String> payload) throws Exception {
+        String title = payload.getOrDefault("title", "New Module");
+        Module module = courseServiceImpl.addModule(courseId, title);
+        return ResponseEntity.ok(module);
+    }
+
+    @PutMapping("/{courseId}/modules/{moduleId}")
+    public ResponseEntity<ApiResponse<Void>> renameModule(@PathVariable Long courseId, @PathVariable Long moduleId, @RequestBody Map<String, String> payload) throws Exception {
+        String title = payload.get("title");
+        courseServiceImpl.renameModule(moduleId, title);
+        return ResponseEntity.ok(ApiResponse.success("Module renamed", null));
+    }
+
+    @DeleteMapping("/{courseId}/modules/{moduleId}")
+    public ResponseEntity<ApiResponse<Void>> deleteModule(@PathVariable Long courseId, @PathVariable Long moduleId) throws Exception {
+        courseServiceImpl.deleteModule(moduleId);
+        return ResponseEntity.ok(ApiResponse.success("Module deleted", null));
+    }
+
     @PutMapping("/{courseId}/deactivate")
     public ResponseEntity<ApiResponse<Void>> deactivateCourse(@PathVariable Long courseId) throws Exception {
         LOGGER.log(Level.INFO, "Request received to deactivate course ID: {0}", new Object[]{courseId});
