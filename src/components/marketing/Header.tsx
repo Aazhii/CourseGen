@@ -11,9 +11,10 @@ const NAV = [
   { label: "Pricing", href: "#pricing" },
 ];
 
-export function Header() {
+export function Header({ navLabels }: { navLabels?: string[] }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const navItems = NAV.map((item, idx) => ({ ...item, label: navLabels?.[idx] ?? item.label }));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -35,7 +36,7 @@ export function Header() {
         <Logo />
         
         <nav className="hidden items-center gap-2 md:flex border border-white/5 bg-white/[0.03] backdrop-blur-md rounded-full px-2 py-1.5">
-          {NAV.map((n) => (
+          {navItems.map((n) => (
             <a
               key={n.href}
               href={n.href}
@@ -67,7 +68,7 @@ export function Header() {
       {open && (
         <div className="md:hidden border-t border-white/5 bg-background/95 backdrop-blur-3xl animate-fade-in">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-6 font-display">
-            {NAV.map((n) => (
+            {navItems.map((n) => (
               <a
                 key={n.href}
                 href={n.href}
