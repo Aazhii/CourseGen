@@ -21,16 +21,10 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handlePattern = /^[a-z0-9._]{6,25}$/;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password || !confirmPassword) {
       toast.error("All fields are required");
-      return;
-    }
-    if (!handlePattern.test(username.trim())) {
-      toast.error("User ID must be 6-25 characters and use only lowercase letters, numbers, '.' or '_' .");
       return;
     }
     if (password !== confirmPassword) {
@@ -82,7 +76,7 @@ export default function RegisterPage() {
             </div>
             <h1 className="font-display text-4xl xl:text-6xl font-bold leading-[1.05] tracking-tight text-white">
               Start your <br />
-              <span className="text-accent">learning journey</span> <br />
+              <span className="bg-[linear-gradient(120deg,oklch(0.9_0.12_205),oklch(0.84_0.16_200),oklch(0.78_0.14_185))] bg-clip-text text-transparent">learning journey</span> <br />
               <span className="text-primary italic">today</span>.
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
@@ -156,7 +150,7 @@ export default function RegisterPage() {
                       className="h-12 pl-11 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                     />
                   </div>
-                  <p className="text-[9px] text-muted-foreground/60 pl-1 uppercase tracking-tighter">6-25 chars, lowercase, numbers, '.' or '_'</p>
+                  <p className="text-[9px] text-muted-foreground/60 pl-1 uppercase tracking-tighter">Use any normal user id</p>
                 </div>
 
                 <div className="space-y-2">

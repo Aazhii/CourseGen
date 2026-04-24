@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Bot,
@@ -21,13 +22,17 @@ import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { landingContentQueryOptions } from "@/lib/queries/marketing";
+import { fallbackLandingContent } from "@/data/marketingContent";
 
 import heroImage from "@/assets/hero-mockup.jpg";
 
 export default function LandingPage() {
+  const { data: content = fallbackLandingContent } = useQuery(landingContentQueryOptions());
+
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/30">
-      <Header />
+      <Header navLabels={content.header.nav} />
 
       <main>
         {/* ---------- HERO ---------- */}
@@ -43,43 +48,38 @@ export default function LandingPage() {
                     <Sparkles className="h-3 w-3 text-primary-foreground animate-pulse" />
                   </span>
                   <span className="text-white/80 font-medium uppercase tracking-[0.05em]">
-                    Now with multi-modal lesson generation
+                    {content.hero.badge}
                   </span>
                   <ArrowRight className="h-3.5 w-3.5 text-white/40 group-hover:translate-x-0.5 transition-transform" />
                 </div>
 
                 <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.02] tracking-tight">
-                  Turn a prompt into a
+                  {content.hero.titlePrefix}
                   <br />
-                  <span className="text-gradient">complete course.</span>
+                  <span className="text-gradient">{content.hero.titleHighlight}</span>
                 </h1>
 
                 <p className="mt-8 max-w-xl text-lg md:text-xl text-muted-foreground leading-relaxed font-medium">
-                  AI CourseGen drafts modules, lessons, and assessments from a single idea — then
-                  helps your team learn, share, and ship knowledge faster.
+                  {content.hero.description}
                 </p>
 
                 <div className="mt-10 flex flex-wrap items-center gap-4">
                   <Button asChild variant="hero" size="xl" className="group btn-shine">
                     <Link to="/login">
-                      Start building free <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                      {content.hero.primaryCta} <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
                   <Button asChild variant="glass" size="xl" className="border-white/10 hover:border-white/20">
-                    <a href="#how">See how it works</a>
+                    <a href="#how">{content.hero.secondaryCta}</a>
                   </Button>
                 </div>
 
                 <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
-                  <span className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-accent" /> No credit card
-                  </span>
-                  <span className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-accent" /> SOC 2 ready
-                  </span>
-                  <span className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-accent" /> Generate in &lt;2 min
-                  </span>
+                  {content.hero.trust.map((item) => (
+                    <span key={item} className="inline-flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent" /> {item}
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -124,7 +124,7 @@ export default function LandingPage() {
               </p>
               <div className="relative group">
                 <div className="flex w-max animate-marquee gap-16 pr-16 group-hover:[animation-play-state:paused]">
-                  {[...LOGOS, ...LOGOS].map((l, i) => (
+                  {[...content.logos, ...content.logos].map((l, i) => (
                     <span
                       key={i}
                       className="font-display text-2xl font-bold tracking-tighter text-white/20 hover:text-white/60 transition-all duration-300"
@@ -153,9 +153,11 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-20 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {FEATURES.map((f) => (
-                <FeatureCard key={f.title} {...f} />
-              ))}
+              {FEATURE_ICONS.map((Icon, index) => {
+                const feature = content.features[index];
+                if (!feature) return null;
+                return <FeatureCard key={feature.title} icon={Icon} title={feature.title} desc={feature.desc} />;
+              })}
             </div>
           </div>
         </section>
@@ -170,7 +172,7 @@ export default function LandingPage() {
             </SectionTitle>
 
             <div className="mt-16 grid gap-8 md:grid-cols-3">
-              {STEPS.map((s, i) => (
+              {content.steps.map((s, i) => (
                 <div key={s.n} className="relative glass-strong rounded-[2rem] p-10 border border-white/5 transition-all hover:border-white/15 hover:-translate-y-1">
                   <div className="flex items-center gap-4">
                     <span className="font-display text-xs font-bold text-muted-foreground tracking-[0.2em]">STEP</span>
@@ -178,7 +180,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="mt-8 font-display text-2xl font-bold tracking-tight text-white">{s.title}</h3>
                   <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-medium">{s.desc}</p>
-                  {i < STEPS.length - 1 && (
+                  {i < content.steps.length - 1 && (
                     <ArrowRight className="absolute -right-4 top-1/2 hidden h-8 w-8 -translate-y-1/2 text-white/5 md:block" />
                   )}
                 </div>
@@ -202,12 +204,7 @@ export default function LandingPage() {
                   workspace designed for deep focus and maximum output.
                 </p>
                 <ul className="mt-10 space-y-4">
-                  {[
-                    "Drag, reorder, regenerate any module instantly",
-                    "Linked projects keep related courses in sync",
-                    "Per-lesson AI coaching, scoped to context",
-                    "Shareable links with view, edit, or admin roles",
-                  ].map((t) => (
+                  {content.showcaseBullets.map((t) => (
                     <li key={t} className="flex items-start gap-4 text-foreground font-medium">
                       <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-accent" />
                       {t}
@@ -264,15 +261,17 @@ export default function LandingPage() {
             </SectionTitle>
 
             <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {USE_CASES_LIST.map((u) => (
-                <div key={u.title} className="glass rounded-2xl p-8 transition-all hover:-translate-y-0.5 hover:border-white/10 border border-white/5 bg-white/[0.02]">
+              {USE_CASE_ICONS.map((Icon, index) => {
+                const useCase = content.useCases[index];
+                if (!useCase) return null;
+                return <div key={useCase.title} className="glass rounded-2xl p-8 transition-all hover:-translate-y-0.5 hover:border-white/10 border border-white/5 bg-white/[0.02]">
                   <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-cta shadow-glow">
-                    <u.icon className="h-6 w-6 text-white" />
+                    <Icon className="h-6 w-6 text-white" />
                   </span>
-                  <h3 className="mt-6 font-display text-xl font-bold tracking-tight text-white">{u.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed font-medium">{u.desc}</p>
-                </div>
-              ))}
+                  <h3 className="mt-6 font-display text-xl font-bold tracking-tight text-white">{useCase.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed font-medium">{useCase.desc}</p>
+                </div>;
+              })}
             </div>
           </div>
         </section>
@@ -287,7 +286,7 @@ export default function LandingPage() {
             </SectionTitle>
 
             <div className="mt-16 grid gap-6 md:grid-cols-3">
-              {QUOTES.map((q) => (
+              {content.quotes.map((q) => (
                 <figure key={q.name} className="glass-strong rounded-[2.5rem] p-10 border border-white/5 relative group hover:border-white/15 transition-all">
                   <div className="flex gap-1 mb-6">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -323,19 +322,19 @@ export default function LandingPage() {
               <div className="relative text-center max-w-4xl mx-auto">
                 <Eyebrow center>Get started</Eyebrow>
                 <h2 className="mt-8 font-display text-5xl md:text-7xl font-bold leading-[1] tracking-tight text-white">
-                  The fastest way to ship a <span className="text-gradient">world-class course</span>.
+                  {content.finalCta.titlePrefix} <span className="text-gradient">{content.finalCta.titleHighlight}</span>
                 </h2>
                 <p className="mt-8 text-xl text-muted-foreground font-medium max-w-2xl mx-auto">
-                  Start free today. No credit card required. Generate your first course with the power of modern AI in under two minutes.
+                  {content.finalCta.description}
                 </p>
                 <div className="mt-12 flex flex-wrap justify-center gap-6">
                   <Button asChild variant="hero" size="xl" className="h-16 px-10 rounded-2xl font-bold uppercase tracking-widest text-xs btn-shine">
                     <Link to="/login">
-                      Create first course <ArrowRight className="h-4 w-4 ml-2" />
+                      {content.finalCta.primary} <ArrowRight className="h-4 w-4 ml-2" />
                     </Link>
                   </Button>
                   <Button asChild variant="glass" size="xl" className="h-16 px-10 rounded-2xl font-bold uppercase tracking-widest text-xs bg-white/[0.03] border-white/10 hover:bg-white/10">
-                    <a href="#features">Explore features</a>
+                    <a href="#features">{content.finalCta.secondary}</a>
                   </Button>
                 </div>
               </div>
@@ -344,7 +343,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <Footer />
+      <Footer content={content.footer} />
     </div>
   );
 }
@@ -411,106 +410,6 @@ function FeatureCard({ icon: Icon, title, desc }: { icon: any, title: string, de
   );
 }
 
-const LOGOS = ["NORTHWIND", "HELIX", "LUMEN", "STRATIFY", "COBALT", "VERTEX", "ORBITAL", "ATLAS"];
+const FEATURE_ICONS = [Wand2, FolderKanban, LayoutGrid, Bot, Share2, LineChart, ShieldCheck, Zap] as const;
 
-const USE_CASES_LIST = [
-  {
-    icon: GraduationCap,
-    title: "Interview prep",
-    desc: "Generate focused study tracks for system design, DSA, behaviorals, and role-specific loops.",
-  },
-  {
-    icon: Bot,
-    title: "Team onboarding",
-    desc: "Spin up structured ramp-up courses for new hires — refreshed with one click.",
-  },
-  {
-    icon: Sparkles,
-    title: "Personal learning",
-    desc: "Turn curiosity into a curriculum. Learn anything, structured by AI, paced by you.",
-  },
-  {
-    icon: Share2,
-    title: "Training content",
-    desc: "Build branded courses for customers, partners, and certifications at scale.",
-  },
-];
-
-const FEATURES = [
-  {
-    icon: Wand2,
-    title: "AI course generation",
-    desc: "From a single prompt to a full course with modules, lessons, and assessments — in under two minutes.",
-  },
-  {
-    icon: FolderKanban,
-    title: "Project organization",
-    desc: "Group related goals, prompts, and courses into projects so knowledge compounds over time.",
-  },
-  {
-    icon: LayoutGrid,
-    title: "Structured content",
-    desc: "Beautifully laid out lessons, ready to consume — or refine with one click using powerful AI tools.",
-  },
-  {
-    icon: Bot,
-    title: "Contextual AI coach",
-    desc: "Always-on tutor that explains concepts, generates examples, and answers questions in context.",
-  },
-  {
-    icon: Share2,
-    title: "Team collaboration",
-    desc: "Invite teammates, share links, and co-author courses with granular roles and permissions.",
-  },
-  {
-    icon: LineChart,
-    title: "Rich analytics",
-    desc: "Track engagement, completion, and standout learners with real-time, per-course leaderboards.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Enterprise ready",
-    desc: "SSO-friendly roles, audit logs, and granular permissions built for scaling serious teams.",
-  },
-  {
-    icon: Zap,
-    title: "Prompt factory",
-    desc: "Save winning prompts as templates and turn them into repeatable, high-output course factories.",
-  },
-];
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Drop in a topic",
-    desc: "Type any subject, paste a brief, or pick from your reusable prompt library.",
-  },
-  {
-    n: "02",
-    title: "AI builds structure",
-    desc: "Modules, lessons, and assessments — fully generated and ready to refine.",
-  },
-  {
-    n: "03",
-    title: "Share & track",
-    desc: "Invite learners and follow live progress and engagement with ease.",
-  },
-];
-
-const QUOTES = [
-  {
-    quote: "We replaced three weeks of curriculum design with an afternoon. Genuinely usable.",
-    name: "Priya Shankar",
-    role: "Head of L&D, Helix",
-  },
-  {
-    quote: "Onboarding ramp-time dropped 40%. New hires actually finish the courses now.",
-    name: "Marco Devereux",
-    role: "VP Engineering, Stratify",
-  },
-  {
-    quote: "The AI coach is the unlock. It’s like every learner has a senior tutor for free.",
-    name: "Aiko Tanaka",
-    role: "Founder, Lumen Academy",
-  },
-];
+const USE_CASE_ICONS = [GraduationCap, Bot, Sparkles, Share2] as const;

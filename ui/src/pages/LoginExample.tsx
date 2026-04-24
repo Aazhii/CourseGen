@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Github, Mail, Sparkles } from "lucide-react";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { ParticleField } from "@/components/ParticleField";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,25 +10,28 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/auth/AuthContext";
 import { toast } from "sonner";
 import { login as apiLogin } from "@/services/authApi";
+import { fallbackLoginContent } from "@/data/marketingContent";
+import { loginContentQueryOptions } from "@/lib/queries/marketing";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { data: content = fallbackLoginContent } = useQuery(loginContentQueryOptions());
 
   // SEO setup from MD
   useEffect(() => {
-    document.title = "Sign in — AI CourseGen";
-  }, []);
+    document.title = content.metaTitle;
+  }, [content.metaTitle]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const resp = await apiLogin({ email, password });
+      const resp = await apiLogin({ username: identifier.trim(), password });
       const data = resp?.data ?? resp;
 
       if (data && data.token) {
@@ -54,7 +57,6 @@ export default function LoginPage() {
       </div>
 
       <AmbientBackground />
-      <ParticleField influence={140} density={0.0001} />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
         {/* Left: brand panel */}
@@ -64,28 +66,26 @@ export default function LoginPage() {
           <div className="max-w-lg space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs">
               <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
-              <span className="text-muted-foreground font-medium uppercase tracking-[0.05em] text-[10px]">AI-native learning platform</span>
+              <span className="text-muted-foreground font-medium uppercase tracking-[0.05em] text-[10px]">{content.left.chip}</span>
             </div>
             <h1 className="font-display text-4xl xl:text-6xl font-bold leading-[1.05] tracking-tight text-white">
-              Build structured <br />
-              <span className="text-accent">courses in</span> <br />
-              <span className="text-primary italic">minutes</span>, not <br />
-              weeks.
+              {content.left.headlineTop} <br />
+              <span className="bg-[linear-gradient(120deg,oklch(0.9_0.12_205),oklch(0.84_0.16_200),oklch(0.78_0.14_185))] bg-clip-text text-transparent">{content.left.headlineMiddle}</span> <br />
+              <span className="bg-[linear-gradient(120deg,#8B5CF6,#EC4899)] bg-clip-text text-transparent italic inline-block">{content.left.headlineEmphasis}</span><span>, {content.left.headlineSuffix}</span>
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
-              Turn any prompt into modules, lessons, and a learning experience that actually
-              ships — with an AI coach beside every learner.
+              {content.left.description}
             </p>
 
             <div className="grid grid-cols-3 gap-4 pt-4">
-              <Stat value="12k+" label="Courses created" />
-              <Stat value="92%" label="Completion lift" />
-              <Stat value="<2 min" label="Avg. generation" />
+              {content.left.stats.map((stat) => (
+                <Stat key={stat.label} value={stat.value} label={stat.label} />
+              ))}
             </div>
           </div>
 
           <p className="text-xs text-muted-foreground font-medium opacity-60 italic">
-            “The fastest way I’ve ever assembled an onboarding curriculum.” — Head of Learning, Series B SaaS
+            "{content.left.testimonial}"
           </p>
         </div>
 
@@ -100,9 +100,9 @@ export default function LoginPage() {
               <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 blur-3xl rounded-full" />
 
               <div className="space-y-2 relative z-10">
-                <h2 className="font-display text-3xl font-bold tracking-tight text-white">Welcome back</h2>
+                <h2 className="font-display text-3xl font-bold tracking-tight text-white">{content.right.title}</h2>
                 <p className="text-sm text-muted-foreground font-medium">
-                  Sign in to continue building with AI CourseGen.
+                  {content.right.subtitle}
                 </p>
               </div>
 
@@ -117,32 +117,32 @@ export default function LoginPage() {
 
               <div className="my-8 flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
                 <div className="h-px flex-1 bg-white/5" />
-                or sign in with email
+                {content.right.divider}
                 <div className="h-px flex-1 bg-white/5" />
               </div>
 
               <form onSubmit={onSubmit} className="space-y-5 relative z-10">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Email address</Label>
+                  <Label htmlFor="identifier" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Email or User ID</Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
                     <Input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
+                      id="identifier"
+                      type="text"
+                      autoComplete="username"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@company.com"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="you@company.com or your_user_id"
                       className="h-12 pl-11 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pl-1 pr-1">
-                    <Label htmlFor="password" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Password</Label>
+                    <Label htmlFor="password" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{content.right.passwordLabel}</Label>
                     <a href="#" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 hover:text-white transition-colors">
-                      Forgot password?
+                      {content.right.forgot}
                     </a>
                   </div>
                   <div className="relative">
@@ -177,23 +177,23 @@ export default function LoginPage() {
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                      Signing in...
+                      {content.right.loading}
                     </div>
-                  ) : "Sign in to Dashboard"}
+                  ) : content.right.submit}
                 </Button>
               </form>
 
               <p className="mt-10 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground relative z-10">
-                New to AI CourseGen?{" "}
+                {content.right.newTo}{" "}
                 <Link to="/register" className="text-white hover:text-primary transition-colors">
-                  Create an account
+                  {content.right.create}
                 </Link>
               </p>
             </div>
 
             <p className="mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
               <Link to="/" className="hover:text-white transition-colors flex items-center justify-center gap-2">
-                ← Back to home
+                ← {content.right.back}
               </Link>
             </p>
           </div>
