@@ -247,4 +247,5 @@
     <include file="db/changelog/db.changelog-dynamic-course-builder.xml"/>
     <include file="db/changelog/db.changelog-rich-media-studio.xml"/>
     <include file="db/changelog/db.changelog-project-prompts.xml"/>
+    <include file="db/changelog/db.changelog-marketing-content.xml"/>
 </databaseChangeLog>
