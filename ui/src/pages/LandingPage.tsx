@@ -120,7 +120,7 @@ export default function LandingPage() {
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 leading-relaxed">
                 Trusted by teams shipping<br className="hidden md:block" /> learning programs.
               </p>
-              <div className="relative group">
+              <div className="relative group overflow-hidden">
                 <div className="flex w-max animate-marquee gap-16 pr-16 group-hover:[animation-play-state:paused]">
                   {[...content.logos, ...content.logos].map((l, i) => (
                     <span
