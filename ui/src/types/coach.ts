@@ -52,7 +52,7 @@ export interface CoachChatMessage {
 }
 
 export interface CoachRequest {
-  courseId: string;
+  courseId?: string;
   lessonId?: string;
   message: string;
   previousQuizQuestions?: string[];
