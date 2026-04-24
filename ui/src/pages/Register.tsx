@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, Github, Mail, Sparkles, UserPlus, ShieldCheck } from "lucide-react";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { ParticleField } from "@/components/ParticleField";
 import { Logo } from "@/components/Logo";
 
 export default function RegisterPage() {
@@ -62,7 +61,6 @@ export default function RegisterPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <AmbientBackground />
-      <ParticleField influence={140} density={0.0001} />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
         {/* Left: brand panel */}

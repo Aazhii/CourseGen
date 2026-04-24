@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { ParticleField } from "@/components/ParticleField";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
 import { Button } from "@/components/ui/button";
@@ -37,8 +36,7 @@ export default function LandingPage() {
       <main>
         {/* ---------- HERO ---------- */}
         <section className="relative overflow-hidden pt-32 pb-24 md:pt-48 md:pb-40">
-          <AmbientBackground />
-          <ParticleField influence={180} density={0.00015} />
+          <AmbientBackground showParticles particleInfluence={120} particleDensity={0.00007} />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8">
             <div className="grid items-center gap-16 lg:grid-cols-12">

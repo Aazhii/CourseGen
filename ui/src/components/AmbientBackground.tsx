@@ -3,12 +3,16 @@ import { ParticleField } from "./ParticleField";
 interface AmbientBackgroundProps {
   showGrid?: boolean;
   showParticles?: boolean;
+  particleDensity?: number;
+  particleInfluence?: number;
   className?: string;
 }
 
 export function AmbientBackground({
   showGrid = true,
-  showParticles = true,
+  showParticles = false,
+  particleDensity,
+  particleInfluence,
   className,
 }: AmbientBackgroundProps) {
   return (
@@ -28,7 +32,7 @@ export function AmbientBackground({
         style={{ animationDelay: "3s" }} />
 
       {showGrid && <div className="absolute inset-0 bg-grid opacity-60" />}
-      {showParticles && <ParticleField />}
+      {showParticles && <ParticleField density={particleDensity} influence={particleInfluence} />}
 
       {/* Noise + vignette */}
       <div className="absolute inset-0 bg-noise opacity-[0.5] mix-blend-overlay" />

@@ -15,9 +15,12 @@ interface ParticleFieldProps {
 export function ParticleField({ density = 0.00009, className, influence = 140 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
+  const runningRef = useRef(true);
+  const pointerTickRef = useRef(0);
   const pointer = useRef({ x: -9999, y: -9999, active: false });
 
   useEffect(() => {
+    runningRef.current = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -27,9 +30,10 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let width = 0, height = 0;
     let particles: Particle[] = [];
+    let bgGradient: CanvasGradient | null = null;
     const palette = [265, 285, 305, 200, 230, 330]; // violet → cyan → pink hues
 
     const init = () => {
@@ -38,7 +42,17 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.max(28, Math.min(140, Math.floor(width * height * density)));
+      const count = Math.max(24, Math.min(96, Math.floor(width * height * density)));
+      bgGradient = ctx.createRadialGradient(
+        width * 0.5,
+        height * 0.2,
+        0,
+        width * 0.5,
+        height * 0.2,
+        Math.max(width, height) * 0.7
+      );
+      bgGradient.addColorStop(0, "rgba(140, 110, 255, 0.08)");
+      bgGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
       particles = Array.from({ length: count }, () => {
         const x = Math.random() * width;
         const y = Math.random() * height;
@@ -55,6 +69,11 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
 
     const onResize = () => init();
     const onMove = (e: PointerEvent) => {
+      const now = performance.now();
+      if (now - pointerTickRef.current < 24) {
+        return;
+      }
+      pointerTickRef.current = now;
       const rect = canvas.getBoundingClientRect();
       pointer.current.x = e.clientX - rect.left;
       pointer.current.y = e.clientY - rect.top;
@@ -66,18 +85,31 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
     };
 
     init();
+    const onVisibilityChange = () => {
+      runningRef.current = document.visibilityState === "visible";
+      if (runningRef.current && rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(draw);
+      }
+    };
+
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerdown", onMove, { passive: true });
     window.addEventListener("pointerleave", onLeave);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     const linkDist = 110;
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
-      const grad = ctx.createRadialGradient(width * 0.5, height * 0.2, 0, width * 0.5, height * 0.2, Math.max(width, height) * 0.7);
-      grad.addColorStop(0, "rgba(140, 110, 255, 0.08)");
-      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = grad;
+      if (!runningRef.current) {
+        rafRef.current = null;
+        return;
+      }
+
+      if (bgGradient) {
+        ctx.fillStyle = bgGradient;
+      }
       ctx.fillRect(0, 0, width, height);
 
       const px = pointer.current.x;
@@ -117,9 +149,11 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       }
       ctx.shadowBlur = 0;
 
-      for (let i = 0; i < particles.length; i++) {
-        const a = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
+      const drawLinks = width >= 768;
+      if (drawLinks) {
+        for (let i = 0; i < particles.length; i++) {
+          const a = particles[i];
+          for (let j = i + 1; j < particles.length; j += 2) {
           const b = particles[j];
           const dx = a.x - b.x, dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
@@ -130,7 +164,8 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.stroke();
+              ctx.stroke();
+            }
           }
         }
       }
@@ -142,9 +177,12 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      runningRef.current = false;
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onMove);
       window.removeEventListener("pointerleave", onLeave);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [density, influence]);
 
