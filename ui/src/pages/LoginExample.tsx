@@ -56,7 +56,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-grid opacity-30" />
       </div>
 
-      <AmbientBackground />
+      <AmbientBackground showParticles particleDensity={0.00006} particleInfluence={110} />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
         {/* Left: brand panel */}
