@@ -53,6 +53,7 @@ public class Config {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/content/public/**",
                                 "/api/join/**",
                                 "/login",
                                 "/register",
