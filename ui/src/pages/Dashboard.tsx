@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -6,13 +6,13 @@ import {
   Trash2,
   Sparkles,
   Trophy,
-  Users,
   ToggleLeft,
   ToggleRight,
   TrendingUp,
   Clock,
   ArrowRight
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCourses, deleteCourse, updateCourse } from "@/services/courseApi";
 import { getMyRank } from "@/services/leaderboardApi";
@@ -34,6 +34,39 @@ export default function Dashboard() {
     queryKey: ["leaderboard", "me"],
     queryFn: () => getMyRank().then(res => "rank" in res ? res : JSON.parse(res)),
   });
+
+  const recentActivity = useMemo(() => {
+    const items: Array<{ icon: LucideIcon; text: string; time: string }> = [];
+
+    if (Array.isArray(courses)) {
+      for (const course of courses.slice(0, 3)) {
+        const title = course?.title || "Untitled Course";
+        items.push({
+          icon: BookOpen,
+          text: `Updated \"${title}\"`,
+          time: formatRelativeTime(course?.updatedAt ?? course?.createdAt),
+        });
+      }
+    }
+
+    if (rankData?.rank) {
+      items.push({
+        icon: Trophy,
+        text: `You're currently ranked #${rankData.rank} globally`,
+        time: rankData?.weeklyPoints ? `+${rankData.weeklyPoints} this week` : "Latest leaderboard snapshot",
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        icon: Sparkles,
+        text: "Create your first course to start seeing activity",
+        time: "No recent activity",
+      });
+    }
+
+    return items;
+  }, [courses, rankData]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCourse(id),
@@ -142,7 +175,7 @@ export default function Dashboard() {
           </div>
 
           <ul className="space-y-1 relative z-10">
-            {ACTIVITY.map((a, i) => (
+            {recentActivity.map((a, i) => (
               <li key={i} className="flex items-center gap-4 py-4 px-2 rounded-xl hover:bg-white/[0.02] transition-colors border-b border-white/[0.03] last:border-0 group/item">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/[0.04] border border-white/5 group-hover/item:bg-primary/10 group-hover/item:border-primary/20 transition-all duration-300">
                   <a.icon className="h-4 w-4 text-accent" />
@@ -183,6 +216,22 @@ export default function Dashboard() {
       </section>
     </div>
   );
+}
+
+function formatRelativeTime(raw?: string) {
+  if (!raw) return "Recently";
+  const ts = new Date(raw).getTime();
+  if (Number.isNaN(ts)) return "Recently";
+
+  const diffMs = Date.now() - ts;
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) return "Just now";
+  if (diffMs < hour) return `${Math.max(1, Math.floor(diffMs / minute))} min ago`;
+  if (diffMs < day) return `${Math.max(1, Math.floor(diffMs / hour))} hr ago`;
+  return `${Math.max(1, Math.floor(diffMs / day))} day(s) ago`;
 }
 
 function StatCard({ label, value, delta, type = "default", icon }: { label: string; value: string; delta: string; type?: "default" | "primary" | "accent"; icon?: React.ReactNode }) {
@@ -286,9 +335,3 @@ function CourseCard({ course, index, onDelete, onToggleActive, togglingId }: {
   );
 }
 
-const ACTIVITY = [
-  { icon: Sparkles, text: "Generated “Intro to Vector Databases” course", time: "2 minutes ago" },
-  { icon: Users, text: "Priya joined the Engineering Onboarding project", time: "1 hour ago" },
-  { icon: BookOpen, text: "Module 3 of System Design completed by 12 learners", time: "3 hours ago" },
-  { icon: Trophy, text: "You moved up to #2 on the weekly leaderboard", time: "Yesterday" },
-];

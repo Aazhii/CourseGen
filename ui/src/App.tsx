@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider } from "@/auth/AuthContext";
+import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { FeatureProvider } from "@/context/FeatureContext";
 import AppLayout from "./components/AppLayout";
 import LoginPage from "./pages/LoginExample";
@@ -38,6 +38,20 @@ const queryClient = new QueryClient({
   },
 });
 
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
+  const { loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -49,10 +63,10 @@ const App = () => (
             <BrowserRouter>
               <Suspense fallback={<div className="min-h-screen bg-background" />}>
                 <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/welcome" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+                  <Route path="/welcome" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+                  <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+                  <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
                   <Route path="/join/:token" element={<JoinCourse />} />
                   <Route element={<AppLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />

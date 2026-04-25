@@ -1,12 +1,94 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AppSidebar from "./AppSidebar";
 import { useAuth } from "@/auth/AuthContext";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { Search, Bell, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
+import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
 
 export default function AppLayout() {
   const { token, loading } = useAuth();
+  const navigate = useNavigate();
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+
+  const trimmedQuery = query.trim();
+  const canSearch = trimmedQuery.length >= 2;
+
+  useEffect(() => {
+    if (!canSearch) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const items = await resolveByPrefix(trimmedQuery, { limit: 6 });
+        if (!cancelled) {
+          setSearchResults(items);
+          setSearchOpen(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [canSearch, trimmedQuery]);
+
+  useEffect(() => {
+    const onOutsideClick = (event: MouseEvent) => {
+      if (!searchWrapRef.current) return;
+      if (!searchWrapRef.current.contains(event.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
+  }, []);
+
+  const visibleResults = useMemo(() => searchResults.slice(0, 6), [searchResults]);
+
+  const goToResult = (result: SearchResultItem) => {
+    setSearchOpen(false);
+    setQuery("");
+
+    if (result.type === "COURSE") {
+      navigate(`/courses/${result.id}`);
+      return;
+    }
+
+    navigate("/profile");
+  };
+
+  const onSearchSubmit = () => {
+    if (visibleResults.length > 0) {
+      goToResult(visibleResults[0]);
+      return;
+    }
+
+    if (trimmedQuery.length > 0) {
+      navigate("/projects");
+      setSearchOpen(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center bg-background">
@@ -39,16 +121,62 @@ export default function AppLayout() {
       <div className="flex flex-1 flex-col min-w-0 h-full relative z-10 transition-all duration-500">
         {/* Sticky Professional Topbar */}
         <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between border-b border-white/[0.03] bg-background/30 px-8 backdrop-blur-2xl">
-          <div className="relative w-full max-w-lg group">
+          <div ref={searchWrapRef} className="relative w-full max-w-lg group">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-white" />
             <input
               type="text"
               placeholder="Search courses, projects, prompts..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onSearchSubmit();
+                }
+                if (e.key === "Escape") {
+                  setSearchOpen(false);
+                }
+              }}
               className="h-11 w-full rounded-2xl border border-white/5 bg-white/[0.03] pl-11 pr-16 text-sm font-medium outline-none placeholder:text-muted-foreground/60 transition-all focus:border-white/10 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/5"
             />
             <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-muted-foreground sm:inline-block">
               ⌘ K
             </kbd>
+
+            {searchOpen && (canSearch || searchLoading) && (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-white/10 bg-popover/95 shadow-2xl backdrop-blur-2xl">
+                {searchLoading ? (
+                  <div className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Searching...
+                  </div>
+                ) : visibleResults.length === 0 ? (
+                  <div className="px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    No results
+                  </div>
+                ) : (
+                  <ul className="max-h-72 overflow-y-auto py-1">
+                    {visibleResults.map((result) => (
+                      <li key={`${result.type}-${result.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => goToResult(result)}
+                          className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-foreground hover:bg-white/5"
+                        >
+                          <span className="truncate pr-3">{result.label}</span>
+                          <span className="shrink-0 rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            {result.type}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-5">

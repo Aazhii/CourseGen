@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Github, Mail, Sparkles } from "lucide-react";
@@ -15,6 +15,7 @@ import { loginContentQueryOptions } from "@/lib/queries/marketing";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState("");
@@ -27,6 +28,20 @@ export default function LoginPage() {
     document.title = content.metaTitle;
   }, [content.metaTitle]);
 
+  const redirectTarget = (() => {
+    const redirect = new URLSearchParams(location.search).get("redirect");
+    if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+      return "/dashboard";
+    }
+    return redirect;
+  })();
+
+  useEffect(() => {
+    if (!auth.loading && auth.isAuthenticated) {
+      navigate(redirectTarget, { replace: true });
+    }
+  }, [auth.loading, auth.isAuthenticated, navigate, redirectTarget]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -37,7 +52,7 @@ export default function LoginPage() {
       if (data && data.token) {
         auth.login(data.token, data.user);
         toast.success("Welcome back!");
-        navigate("/dashboard");
+        navigate(redirectTarget, { replace: true });
       } else {
         throw new Error("Invalid response");
       }

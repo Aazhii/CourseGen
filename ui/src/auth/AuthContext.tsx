@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiFetch } from '../services/apiClient';
 
+const TOKEN_STORAGE_KEY = 'token';
+const USER_STORAGE_KEY = 'auth_user';
+
 export interface User {
   id?: string;
   handle?: string;
@@ -28,54 +31,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const normalizeUser = (raw: unknown): User | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const value = raw as User;
+    const displayName = value.displayName ?? value.username ?? value.handle;
+    const handle = value.handle ?? value.username;
+    return { ...value, displayName, handle, username: handle };
+  };
+
+  const readStoredUser = (): User | null => {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    if (!raw) return null;
+    try {
+      return normalizeUser(JSON.parse(raw));
+    } catch {
+      localStorage.removeItem(USER_STORAGE_KEY);
+      return null;
+    }
+  };
+
+  const shouldInvalidateSession = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+    return (
+      message.includes('401') ||
+      message.includes('403') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden') ||
+      message.includes('jwt') ||
+      message.includes('token')
+    );
+  };
+
   // Initialize from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (storedToken) {
       setToken(storedToken);
-      // Try to fetch user profile with the stored token
-      fetchUserProfile();
+
+      const storedUser = readStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+      }
+
+      setLoading(false);
+      void fetchUserProfile(true);
     } else {
       setLoading(false);
     }
   }, []);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = async (clearSessionOnAuthError = false) => {
     try {
       const response = await apiFetch('/api/auth/me');
       const data = response?.data ?? response;
-      if (data && typeof data === 'object') {
-        const displayName = data.displayName ?? data.username;
-        const handle = data.handle ?? data.username;
-        setUser({ ...data, displayName, handle, username: handle });
+      const normalizedUser = normalizeUser(data);
+      if (normalizedUser) {
+        setUser(normalizedUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
-      // Token might be invalid, clear it
-      logout();
+      if (clearSessionOnAuthError && shouldInvalidateSession(error)) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const login = (newToken: string, userData?: User) => {
-    localStorage.setItem('token', newToken);
+    localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
     setToken(newToken);
 
-    if (userData) {
-      const displayName = userData.displayName ?? userData.username;
-      const handle = userData.handle ?? userData.username;
-      setUser({ ...userData, displayName, handle, username: handle });
+    const normalizedUser = normalizeUser(userData);
+    if (normalizedUser) {
+      setUser(normalizedUser);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
     } else {
       // Fetch user profile if not provided
-      fetchUserProfile();
+      setLoading(true);
+      void fetchUserProfile(true);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   const value: AuthContextType = {
@@ -85,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     setUser,
-    isAuthenticated: token !== null && user !== null,
+    isAuthenticated: token !== null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

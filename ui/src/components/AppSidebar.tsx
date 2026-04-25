@@ -3,14 +3,11 @@ import {
   LayoutDashboard, 
   BookOpen, 
   FolderKanban, 
-  Compass, 
-  MessageSquareText, 
-  Share2, 
-  Trophy, 
-  Users, 
+  Trophy,
+  Bell,
+  User,
   Sparkles,
   Settings,
-  Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthContext";
@@ -19,13 +16,11 @@ import { Logo } from "./Logo";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { label: "Courses", icon: BookOpen, path: "/courses" },
+  { label: "Courses", icon: BookOpen, path: "/dashboard" },
   { label: "Projects", icon: FolderKanban, path: "/projects" },
-  { label: "Explore", icon: Compass, path: "/courses" },
-  { label: "AI Coach", icon: MessageSquareText, path: "/courses" },
-  { label: "Sharing", icon: Share2, path: "/sharing" },
+  { label: "Notifications", icon: Bell, path: "/notifications" },
   { label: "Leaderboard", icon: Trophy, path: "/leaderboard" },
-  { label: "Team", icon: Users, path: "/profile" },
+  { label: "Profile", icon: User, path: "/profile" },
 ];
 
 export default function AppSidebar() {

@@ -23,11 +23,33 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { landingContentQueryOptions } from "@/lib/queries/marketing";
 import { fallbackLandingContent } from "@/data/marketingContent";
+import { getGlobalLeaderboard } from "@/services/leaderboardApi";
 
 import heroImage from "@/assets/hero-mockup.jpg";
 
 export default function LandingPage() {
   const { data: content = fallbackLandingContent } = useQuery(landingContentQueryOptions());
+  const { data: leaderboardPreview = [] } = useQuery({
+    queryKey: ["landing", "leaderboard-preview"],
+    queryFn: async () => {
+      const raw = await getGlobalLeaderboard(0, 3);
+      const list = raw?.data?.content ?? raw?.content ?? raw?.data ?? (Array.isArray(raw) ? raw : []);
+      return Array.isArray(list) ? list.slice(0, 3) : [];
+    },
+    staleTime: 2 * 60_000,
+    retry: 0,
+  });
+
+  const leaderboardRows = leaderboardPreview.length
+    ? leaderboardPreview.map((entry: any) => ({
+        n: entry.displayName ?? entry.username ?? entry.handle ?? "Learner",
+        v: `${(entry.totalPoints ?? entry.points ?? 0).toLocaleString()} XP`,
+      }))
+    : [
+        { n: "Priya S.", v: "1,240 XP" },
+        { n: "Marco D.", v: "1,180 XP" },
+        { n: "Aiko T.", v: "1,055 XP" },
+      ];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -282,11 +304,7 @@ export default function LandingPage() {
                   <MockCard className="col-span-3">
                     <div className="text-xs text-muted-foreground">Leaderboard</div>
                     <ul className="mt-3 space-y-2 text-sm">
-                      {[
-                        { n: "Priya S.", v: "1,240 XP" },
-                        { n: "Marco D.", v: "1,180 XP" },
-                        { n: "Aiko T.", v: "1,055 XP" },
-                      ].map((p, i) => (
+                      {leaderboardRows.map((p, i) => (
                         <li key={p.n} className="flex items-center gap-3">
                           <span className="grid h-6 w-6 place-items-center rounded-full bg-white/[0.06] text-[11px]">
                             {i + 1}
