@@ -60,6 +60,7 @@ public class Config {
                                 "/oauth2/**",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/leaderboard/global").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
