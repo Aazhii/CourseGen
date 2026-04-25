@@ -150,7 +150,7 @@ export default function LandingPage() {
               collaboration.
             </p>
 
-            <div className="mt-20 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-20 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {FEATURE_ICONS.map((Icon, index) => {
                 const feature = content.features[index];
                 if (!feature) return null;
@@ -162,24 +162,24 @@ export default function LandingPage() {
 
         {/* ---------- HOW IT WORKS ---------- */}
         <section id="how" className="relative py-24 md:py-32">
-          <div className="absolute inset-x-0 top-0 mx-auto h-px max-w-5xl bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="absolute inset-x-0 top-0 mx-auto h-px max-w-5xl divider-glow" />
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <Eyebrow>How it works</Eyebrow>
             <SectionTitle>
               From a blank page to a <span className="text-gradient">launch-ready course</span>.
             </SectionTitle>
 
-            <div className="mt-16 grid gap-8 md:grid-cols-3">
+            <div className="mt-14 grid gap-6 md:grid-cols-3">
               {content.steps.map((s, i) => (
-                <div key={s.n} className="relative glass-strong rounded-[2rem] p-10 border border-white/5 transition-all hover:border-white/15 hover:-translate-y-1">
-                  <div className="flex items-center gap-4">
-                    <span className="font-display text-xs font-bold text-muted-foreground tracking-[0.2em]">STEP</span>
-                    <span className="font-display text-4xl font-bold text-gradient">{s.n}</span>
+                <div key={s.n} className="relative glass rounded-2xl p-7">
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-xs text-muted-foreground">STEP</span>
+                    <span className="font-display text-3xl font-semibold text-gradient">{s.n}</span>
                   </div>
-                  <h3 className="mt-8 font-display text-2xl font-bold tracking-tight text-white">{s.title}</h3>
-                  <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-medium">{s.desc}</p>
+                  <h3 className="mt-5 font-display text-xl font-semibold tracking-tight text-white">{s.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
                   {i < content.steps.length - 1 && (
-                    <ArrowRight className="absolute -right-4 top-1/2 hidden h-8 w-8 -translate-y-1/2 text-white/5 md:block" />
+                    <ArrowRight className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-muted-foreground md:block" />
                   )}
                 </div>
               ))}
@@ -188,45 +188,60 @@ export default function LandingPage() {
         </section>
 
         {/* ---------- SHOWCASE ---------- */}
-        <section className="relative py-24 md:py-32 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-          <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
-            <div className="grid items-center gap-16 lg:grid-cols-2">
+        <section className="relative py-24 md:py-32">
+          <div className="mx-auto max-w-7xl px-6 md:px-8">
+            <div className="grid items-center gap-12 lg:grid-cols-2">
+
+              {/* ---- Left: copy ---- */}
               <div>
-                <Eyebrow>Inside the workspace</Eyebrow>
+                <Eyebrow>Inside the product</Eyebrow>
                 <SectionTitle>
-                  A tool that <span className="text-gradient">feels alive</span>.
+                  A workspace that <span className="text-gradient">feels alive</span>.
                 </SectionTitle>
-                <p className="mt-6 text-lg text-muted-foreground leading-relaxed font-medium">
-                  Generate a course, bridge the modules, and chat with the AI coach — all in one fluid
-                  workspace designed for deep focus and maximum output.
+                <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+                  Generate a course, browse modules, and chat with the AI coach — all in one fluid
+                  workspace designed for focus and flow.
                 </p>
-                <ul className="mt-10 space-y-4">
-                  {content.showcaseBullets.map((t) => (
-                    <li key={t} className="flex items-start gap-4 text-foreground font-medium">
-                      <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-accent" />
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Drag, reorder, regenerate any module instantly",
+                    "Linked projects keep related courses in sync",
+                    "Per-lesson AI coaching, scoped to context",
+                    "Shareable links with view, edit, or admin roles",
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-3 text-sm text-foreground/90">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.84_0.16_200)]" />
                       {t}
                     </li>
                   ))}
                 </ul>
+                <div className="mt-8">
+                  <Button asChild variant="neon" size="lg">
+                    <Link to="/login">Try the workspace <ArrowRight className="h-4 w-4" /></Link>
+                  </Button>
+                </div>
               </div>
+
+              {/* ---- Right: 6-col mock UI grid ---- */}
               <div className="relative">
-                <div className="absolute -inset-6 rounded-[3rem] bg-gradient-cta opacity-20 blur-3xl" />
+                <div className="absolute -inset-6 rounded-[2rem] bg-gradient-cta opacity-25 blur-3xl" />
                 <div className="relative grid grid-cols-6 gap-4">
-                  <MockCard className="col-span-4 translate-y-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+
+                  {/* Course card — col-span-4 */}
+                  <MockCard className="col-span-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Course Overview</div>
-                        <div className="font-display text-xl font-bold text-white mt-1">Vector DB Mastery</div>
+                        <div className="text-xs text-muted-foreground">Course</div>
+                        <div className="font-display text-lg font-semibold">Intro to Vector DBs</div>
                       </div>
-                      <span className="rounded-full bg-primary/20 border border-primary/40 px-3 py-1 text-[10px] font-bold text-white uppercase tracking-widest">
-                        AI Generated
+                      <span className="rounded-full bg-gradient-cta px-2.5 py-1 text-[10px] font-medium text-primary-foreground">
+                        AI-generated
                       </span>
                     </div>
-                    <div className="space-y-3">
-                      {["Embedding Foundations", "Indexing strategies", "Hybrid search patterns"].map((m, i) => (
-                        <div key={m} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/5 p-4 text-sm font-medium">
-                          <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-cta text-[11px] font-bold text-white">
+                    <div className="mt-4 space-y-2">
+                      {["Foundations of embeddings", "Indexing strategies", "Hybrid search patterns"].map((m, i) => (
+                        <div key={m} className="flex items-center gap-3 rounded-lg bg-white/[0.04] p-3 text-sm">
+                          <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-cta text-[11px] font-semibold text-primary-foreground">
                             {i + 1}
                           </span>
                           <span className="flex-1">{m}</span>
@@ -235,20 +250,61 @@ export default function LandingPage() {
                       ))}
                     </div>
                   </MockCard>
-                  <MockCard className="col-span-2 -translate-y-4">
-                    <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-4">AI Coach</div>
-                    <div className="space-y-3 text-xs font-medium">
-                      <div className="rounded-2xl bg-white/5 p-4 border border-white/10 italic text-muted-foreground">Explain HNSW simply.</div>
-                      <div className="rounded-2xl bg-primary/20 p-4 text-white border border-primary/30">
-                        Think layered shortcuts on a graph — fast at top, precise at bottom.
+
+                  {/* AI Coach card — col-span-2 */}
+                  <MockCard className="col-span-2">
+                    <div className="text-xs text-muted-foreground">AI Coach</div>
+                    <div className="mt-3 space-y-2.5 text-sm">
+                      <div className="rounded-lg bg-white/[0.05] p-2.5">Explain HNSW like I'm a junior dev.</div>
+                      <div className="rounded-lg bg-gradient-cta/30 p-2.5 text-foreground border border-white/10">
+                        Think layered shortcuts on a graph — fast at the top, precise at the bottom.
                       </div>
                     </div>
                   </MockCard>
+
+                  {/* Engagement card — col-span-3 */}
+                  <MockCard className="col-span-3">
+                    <div className="text-xs text-muted-foreground">Engagement</div>
+                    <div className="mt-2 font-display text-3xl font-semibold">+38%</div>
+                    <div className="text-xs text-[oklch(0.84_0.16_200)]">vs. last month</div>
+                    <div className="mt-3 flex h-12 items-end gap-1">
+                      {[30, 45, 38, 60, 52, 70, 84, 76, 88, 95].map((v, i) => (
+                        <div
+                          key={i}
+                          className="w-full rounded-sm bg-gradient-to-t from-[oklch(0.72_0.21_285)] to-[oklch(0.78_0.18_200)]"
+                          style={{ height: `${v}%` }}
+                        />
+                      ))}
+                    </div>
+                  </MockCard>
+
+                  {/* Leaderboard card — col-span-3 */}
+                  <MockCard className="col-span-3">
+                    <div className="text-xs text-muted-foreground">Leaderboard</div>
+                    <ul className="mt-3 space-y-2 text-sm">
+                      {[
+                        { n: "Priya S.", v: "1,240 XP" },
+                        { n: "Marco D.", v: "1,180 XP" },
+                        { n: "Aiko T.", v: "1,055 XP" },
+                      ].map((p, i) => (
+                        <li key={p.n} className="flex items-center gap-3">
+                          <span className="grid h-6 w-6 place-items-center rounded-full bg-white/[0.06] text-[11px]">
+                            {i + 1}
+                          </span>
+                          <span className="flex-1">{p.n}</span>
+                          <span className="text-xs text-muted-foreground">{p.v}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </MockCard>
+
                 </div>
               </div>
+
             </div>
           </div>
         </section>
+
 
         {/* ---------- USE CASES ---------- */}
         <section id="use-cases" className="relative py-24 md:py-32">
@@ -371,7 +427,7 @@ function FloatingCard({
 }
 
 function MockCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={"glass-strong rounded-[2rem] p-8 border border-white/5 shadow-2xl backdrop-blur-3xl " + className}>{children}</div>;
+  return <div className={"glass-strong rounded-2xl p-5 shadow-soft " + className}>{children}</div>;
 }
 
 function Eyebrow({ children, center }: { children: React.ReactNode; center?: boolean }) {
@@ -395,14 +451,14 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function FeatureCard({ icon: Icon, title, desc }: { icon: any, title: string, desc: string }) {
   return (
-    <div className="group relative overflow-hidden rounded-[2.5rem] glass-strong p-10 transition-all duration-500 hover:-translate-y-1 hover:border-white/20 border border-white/5">
-      <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-2xl glass p-6 transition-all hover:-translate-y-0.5 hover:border-white/15">
+      <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[oklch(0.72_0.21_285/25%)] opacity-0 blur-3xl transition-opacity group-hover:opacity-100" />
       <div className="relative">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-white/[0.03] border border-white/10 group-hover:bg-primary/20 group-hover:border-primary/40 group-hover:scale-110 transition-all duration-500">
-          <Icon className="h-7 w-7 text-accent group-hover:text-white transition-colors" />
+        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.05] ring-1 ring-white/10">
+          <Icon className="h-5 w-5 text-[oklch(0.84_0.16_200)]" />
         </span>
-        <h3 className="mt-10 font-display text-2xl font-bold tracking-tight text-white group-hover:text-primary transition-colors">{title}</h3>
-        <p className="mt-4 text-[15px] text-muted-foreground leading-relaxed font-medium">{desc}</p>
+        <h3 className="mt-5 font-display text-lg font-semibold tracking-tight">{title}</h3>
+        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>
       </div>
     </div>
   );
