@@ -150,7 +150,7 @@ export default function LandingPage() {
               collaboration.
             </p>
 
-            <div className="mt-20 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-20 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {FEATURE_ICONS.map((Icon, index) => {
                 const feature = content.features[index];
                 if (!feature) return null;
@@ -169,17 +169,20 @@ export default function LandingPage() {
               From a blank page to a <span className="text-gradient">launch-ready course</span>.
             </SectionTitle>
 
-            <div className="mt-16 grid gap-8 md:grid-cols-3">
+            <div className="mt-16 grid gap-4 md:grid-cols-3">
               {content.steps.map((s, i) => (
-                <div key={s.n} className="relative glass-strong rounded-[2rem] p-10 border border-white/5 transition-all hover:border-white/15 hover:-translate-y-1">
-                  <div className="flex items-center gap-4">
-                    <span className="font-display text-xs font-bold text-muted-foreground tracking-[0.2em]">STEP</span>
-                    <span className="font-display text-4xl font-bold text-gradient">{s.n}</span>
+                <div key={s.n} className="relative group overflow-hidden rounded-2xl bg-[oklch(0.17_0.024_270)] border border-white/[0.07] p-6 transition-all duration-500 hover:border-white/15 hover:-translate-y-1 hover:bg-[oklch(0.19_0.026_270)]">
+                  <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-[oklch(0.84_0.16_200/8%)] opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-100" />
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[oklch(0.84_0.16_200/12%)] border border-[oklch(0.84_0.16_200/35%)] font-display text-sm font-bold text-[oklch(0.84_0.16_200)]">{s.n}</span>
+                      <span className="font-display text-[10px] font-bold text-muted-foreground/60 tracking-[0.2em] uppercase">Step</span>
+                    </div>
+                    <h3 className="font-display text-base font-bold tracking-tight text-white group-hover:text-primary transition-colors">{s.title}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed font-medium">{s.desc}</p>
                   </div>
-                  <h3 className="mt-8 font-display text-2xl font-bold tracking-tight text-white">{s.title}</h3>
-                  <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-medium">{s.desc}</p>
                   {i < content.steps.length - 1 && (
-                    <ArrowRight className="absolute -right-4 top-1/2 hidden h-8 w-8 -translate-y-1/2 text-white/30 md:block" />
+                    <ArrowRight className="absolute -right-4 top-1/2 hidden h-6 w-6 -translate-y-1/2 text-white/30 md:block" />
                   )}
                 </div>
               ))}
@@ -395,14 +398,14 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function FeatureCard({ icon: Icon, title, desc }: { icon: any, title: string, desc: string }) {
   return (
-    <div className="group relative overflow-hidden rounded-[2.5rem] glass-strong p-10 transition-all duration-500 hover:-translate-y-1 hover:border-white/20 border border-white/5">
-      <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-2xl bg-[oklch(0.17_0.024_270)] border border-white/[0.07] p-6 transition-all duration-500 hover:-translate-y-1 hover:border-white/15 hover:bg-[oklch(0.19_0.026_270)]">
+      <div className="absolute -top-16 -right-16 h-32 w-32 rounded-full bg-[oklch(0.84_0.16_200/8%)] opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-100" />
       <div className="relative">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-[oklch(0.84_0.16_200/15%)] border border-[oklch(0.84_0.16_200/40%)] group-hover:bg-[oklch(0.84_0.16_200/25%)] group-hover:border-[oklch(0.84_0.16_200/70%)] group-hover:scale-110 transition-all duration-500">
-          <Icon className="h-7 w-7 text-[oklch(0.84_0.16_200)] transition-colors" />
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.84_0.16_200/12%)] border border-[oklch(0.84_0.16_200/35%)] group-hover:bg-[oklch(0.84_0.16_200/22%)] group-hover:border-[oklch(0.84_0.16_200/65%)] group-hover:scale-110 transition-all duration-500">
+          <Icon className="h-5 w-5 text-[oklch(0.84_0.16_200)] transition-colors" />
         </span>
-        <h3 className="mt-10 font-display text-2xl font-bold tracking-tight text-white group-hover:text-primary transition-colors">{title}</h3>
-        <p className="mt-4 text-[15px] text-muted-foreground leading-relaxed font-medium">{desc}</p>
+        <h3 className="mt-5 font-display text-base font-bold tracking-tight text-white group-hover:text-primary transition-colors">{title}</h3>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed font-medium">{desc}</p>
       </div>
     </div>
   );
