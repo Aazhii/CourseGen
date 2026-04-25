@@ -63,6 +63,11 @@ public class UserService {
         }
     }
 
+    public LoginResponse issueLoginResponse(Users user) {
+        String token = jwtService.generateToken(user.getUsername());
+        return new LoginResponse(token, new UserResponse(user));
+    }
+
     public LoginResponse verify(Users user) {
         LOGGER.log(Level.INFO, "Attempting to verify user: {0}", new Object[]{user.getUsername()});
         try {
