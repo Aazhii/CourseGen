@@ -91,28 +91,28 @@ export function ProfileDropdown() {
             <DropdownMenuGroup>
               <DropdownMenuItem 
                 onClick={() => openSettings("account")}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg focus:bg-muted/80 focus:text-accent-foreground transition-all cursor-pointer group hover:bg-muted/60"
+                className="flex items-center gap-3 px-3 py-1.5 rounded-xl focus:bg-muted focus:text-accent-foreground transition-all cursor-pointer group hover:bg-muted/80 mb-0.5"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                  <UserIcon className="h-4 w-4" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                  <UserIcon className="h-3.5 w-3.5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground/90 group-hover:text-foreground">Account info</p>
+                  <p className="text-sm font-bold text-foreground/90 group-hover:text-foreground">Account info</p>
                 </div>
-                <ChevronIcon className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+                <ChevronIcon className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
               </DropdownMenuItem>
 
               <DropdownMenuItem 
                 onClick={() => openSettings("preferences")}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg focus:bg-muted/80 focus:text-accent-foreground transition-all cursor-pointer group hover:bg-muted/60"
+                className="flex items-center gap-3 px-3 py-1.5 rounded-xl focus:bg-muted focus:text-accent-foreground transition-all cursor-pointer group hover:bg-muted/80"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:bg-muted/80 transition-colors">
-                  <SettingsIcon className="h-4 w-4" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-muted/80 transition-colors">
+                  <SettingsIcon className="h-3.5 w-3.5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground/90 group-hover:text-foreground">Preferences</p>
+                  <p className="text-sm font-bold text-foreground/90 group-hover:text-foreground">Preferences</p>
                 </div>
-                <ChevronIcon className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+                <ChevronIcon className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
