@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
 import { ChevronLeft, CheckCircle, BookOpen, Clock, Sparkles, Database } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import LessonContentRenderer from "@/components/lesson/LessonContentRenderer";
-import { LessonData } from "@/types/lessonContent";
-import { getLessonWithGeneration } from "@/services/lessonService";
-import { getCourseById } from "@/services/courseApi";
-import { markLessonComplete, markLessonIncomplete, startLessonSession, stopLessonSession } from "@/services/progressApi";
+import { Button } from "../components/ui/button";
+import LessonContentRenderer from "../components/lesson/LessonContentRenderer";
+import { LessonData } from "../types/lessonContent";
+import { getLessonWithGeneration } from "../services/lessonService";
+import { getCourseById } from "../services/courseApi";
+import { markLessonComplete, markLessonIncomplete, startLessonSession, stopLessonSession } from "../services/progressApi";
 import { toast } from "sonner";
-import { USE_MCP_CLIENT } from "@/constants";
+import { USE_MCP_CLIENT } from "../constants";
 
 export default function LessonView() {
   const { courseId, lessonId } = useParams();

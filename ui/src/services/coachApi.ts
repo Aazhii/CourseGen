@@ -1,7 +1,7 @@
 import { apiFetch } from "./apiClient";
-import { CoachRequest, CoachResponse } from "@/types/coach";
+import { CoachRequest, CoachResponse } from "../types/coach";
 import { executeMcpTool } from "./mcpApi";
-import { USE_MCP_CLIENT } from "@/constants";
+import { USE_MCP_CLIENT } from "../constants";
 
 export async function getCoachResponse(payload: CoachRequest): Promise<CoachResponse> {
   if (USE_MCP_CLIENT) {

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck, BookOpen, Share2, Clock, Check, X, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "../components/ui/button";
+import { cn } from "../lib/utils";
 import {
   fetchSharedWithMeInvites,
   acceptInvite,
   declineInvite,
   markInviteRead,
   markAllInvitesRead,
-} from "@/services/inviteApi";
+} from "../services/inviteApi";
 import { toast } from "sonner";
 
 const tabs = ["All", "Pending", "Accepted", "Declined"] as const;

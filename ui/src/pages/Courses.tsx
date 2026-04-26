@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Search, Filter, ArrowRight, Loader2, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchCourses, deleteCourse, updateCourse } from "@/services/courseApi";
-import { CourseCard } from "@/components/CourseCard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { fetchCourses, deleteCourse, updateCourse } from "../services/courseApi";
+import { CourseCard } from "../components/CourseCard";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { toast } from "sonner";
-import { Course } from "@/types/course";
+import { Course } from "../types/course";
 
 export default function Courses() {
   const queryClient = useQueryClient();

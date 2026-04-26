@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { User, Lock, Award, BookOpen, Zap, Flame, TrendingUp, CheckCircle, Loader2, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getProfile, updateProfile, changePassword } from "@/services/aboutApi";
-import { useAuth } from "@/auth/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { getProfile, updateProfile, changePassword } from "../services/aboutApi";
+import { useAuth } from "../auth/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 type Section = "profile" | "security";
 

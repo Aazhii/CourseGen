@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { projectsQueryOptions } from "@/lib/queries/projects";
-import { ProjectsHeader } from "@/components/projects/ProjectsHeader";
-import { ProjectsToolbar, type Sort, type View, type Filter } from "@/components/projects/ProjectsToolbar";
-import { ProjectsGrid } from "@/components/projects/ProjectsGrid";
-import { ProjectsTable } from "@/components/projects/ProjectsTable";
-import { EmptyProjects } from "@/components/projects/EmptyProjects";
-import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
-import { MobileNewProjectFab } from "@/components/projects/MobileNewProjectFab";
+import { Button } from "../components/ui/button";
+import { projectsQueryOptions } from "../lib/queries/projects";
+import { ProjectsHeader } from "../components/projects/ProjectsHeader";
+import { ProjectsToolbar, type Sort, type View, type Filter } from "../components/projects/ProjectsToolbar";
+import { ProjectsGrid } from "../components/projects/ProjectsGrid";
+import { ProjectsTable } from "../components/projects/ProjectsTable";
+import { EmptyProjects } from "../components/projects/EmptyProjects";
+import { CreateProjectDialog } from "../components/projects/CreateProjectDialog";
+import { MobileNewProjectFab } from "../components/projects/MobileNewProjectFab";
 import { FolderGit2 } from "lucide-react";
 
 export default function Projects() {

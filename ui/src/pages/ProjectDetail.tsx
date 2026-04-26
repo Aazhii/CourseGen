@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ChevronRight, Settings } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { projectQueryOptions, promptsQueryOptions } from "@/lib/queries/projects";
-import { PromptComposer } from "@/components/projects/PromptComposer";
-import { SavedPromptsList } from "@/components/projects/SavedPromptsList";
-import { LinkedCoursesList } from "@/components/projects/LinkedCoursesList";
-import { ProjectSettings } from "@/components/projects/ProjectSettings";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { projectQueryOptions, promptsQueryOptions } from "../lib/queries/projects";
+import { PromptComposer } from "../components/projects/PromptComposer";
+import { SavedPromptsList } from "../components/projects/SavedPromptsList";
+import { LinkedCoursesList } from "../components/projects/LinkedCoursesList";
+import { ProjectSettings } from "../components/projects/ProjectSettings";
+import { Badge } from "../components/ui/badge";
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();

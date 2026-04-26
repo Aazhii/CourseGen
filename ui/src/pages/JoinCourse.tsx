@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BookOpen, Lock, Users, CheckCircle, Loader2, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { resolveShareToken, enrollUsingShareLink } from "@/services/joinApi";
-import { useAuth } from "@/auth/AuthContext";
+import { Button } from "../components/ui/button";
+import { resolveShareToken, enrollUsingShareLink } from "../services/joinApi";
+import { useAuth } from "../auth/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 export default function JoinCourse() {
   const { token } = useParams<{ token: string }>();

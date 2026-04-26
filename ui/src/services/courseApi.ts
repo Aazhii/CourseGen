@@ -1,7 +1,7 @@
 import { apiFetch } from './apiClient';
 import { executeMcpTool } from './mcpApi';
-import { USE_MCP_CLIENT } from '@/constants';
-import { Course, CourseCreatePayload } from '@/types/course';
+import { USE_MCP_CLIENT } from '../constants';
+import { Course, CourseCreatePayload } from '../types/course';
 
 function unwrapApiData<T>(payload: any): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeature } from "../hooks/useFeature";
 import {
   fetchLlmProviderHealth,
   fetchLlmProviders,
@@ -14,9 +14,9 @@ import {
   type LlmProviderPayload,
   type ProviderType,
   type WorkloadType,
-} from "@/services/llmAdminApi";
-import { listMcpTools } from "@/services/mcpApi";
-import type { McpToolDescriptor } from "@/types/mcp";
+} from "../services/llmAdminApi";
+import { executeMcpTool, listMcpTools } from "../services/mcpApi";
+import type { McpToolDescriptor } from "../types/mcp";
 import {
   Card,
   CardContent,
@@ -24,13 +24,13 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
+} from "../components/ui/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs";
+} from "../components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -39,20 +39,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+} from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
+import { Badge } from "../components/ui/badge";
 import { 
   Activity, 
   Settings, 
@@ -72,10 +72,10 @@ import {
   Lock
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { USE_MCP_CLIENT } from "@/constants";
+import { cn } from "../lib/utils";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip";
+import { USE_MCP_CLIENT } from "../constants";
 
 const WORKLOADS: WorkloadType[] = ["COURSE_GENERATION", "LESSON_GENERATION", "AI_COACH"];
 

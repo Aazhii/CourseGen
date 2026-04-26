@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/auth/AuthContext";
-import { register as apiRegister } from "@/services/authApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useAuth } from "../auth/AuthContext";
+import { register as apiRegister } from "../services/authApi";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, Github, Mail, Sparkles, UserPlus, ShieldCheck } from "lucide-react";
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { Logo } from "@/components/Logo";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { Logo } from "../components/Logo";
 
 export default function RegisterPage() {
   const navigate = useNavigate();

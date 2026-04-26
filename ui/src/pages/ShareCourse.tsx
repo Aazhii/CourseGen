@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2, Search as SearchIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getCourseById } from "@/services/courseApi";
-import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
-import { getCourseEnrollments } from "@/services/progressApi";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { getCourseById } from "../services/courseApi";
+import { resolveByPrefix, type SearchResultItem } from "../services/searchApi";
+import { getCourseEnrollments } from "../services/progressApi";
 import {
   activateShareLink,
   deactivateShareLink,
@@ -13,9 +13,9 @@ import {
   getCourseShareLinks,
   revokeShareLink,
   sendDirectInvite,
-} from "@/services/shareApi";
+} from "../services/shareApi";
 import { toast } from "sonner";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth } from "../auth/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +23,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import CourseAnalyticsModal from "@/components/course/CourseAnalyticsModal";
-import CourseLeaderboard from "@/components/course/CourseLeaderboard";
+} from "../components/ui/dialog";
+import CourseAnalyticsModal from "../components/course/CourseAnalyticsModal";
+import CourseLeaderboard from "../components/course/CourseLeaderboard";
 
 // ─── Types ─────────────────────────────────────────────────────────
 type Recipient = Pick<SearchResultItem, "id" | "label" | "description">;

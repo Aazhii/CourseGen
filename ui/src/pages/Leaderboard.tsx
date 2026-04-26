@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Trophy, Medal, Star, TrendingUp } from "lucide-react";
-import { getGlobalLeaderboard, getMyRank } from "@/services/leaderboardApi";
-import { cn } from "@/lib/utils";
+import { getGlobalLeaderboard, getMyRank } from "../services/leaderboardApi";
+import { cn } from "../lib/utils";
 
 export default function Leaderboard() {
   const [leaders, setLeaders] = useState<any[]>([]);

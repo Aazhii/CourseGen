@@ -1,5 +1,5 @@
 import { apiFetch } from "./apiClient";
-import type { McpToolDescriptor, McpToolRequest, McpToolResponse } from "@/types/mcp";
+import type { McpToolDescriptor, McpToolRequest, McpToolResponse } from "../types/mcp";
 
 export async function listMcpTools(): Promise<McpToolDescriptor[]> {
   return apiFetch("/api/mcp/tools");

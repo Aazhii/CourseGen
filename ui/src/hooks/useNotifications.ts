@@ -6,8 +6,8 @@ import {
   declineInvite,
   markInviteRead,
   markAllInvitesRead,
-} from "@/services/inviteApi";
-import { getProfile } from "@/services/aboutApi";
+} from "../services/inviteApi";
+import { getProfile } from "../services/aboutApi";
 
 // ─── Unified Notification Type ─────────────────────────────────────
 export type NotificationType =
