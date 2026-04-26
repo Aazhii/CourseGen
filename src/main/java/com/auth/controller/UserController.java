@@ -34,12 +34,13 @@ public class UserController {
     private TokenBlacklistService tokenBlacklistService;
 
     @PostMapping("/register")
-    public Users registerUser(@RequestBody Users user) {
+    public ResponseEntity<LoginResponse> registerUser(@RequestBody Users user) {
         LOGGER.log(Level.INFO, "Request received to register user: {0}", new Object[]{user.getUsername()});
         try {
             Users registeredUser = service.registerUser(user);
             LOGGER.log(Level.INFO, "User registered successfully: {0}", new Object[]{registeredUser.getUsername()});
-            return registeredUser;
+            LoginResponse response = service.issueLoginResponse(registeredUser);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error registering user: {0}: {1}",
                     new Object[]{user.getUsername(), e.getMessage()});
