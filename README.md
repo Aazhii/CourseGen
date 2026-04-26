@@ -13,7 +13,7 @@ Manages security, session, and user metadata.
 
 * **Method**: `POST`
 * **URL**: `/api/auth/register`
-* **Request Body**: `{"username": "johndoe", "password": "password123", "email": "john@example.com"}`
+* **Request Body**: `{"username": "johndoe", "password": "password123"}`
 * **Success (201)**: `{"token": "JWT", "user": { "id": 1, "username": "johndoe", ... }}`
 
 ### Login
