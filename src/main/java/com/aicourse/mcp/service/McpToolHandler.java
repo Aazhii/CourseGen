@@ -8,6 +8,10 @@ public interface McpToolHandler {
 
     String description();
 
+    default com.fasterxml.jackson.databind.JsonNode inputSchema() {
+        return null;
+    }
+
     JsonNode execute(JsonNode input, McpExecutionContext context) throws Exception;
 }
 
