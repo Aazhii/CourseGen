@@ -44,12 +44,12 @@ export function PromptComposer({
   const navigate = useNavigate();
   const create = useCreatePrompt(projectId);
   const [isEnhancing, setIsEnhancing] = useState(false);
-  
+
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { text: "", relatedCourseId: undefined },
   });
-  
+
   const text = form.watch("text") ?? "";
 
   const handleEnhance = async () => {
@@ -63,7 +63,7 @@ export function PromptComposer({
       const response = await getCoachResponse({
         message: `Act as a senior curriculum designer. Rewrite and enhance the following course topic/prompt to be more structured, detailed, and clear for an AI course generator. Keep it concise but improve depth. Prompt: "${text}"`,
       });
-      
+
       const textBlock = response.blocks?.find(b => b.type === "text");
       const enhancedText = textBlock ? (textBlock.content as any).body : "";
 
@@ -83,10 +83,10 @@ export function PromptComposer({
   async function onSubmit(values: Values) {
     const relatedCourseTitle = courses.find((c) => c.id === values.relatedCourseId)?.title;
     try {
-      await create.mutateAsync({ 
-        text: values.text, 
-        relatedCourseId: values.relatedCourseId, 
-        relatedCourseTitle 
+      await create.mutateAsync({
+        text: values.text,
+        relatedCourseId: values.relatedCourseId,
+        relatedCourseTitle
       });
       form.reset({ text: "", relatedCourseId: undefined });
       toast.success("Prompt template saved to project.");
@@ -100,21 +100,21 @@ export function PromptComposer({
       {/* Decorative Glows */}
       <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[100px] rounded-full pointer-events-none group-hover:bg-primary/15 transition-all duration-700" />
       <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
-      
+
       <div className="relative z-10">
         <header className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center text-primary">
-                <Sparkles className="h-5 w-5 animate-pulse" />
-             </div>
-             <div>
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Project Engine</h2>
-                <p className="text-sm text-muted-foreground font-medium">Draft detailed prompts for your course fleet</p>
-             </div>
+            <div className="h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center text-primary">
+              <Sparkles className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">Project Engine</h2>
+              <p className="text-sm text-muted-foreground font-medium">Draft detailed prompts for your course fleet</p>
+            </div>
           </div>
           <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 bg-muted px-3 py-1.5 rounded-full border border-border/50">
-             <Info className="h-3 w-3" />
-             Context-Aware Generation
+            <Info className="h-3 w-3" />
+            Context-Aware Generation
           </div>
         </header>
 
@@ -130,15 +130,15 @@ export function PromptComposer({
                       <Textarea
                         rows={6}
                         placeholder='e.g., "A comprehensive guide to building responsive React applications with TailwindCSS, including modern hooks and state management..."'
-                        className="bg-card/80 border-border shadow-soft focus:border-primary/40 text-foreground text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/60 leading-relaxed overflow-hidden"
+                        className="bg-muted/30 border-border shadow-soft focus:border-primary/40 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/40 leading-relaxed overflow-hidden scrollbar-hide"
                         {...field}
                       />
-                      
+
                       <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           className="h-10 px-4 rounded-xl border-border hover:border-primary/30 transition-all group/btn"
                           onClick={handleEnhance}
                           disabled={isEnhancing || !text}
@@ -187,25 +187,25 @@ export function PromptComposer({
               />
 
               <div className="flex gap-3 h-12">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex-1 rounded-2xl border-border font-bold text-[11px] uppercase tracking-widest" 
-                  onClick={form.handleSubmit(onSubmit)} 
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 rounded-2xl border-border font-bold text-[11px] uppercase tracking-widest"
+                  onClick={form.handleSubmit(onSubmit)}
                   disabled={create.isPending || !text}
                 >
-                  <Save className="h-4 w-4 mr-2" /> 
+                  <Save className="h-4 w-4 mr-2" />
                   {create.isPending ? "Saving..." : "Save Template"}
                 </Button>
-                
-                <Button 
-                  type="button" 
+
+                <Button
+                  type="button"
                   variant="hero"
-                  className="flex-[1.5] rounded-2xl font-bold text-[11px] uppercase tracking-widest group shadow-glow" 
+                  className="flex-[1.5] rounded-2xl font-bold text-[11px] uppercase tracking-widest group shadow-glow"
                   disabled={!text}
                   onClick={() => navigate(`/create-course?projectId=${projectId}&topic=${encodeURIComponent(text)}`)}
                 >
-                  <Sparkles className="h-4 w-4 mr-2 group-hover:scale-125 transition-transform" /> 
+                  <Sparkles className="h-4 w-4 mr-2 group-hover:scale-125 transition-transform" />
                   Generate Magic
                 </Button>
               </div>
