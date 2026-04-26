@@ -15,6 +15,8 @@ import {
   type ProviderType,
   type WorkloadType,
 } from "@/services/llmAdminApi";
+import { listMcpTools } from "@/services/mcpApi";
+import type { McpToolDescriptor } from "@/types/mcp";
 import {
   Card,
   CardContent,
@@ -93,7 +95,7 @@ export default function LlmAdmin() {
   const [error, setError] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit">("routing");
+  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit" | "tools">("routing");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditItems, setAuditItems] = useState<McpAuditLogItem[]>([]);
   const [auditTotalPages, setAuditTotalPages] = useState(0);
@@ -110,6 +112,12 @@ export default function LlmAdmin() {
     page: 0,
     size: 20,
   });
+  const [mcpTools, setMcpTools] = useState<McpToolDescriptor[]>([]);
+  const [mcpToolsLoading, setMcpToolsLoading] = useState(false);
+  const [executingTool, setExecutingTool] = useState<McpToolDescriptor | null>(null);
+  const [toolInput, setToolInput] = useState<string>("{}");
+  const [toolResult, setToolResult] = useState<any>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
   const auditFiltersRef = useRef(auditFilters);
 
   const [form, setForm] = useState({
@@ -265,6 +273,26 @@ export default function LlmAdmin() {
     loadAuditLogs(auditFiltersRef.current);
   }, [adminFeature.loading, adminFeature.allowed, activeTab, loadAuditFilterOptions, loadAuditLogs]);
 
+  useEffect(() => {
+    if (adminFeature.loading || !adminFeature.allowed || activeTab !== "tools") {
+      return;
+    }
+
+    const fetchTools = async () => {
+      setMcpToolsLoading(true);
+      try {
+        const tools = await listMcpTools();
+        setMcpTools(tools);
+      } catch (e) {
+        toast.error("Failed to fetch MCP tools");
+      } finally {
+        setMcpToolsLoading(false);
+      }
+    };
+
+    fetchTools();
+  }, [adminFeature.loading, adminFeature.allowed, activeTab]);
+
   function applyAuditFilters() {
     const nextFilters = { ...auditFilters, page: 0 };
     setAuditFilters(nextFilters);
@@ -322,6 +350,30 @@ export default function LlmAdmin() {
       toast.error("Failed to update route");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleExecuteTool() {
+    if (!executingTool) return;
+    setIsExecuting(true);
+    setToolResult(null);
+    try {
+      const parsedInput = JSON.parse(toolInput);
+      const res = await executeMcpTool({
+        tool: executingTool.name,
+        input: parsedInput
+      });
+      setToolResult(res);
+      if (res.success) {
+        toast.success(`Tool ${executingTool.name} executed successfully`);
+      } else {
+        toast.error(`Tool execution failed: ${res.error}`);
+      }
+    } catch (e) {
+      toast.error("Invalid JSON input or execution error");
+      setToolResult({ success: false, error: e instanceof Error ? e.message : "Client-side error" });
+    } finally {
+      setIsExecuting(false);
     }
   }
 
@@ -420,6 +472,10 @@ export default function LlmAdmin() {
             <TabsTrigger value="providers" className="gap-2">
               <Server className="w-4 h-4" />
               Provider Registry
+            </TabsTrigger>
+            <TabsTrigger value="tools" className="gap-2">
+              <Zap className="w-4 h-4" />
+              MCP Tool Registry
             </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="w-4 h-4" />
@@ -835,6 +891,116 @@ export default function LlmAdmin() {
                   <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" /> Register Environment Pool
                 </Button>
               </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tools" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {mcpToolsLoading ? (
+              <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] bg-muted/10">
+                <RefreshCw className="h-10 w-10 animate-spin text-primary/40" />
+                <p className="mt-4 text-sm font-medium text-muted-foreground uppercase tracking-widest">Scanning RPC Interface...</p>
+              </div>
+            ) : mcpTools.length === 0 ? (
+              <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] bg-muted/10 opacity-60 border-border/40">
+                <AlertCircle className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                <h3 className="text-xl font-bold uppercase tracking-tighter text-foreground/60">No Tools Registered</h3>
+                <p className="text-sm text-muted-foreground mt-2">The MCP core reported 0 active tool capability descriptors.</p>
+              </div>
+            ) : (
+              mcpTools.map((tool) => (
+                <Card key={tool.name} className="border-border/60 hover:border-primary/40 transition-all duration-300 group">
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 font-bold uppercase text-[10px]">Active</Badge>
+                        <CardTitle className="text-lg font-mono">{tool.name}</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs line-clamp-1">{tool.description}</CardDescription>
+                    </div>
+                    <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <Zap className="h-5 w-5" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-muted-foreground/70 tracking-widest">Input Parameters</Label>
+                        <div className="rounded-lg bg-muted/30 border border-border/40 p-4 font-mono text-[11px] min-h-[100px] whitespace-pre-wrap">
+                          {JSON.stringify(tool.inputSchema, null, 2)}
+                        </div>
+                     </div>
+                  </CardContent>
+                  <CardFooter className="pt-0 pb-4 border-t border-border/40 bg-muted/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground/60 uppercase">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      Runtime Verified
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 text-[10px] uppercase font-bold border-primary/20 hover:bg-primary/5"
+                            onClick={() => {
+                              setExecutingTool(tool);
+                              setToolInput("{}");
+                              setToolResult(null);
+                            }}
+                          >
+                            Execute Tool <ChevronRight className="ml-1 w-3 h-3" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-lg">
+                          <DialogHeader>
+                            <DialogTitle className="font-mono">{tool.name}</DialogTitle>
+                            <DialogDescription>{tool.description}</DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase text-muted-foreground">JSON Payload</Label>
+                              <Textarea 
+                                className="min-h-[120px] font-mono text-xs bg-muted/20 border-border/40"
+                                value={toolInput}
+                                onChange={(e) => setToolInput(e.target.value)}
+                                placeholder='{ "key": "value" }'
+                              />
+                            </div>
+                            {toolResult && (
+                              <div className={cn(
+                                "flex flex-col rounded-lg border p-4 space-y-2 animate-in fade-in duration-300",
+                                toolResult.success ? "bg-emerald-500/5 border-emerald-500/20" : "bg-destructive/5 border-destructive/20"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase">Execution Result</span>
+                                  <Badge variant={toolResult.success ? "default" : "destructive"} className="text-[9px] h-4">
+                                    {toolResult.success ? "SUCCESS" : "ERROR"}
+                                  </Badge>
+                                </div>
+                                <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-auto max-h-[200px]">
+                                  {JSON.stringify(toolResult.data || toolResult.error, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button variant="ghost" onClick={() => setExecutingTool(null)}>Close</Button>
+                            <Button 
+                              onClick={handleExecuteTool} 
+                              disabled={isExecuting}
+                              className="gap-2"
+                            >
+                              {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                              Run Tool
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))
             )}
           </div>
         </TabsContent>

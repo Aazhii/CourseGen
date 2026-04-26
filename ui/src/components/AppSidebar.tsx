@@ -8,10 +8,13 @@ import {
   User,
   Sparkles,
   Settings,
+  ShieldCheck,
+  Lock,
   Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/auth/AuthContext";
+import { useFeature } from "@/hooks/useFeature";
 import { Button } from "./ui/button";
 import { Logo } from "./Logo";
 
@@ -49,6 +52,7 @@ function getSectionColor(path: string): string {
   if (path.startsWith("/projects"))   return "oklch(0.7 0.18 160)"; // Emerald
   if (path.startsWith("/ai-coach"))   return "oklch(0.78 0.18 80)"; // Amber
   if (path.startsWith("/leaderboard")) return "oklch(0.78 0.2 65)"; // Trophy Gold
+  if (path.startsWith("/admin"))       return "oklch(0.65 0.25 300)"; // Indigo/Purple
   return "oklch(0.6 0.05 260)";                                       // Slate fallback
 }
 
@@ -56,9 +60,22 @@ export default function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const adminFeature = useFeature("ADMIN_PANEL");
 
   const displayName = user?.displayName ?? user?.username ?? "Creator";
   const avatarLetter = displayName[0]?.toUpperCase() ?? "C";
+
+  const allGroups = [
+    ...NAV_GROUPS,
+    ...(adminFeature.allowed ? [
+      {
+        label: "Administration",
+        items: [
+          { label: "LLM Operations", icon: ShieldCheck, path: "/admin/llm" },
+        ],
+      },
+    ] : []),
+  ];
 
   return (
     <aside
@@ -88,7 +105,7 @@ export default function AppSidebar() {
 
       {/* Nav groups */}
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
-        {NAV_GROUPS.map((group, gi) => (
+        {allGroups.map((group, gi) => (
           <div key={gi}>
             {group.label && (
               <div
