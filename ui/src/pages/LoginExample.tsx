@@ -42,6 +42,20 @@ export default function LoginPage() {
     }
   }, [auth.loading, auth.isAuthenticated, navigate, redirectTarget]);
 
+  // Force dark mode for login page
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasLight = root.classList.contains("light");
+    root.classList.remove("light");
+    root.classList.add("dark");
+    return () => {
+      if (wasLight) {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+    };
+  }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

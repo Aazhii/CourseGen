@@ -205,10 +205,8 @@ export default function AppLayout() {
         </header>
 
         {/* Unified Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-           <div className="mx-auto max-w-7xl px-8 py-10 md:px-12">
-              <Outlet />
-           </div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+           <Outlet />
         </div>
       </div>
     </div>

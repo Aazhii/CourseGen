@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -29,6 +30,21 @@ import heroImage from "@/assets/hero-mockup.jpg";
 
 export default function LandingPage() {
   const { data: content = fallbackLandingContent } = useQuery(landingContentQueryOptions());
+
+  // Force dark mode for landing page to maintain premium cosmic aesthetic
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasLight = root.classList.contains("light");
+    root.classList.remove("light");
+    root.classList.add("dark");
+    return () => {
+      if (wasLight) {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+    };
+  }, []);
+
   const { data: leaderboardPreview = [] } = useQuery({
     queryKey: ["landing", "leaderboard-preview"],
     queryFn: async () => {
