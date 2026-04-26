@@ -82,7 +82,7 @@ export default function Courses() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search courses..." 
-              className="pl-10 h-11 bg-background/50 border-border/50"
+              className="pl-10 h-11 bg-white text-black border-none shadow-lg focus:ring-primary/20 placeholder:text-slate-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

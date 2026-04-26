@@ -130,7 +130,7 @@ export function PromptComposer({
                       <Textarea
                         rows={6}
                         placeholder='e.g., "A comprehensive guide to building responsive React applications with TailwindCSS, including modern hooks and state management..."'
-                        className="bg-muted/30 border-border shadow-soft focus:border-primary/40 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/40 leading-relaxed overflow-hidden scrollbar-hide"
+                        className="bg-white text-black border-none shadow-xl focus:ring-primary/20 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-slate-400 leading-relaxed overflow-hidden scrollbar-hide"
                         {...field}
                       />
 
@@ -169,7 +169,7 @@ export function PromptComposer({
                     <FormLabel className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Reference existing content</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                       <FormControl>
-                        <SelectTrigger className="h-12 bg-muted/30 border-border rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-12 bg-muted/50 border-border rounded-2xl focus:ring-primary/20">
                           <SelectValue placeholder="Add to existing course..." />
                         </SelectTrigger>
                       </FormControl>
