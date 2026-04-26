@@ -50,8 +50,19 @@ export async function getLessonWithGeneration(
       try {
         const generated = await generateLessonContent(courseId, moduleId, lessonId);
         // Backend now parses and returns lesson with enriched=true
-        const generatedData = generated?.data ?? generated ?? rawLesson;
+        let generatedData = generated?.data ?? generated ?? rawLesson;
         normalized = normalizeLessonData(generatedData);
+        
+        // If the backend generates asynchronously, we need to poll until it's enriched
+        let attempts = 0;
+        while (needsLessonGeneration(generatedData) && attempts < 60) {
+          // Wait 3 seconds
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          const check = await getLessonById(lessonId);
+          generatedData = check?.data ?? check;
+          normalized = normalizeLessonData(generatedData);
+          attempts++;
+        }
       } catch (error) {
         console.error("Failed to generate lesson content:", error);
         // Continue with un-enriched content
