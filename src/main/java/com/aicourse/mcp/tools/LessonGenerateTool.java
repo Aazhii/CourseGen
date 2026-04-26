@@ -31,6 +31,16 @@ public class LessonGenerateTool implements McpToolHandler {
     }
 
     @Override
+    public JsonNode inputSchema() {
+        return objectMapper.createObjectNode()
+                .put("type", "object")
+                .set("properties", objectMapper.createObjectNode()
+                        .set("courseId", objectMapper.createObjectNode().put("type", "number"))
+                        .set("moduleId", objectMapper.createObjectNode().put("type", "number"))
+                        .set("lessonId", objectMapper.createObjectNode().put("type", "number")));
+    }
+
+    @Override
     public JsonNode execute(JsonNode input, McpExecutionContext context) throws Exception {
         LessonGenerateToolInput payload = objectMapper.treeToValue(input, LessonGenerateToolInput.class);
         if (payload.getCourseId() == null || payload.getModuleId() == null || payload.getLessonId() == null) {

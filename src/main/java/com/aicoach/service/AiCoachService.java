@@ -81,16 +81,7 @@ public class AiCoachService {
             throw new IllegalArgumentException("You do not have access to this course");
         }
 
-        Lesson lesson = null;
-        if (request.getLessonId() != null) {
-            lesson = lessonRepo.findById(request.getLessonId())
-                    .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
-            if (lesson.getModule() == null || lesson.getModule().getCourse() == null ||
-                    !Objects.equals(lesson.getModule().getCourse().getId(), course.getId())) {
-                throw new IllegalArgumentException("Lesson does not belong to course");
-            }
-        }
-
+        Lesson lesson = lookupLesson(course, request.getLessonId());
         String context = lesson == null ? "" : truncate(lesson.getContent() == null ? "" : lesson.getContent().toString());
 
         String prompt = new AiCoachPromptBuilder()
@@ -109,14 +100,29 @@ public class AiCoachService {
             return fallbackResponse(request.getMessage(), fallbackNoticeFor(ex, true), course, lesson);
         }
 
+        return applyProcessingPipeline(raw, request.getMessage(), course, lesson, request.getPreviousQuizQuestions());
+    }
+
+    private Lesson lookupLesson(Course course, Long lessonId) {
+        if (lessonId == null) return null;
+        Lesson lesson = lessonRepo.findById(lessonId)
+                .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
+        if (lesson.getModule() == null || lesson.getModule().getCourse() == null ||
+                !Objects.equals(lesson.getModule().getCourse().getId(), course.getId())) {
+            throw new IllegalArgumentException("Lesson does not belong to course");
+        }
+        return lesson;
+    }
+
+    private AiCoachResponse applyProcessingPipeline(String raw, String userMessage, Course course, Lesson lesson, List<String> previousQuizQuestions) throws Exception {
         try {
-            AiCoachResponse parsed = parseModelResponse(raw, request.getMessage());
-            AiCoachResponse counted = enforceRequestedQuizCount(parsed, request.getMessage());
-            AiCoachResponse filtered = removeUnrequestedQuizCards(counted, request.getMessage());
-            AiCoachResponse deduped = deduplicateQuizCards(filtered, request.getMessage(), request.getPreviousQuizQuestions());
-            return withContextualCitationsIfNeeded(deduped, request.getMessage(), course, lesson);
+            AiCoachResponse parsed = parseModelResponse(raw, userMessage);
+            AiCoachResponse counted = enforceRequestedQuizCount(parsed, userMessage);
+            AiCoachResponse filtered = removeUnrequestedQuizCards(counted, userMessage);
+            AiCoachResponse deduped = deduplicateQuizCards(filtered, userMessage, previousQuizQuestions);
+            return withContextualCitationsIfNeeded(deduped, userMessage, course, lesson);
         } catch (Exception ex) {
-            return recoverFromMalformedOutput(raw, request.getMessage(), course, lesson);
+            return recoverFromMalformedOutput(raw, userMessage, course, lesson);
         }
     }
 
@@ -137,16 +143,7 @@ public class AiCoachService {
             throw new IllegalArgumentException("You do not have access to this course");
         }
 
-        Lesson lesson = null;
-        if (request.getLessonId() != null) {
-            lesson = lessonRepo.findById(request.getLessonId())
-                    .orElseThrow(() -> new IllegalArgumentException("Lesson not found"));
-            if (lesson.getModule() == null || lesson.getModule().getCourse() == null ||
-                    !Objects.equals(lesson.getModule().getCourse().getId(), course.getId())) {
-                throw new IllegalArgumentException("Lesson does not belong to course");
-            }
-        }
-
+        Lesson lesson = lookupLesson(course, request.getLessonId());
         String context = lesson == null ? "" : truncate(lesson.getContent() == null ? "" : lesson.getContent().toString());
 
         String prompt = new AiCoachPromptBuilder()
@@ -160,22 +157,29 @@ public class AiCoachService {
 
         SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout
         ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
-        final Lesson fallbackLesson = lesson;
+        final Lesson finalLesson = lesson;
         final String userMessage = request.getMessage();
 
         sseMvcExecutor.execute(() -> {
             try {
-                Iterable<String> stream = aiDynamicGateway.getResponseStream(AiWorkload.AI_COACH, prompt);
-                for (String chunk : stream) {
-                    if (chunk != null) {
-                        emitter.send(SseEmitter.event().data(chunk));
-                    }
-                }
+                // 1. Get full raw response (blocking)
+                String raw = aiDynamicGateway.getResponse(AiWorkload.AI_COACH, prompt);
+
+                // 2. Process through standard pipeline (validates, cleans, deduplicates)
+                AiCoachResponse processed = applyProcessingPipeline(raw, userMessage, course, finalLesson, request.getPreviousQuizQuestions());
+
+                // 3. Serialize back to JSON string
+                String processedJson = objectMapper.writeValueAsString(processed);
+
+                // 4. Send the fully processed and cleaned JSON to the client.
+                // SseEmitter handles multi-line content by prefixing each line with 'data:'.
+                emitter.send(SseEmitter.event().data(processedJson));
+                
                 emitter.complete();
             } catch (Exception ex) {
                 try {
                     // Send fallback JSON on generic failure
-                    AiCoachResponse fallback = fallbackResponse(userMessage, fallbackNoticeFor(ex, true), course, fallbackLesson);
+                    AiCoachResponse fallback = fallbackResponse(userMessage, fallbackNoticeFor(ex, true), course, finalLesson);
                     String fbJson = objectMapper.writeValueAsString(fallback);
                     emitter.send(SseEmitter.event().data(fbJson));
                     emitter.complete();

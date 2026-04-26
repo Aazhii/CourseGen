@@ -28,7 +28,7 @@ public class McpToolRegistry {
 
     public List<McpToolDescriptor> listTools() {
         return handlers.values().stream()
-                .map(handler -> new McpToolDescriptor(handler.toolName(), handler.description()))
+                .map(handler -> new McpToolDescriptor(handler.toolName(), handler.description(), handler.inputSchema()))
                 .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
                 .toList();
     }
