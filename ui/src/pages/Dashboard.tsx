@@ -30,13 +30,13 @@ import {
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCourses, deleteCourse, updateCourse } from "@/services/courseApi";
-import { getMyRank } from "@/services/leaderboardApi";
-import { Button } from "@/components/ui/button";
+import { fetchCourses, deleteCourse, updateCourse } from "../services/courseApi";
+import { getMyRank } from "../services/leaderboardApi";
+import { Button } from "../components/ui/button";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { Course } from "@/types/course";
-import { CourseCard } from "@/components/CourseCard";
+import { cn } from "../lib/utils";
+import { Course } from "../types/course";
+import { CourseCard } from "../components/CourseCard";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();

@@ -1,15 +1,13 @@
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /*
  * AI CourseGen — Premium Dark-First Design System
  * Electric neon accents on deep cosmic surfaces.
  */
 
-@theme inline {
+:root {
     --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 

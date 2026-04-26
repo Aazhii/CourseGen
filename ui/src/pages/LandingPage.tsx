@@ -17,14 +17,14 @@ import {
   Wand2,
   Zap,
 } from "lucide-react";
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { Header } from "@/components/marketing/Header";
-import { Footer } from "@/components/marketing/Footer";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { landingContentQueryOptions } from "@/lib/queries/marketing";
-import { fallbackLandingContent } from "@/data/marketingContent";
-import { getGlobalLeaderboard } from "@/services/leaderboardApi";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { Header } from "../components/marketing/Header";
+import { Footer } from "../components/marketing/Footer";
+import { Button } from "../components/ui/button";
+import { cn } from "../lib/utils";
+import { landingContentQueryOptions } from "../lib/queries/marketing";
+import { fallbackLandingContent } from "../data/marketingContent";
+import { getGlobalLeaderboard } from "../services/leaderboardApi";
 
 import heroImage from "@/assets/hero-mockup.jpg";
 

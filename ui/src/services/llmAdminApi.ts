@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 import { executeMcpTool } from "./mcpApi";
-import { USE_MCP_CLIENT } from "@/constants";
+import { USE_MCP_CLIENT } from "../constants";
 
 export type ProviderType = "GEMINI" | "GROQ";
 export type WorkloadType = "COURSE_GENERATION" | "LESSON_GENERATION" | "AI_COACH";

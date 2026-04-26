@@ -1,6 +1,6 @@
-import { LessonData } from "@/types/lessonContent";
+import { LessonData } from "../types/lessonContent";
 import { generateLessonContent, getCourseById, getLessonById } from "./courseApi";
-import { normalizeLessonData, needsLessonGeneration } from "@/lib/lessonMapper";
+import { normalizeLessonData, needsLessonGeneration } from "../lib/lessonMapper";
 
 /**
  * Lesson service: fetches and ensures lessons have generated content

@@ -1,4 +1,4 @@
-import { LessonBlock, LessonData } from "@/types/lessonContent";
+import { LessonBlock, LessonData } from "../types/lessonContent";
 
 /**
  * Maps a raw block from backend into a typed LessonBlock

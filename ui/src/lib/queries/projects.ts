@@ -13,7 +13,7 @@ import {
   saveProjectPrompt,
   markPromptUsed,
   deleteProjectPrompt
-} from "@/services/projectApi";
+} from "../../services/projectApi";
 import { queryKeys } from "./keys";
 
 export const projectsQueryOptions = () =>

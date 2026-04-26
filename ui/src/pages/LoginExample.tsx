@@ -2,16 +2,16 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Github, Mail, Sparkles } from "lucide-react";
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/auth/AuthContext";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { Logo } from "../components/Logo";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { useAuth } from "../auth/AuthContext";
 import { toast } from "sonner";
-import { login as apiLogin } from "@/services/authApi";
-import { fallbackLoginContent } from "@/data/marketingContent";
-import { loginContentQueryOptions } from "@/lib/queries/marketing";
+import { login as apiLogin } from "../services/authApi";
+import { fallbackLoginContent } from "../data/marketingContent";
+import { loginContentQueryOptions } from "../lib/queries/marketing";
 
 export default function LoginPage() {
   const navigate = useNavigate();

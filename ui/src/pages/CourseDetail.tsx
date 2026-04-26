@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+import { Button } from "../components/ui/button";
+import { Progress } from "../components/ui/progress";
+import { Input } from "../components/ui/input";
 import { 
   deleteCourse, 
   getCourseById, 
@@ -11,11 +11,11 @@ import {
   addLesson, 
   renameModule, 
   renameLesson 
-} from "@/services/courseApi";
-import { getCompletedLessonIds } from "@/services/progressApi";
+} from "../services/courseApi";
+import { getCompletedLessonIds } from "../services/progressApi";
 import { toast } from "sonner";
-import { useAuth } from "@/auth/AuthContext";
-import { cn } from "@/lib/utils";
+import { useAuth } from "../auth/AuthContext";
+import { cn } from "../lib/utils";
 
 export default function CourseDetail() {
   const { courseId } = useParams();

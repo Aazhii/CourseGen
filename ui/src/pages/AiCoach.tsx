@@ -1,11 +1,11 @@
 import { FormEvent, useMemo, useState, useRef, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle, Clock, BookOpen, GraduationCap, ExternalLink, Menu, Plus, MessageSquare, X, PanelLeftClose, PanelLeft, MoreHorizontal, Database } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { toast } from "sonner";
-import { getCoachResponse, streamCoachResponse } from "@/services/coachApi";
-import { USE_MCP_CLIENT } from "@/constants";
+import { getCoachResponse, streamCoachResponse } from "../services/coachApi";
+import { USE_MCP_CLIENT } from "../constants";
 import {
   CoachBlock,
   CoachCitation,
@@ -15,8 +15,8 @@ import {
   CoachStudyPlanContent,
   CoachTextContent,
   CoachChatMessage,
-} from "@/types/coach";
-import { cn } from "@/lib/utils";
+} from "../types/coach";
+import { cn } from "../lib/utils";
 
 type ChatMessage = {
   role: "user" | "assistant";
