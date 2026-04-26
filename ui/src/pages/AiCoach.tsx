@@ -16,13 +16,48 @@ import {
   CoachTextContent,
   CoachChatMessage,
 } from "@/types/coach";
+import { cn } from "@/lib/utils";
 
-type ChatMessage =
-  | { role: "user"; text: string }
-  | { role: "assistant"; payload?: CoachResponse; textStream?: string };
+type ChatMessage = {
+  role: "user" | "assistant";
+  text?: string;
+  textStream?: string;
+  payload?: CoachResponse;
+};
 
-function normalizeCoachBlocks(payload?: CoachResponse): CoachBlock[] {
-  return Array.isArray(payload?.blocks) ? payload.blocks : [];
+function normalizeCoachBlocks(payload?: any): CoachBlock[] {
+  if (!payload) return [];
+  
+  // 1. If it's already an array of blocks
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  // 2. If it has a blocks field
+  if (Array.isArray(payload.blocks)) {
+    return payload.blocks;
+  }
+
+  // 3. If it has a data field that is an array
+  if (Array.isArray(payload.data)) {
+    return payload.data;
+  }
+  
+  // 4. If it has a data field that has blocks
+  if (payload.data && Array.isArray(payload.data.blocks)) {
+    return payload.data.blocks;
+  }
+
+  // 5. Fallback: If it's a raw string or has a message/text field, wrap it in a text block
+  const rawText = typeof payload === "string" ? payload : payload.message ?? payload.text ?? "";
+  if (rawText) {
+    return [{
+      type: "text",
+      content: { body: rawText }
+    }];
+  }
+
+  return [];
 }
 
 interface ChatSession {
@@ -36,7 +71,7 @@ function extractChatHistory(messages: ChatMessage[]): CoachChatMessage[] {
   const recentMessages = messages.slice(-5);
   return recentMessages.map(msg => {
     if (msg.role === "user") {
-      return { role: "user", text: msg.text };
+      return { role: "user", text: msg.text || "" };
     } else {
       let assistantText = "";
       const blocks = normalizeCoachBlocks(msg.payload);
@@ -154,7 +189,7 @@ function toPersistedMessages(value: unknown): ChatMessage[] {
 function generateTitle(messages: ChatMessage[]) {
   const firstUserMsg = messages.find(m => m.role === 'user');
   if (!firstUserMsg) return "New Chat";
-  const text = (firstUserMsg as {text: string}).text;
+  const text = firstUserMsg.text || "";
   return text.length > 35 ? text.substring(0, 35) + "..." : text;
 }
 
