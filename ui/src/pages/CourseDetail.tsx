@@ -15,6 +15,7 @@ import {
 import { getCompletedLessonIds } from "@/services/progressApi";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/AuthContext";
+import { cn } from "@/lib/utils";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
