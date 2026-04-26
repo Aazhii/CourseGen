@@ -4,13 +4,15 @@ public class McpToolDescriptor {
 
     private String name;
     private String description;
+    private com.fasterxml.jackson.databind.JsonNode inputSchema;
 
     public McpToolDescriptor() {
     }
 
-    public McpToolDescriptor(String name, String description) {
+    public McpToolDescriptor(String name, String description, com.fasterxml.jackson.databind.JsonNode inputSchema) {
         this.name = name;
         this.description = description;
+        this.inputSchema = inputSchema;
     }
 
     public String getName() {
@@ -27,6 +29,14 @@ public class McpToolDescriptor {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public com.fasterxml.jackson.databind.JsonNode getInputSchema() {
+        return inputSchema;
+    }
+
+    public void setInputSchema(com.fasterxml.jackson.databind.JsonNode inputSchema) {
+        this.inputSchema = inputSchema;
     }
 }
 
