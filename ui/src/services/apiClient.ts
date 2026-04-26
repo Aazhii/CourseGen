@@ -70,52 +70,41 @@ export async function apiFetch(
       throw new Error(err || `API Error: ${res.status}`);
     }
 
-    // Parse response based on content type
+    // Always read as text first to handle flexibly
+    const text = await res.text();
     const contentType = res.headers.get("content-type");
-    console.log(`apiFetch: ${url} -> Status ${res.status} (${contentType || 'no-type'})`);
+    console.log(`apiFetch: ${url} -> Status ${res.status} (${contentType || 'no-type'}), length: ${text.length}`);
 
     if (res.status === 304) {
-      console.log("apiFetch: Handling 304 (Not Modified). Browser should provide cached body.");
-      // Most browsers fill res.body with cached data even on 304, 
-      // but if not, this might return undefined/error depending on fetch impl.
+      console.log("apiFetch: Handling 304 (Not Modified).");
+      return {} as any;
     }
 
-    if (contentType && contentType.includes("application/json")) {
-      try {
-        const json = await res.json();
-        return json;
-      } catch (err) {
-        console.warn(`apiFetch: Failed to parse JSON for ${url}. Returning standard fallback.`, err);
-        if (res.status === 304 || res.status === 204) return {} as any;
-        throw err;
-      }
-    }
+    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+      console.error(`API received HTML instead of data [${url}]:`, text);
 
-    // Return text response
-    try {
-      const text = await res.text();
-      console.log(`apiFetch: Text/HTML response length: ${text.length}`);
-
-      // Check if we accidentally got HTML back (e.g., reverse proxy warning page).
-      if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
-        console.error(`API received HTML instead of data [${url}]:`, text);
-
-        if (text.includes("ERR_NGROK_6024") || text.includes("ngrok.com")) {
-          throw new Error(
-            "Ngrok returned its browser warning page instead of API JSON. " +
-              "Set Vite proxy target correctly and include 'ngrok-skip-browser-warning: true' header."
-          );
-        }
-
+      if (text.includes("ERR_NGROK_6024") || text.includes("ngrok.com")) {
         throw new Error(
-          "Received HTML response from API (likely 404 or 500 error)"
+          "Ngrok returned its browser warning page instead of API JSON. " +
+            "Set Vite proxy target correctly and include 'ngrok-skip-browser-warning: true' header."
         );
       }
 
-      return text;
+      throw new Error(
+        "Received HTML response from API (likely 404 or 500 error)"
+      );
+    }
+
+    // Try parsing as JSON first, fallback to text
+    if (text.trim() === "") {
+      return (res.status === 204 || res.status === 304) ? ("" as any) : ({} as any);
+    }
+
+    try {
+      return JSON.parse(text);
     } catch (err) {
-      if (res.status === 204 || res.status === 304) return "" as any;
-      throw err;
+      console.warn(`apiFetch: Failed to parse response as JSON for ${url}. Returning as text.`);
+      return text;
     }
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {

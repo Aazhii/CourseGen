@@ -188,14 +188,19 @@ export function parseLessonBlocks(raw: unknown): LessonBlock[] {
  * Normalizes raw lesson response from backend into typed LessonData
  */
 export function normalizeLessonData(raw: any): LessonData {
-  const contentSource =
-    raw?.content ??
-    raw?.contentBlocks ??
-    raw?.blocks ??
-    raw?.contentMd ??
-    raw?.content_md ??
-    raw?.markdown ??
-    "";
+  let contentSource: any = raw;
+
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    contentSource =
+      raw.content ??
+      raw.contentBlocks ??
+      raw.blocks ??
+      raw.contentMd ??
+      raw.content_md ??
+      raw.markdown ??
+      raw;
+  }
+
   const blocks = parseLessonBlocks(contentSource);
 
   return {
@@ -203,7 +208,7 @@ export function normalizeLessonData(raw: any): LessonData {
     title: String(raw?.title || "Untitled Lesson"),
     content: blocks,
     new: Boolean(raw?.new),
-    enriched: Boolean(raw?.enriched ?? raw?.isEnriched ?? raw?.is_enriched),
+    enriched: Boolean(raw?.enriched ?? raw?.isEnriched ?? raw?.is_enriched ?? blocks.length > 0),
   };
 }
 
@@ -211,15 +216,26 @@ export function normalizeLessonData(raw: any): LessonData {
  * Checks if lesson needs content generation
  */
 export function needsLessonGeneration(lesson: any): boolean {
-  const contentSource =
-    lesson?.content ??
-    lesson?.contentBlocks ??
-    lesson?.blocks ??
-    lesson?.contentMd ??
-    lesson?.content_md ??
-    lesson?.markdown ??
-    "";
+  let contentSource: any = lesson;
+
+  if (lesson && typeof lesson === "object" && !Array.isArray(lesson)) {
+    contentSource =
+      lesson.content ??
+      lesson.contentBlocks ??
+      lesson.blocks ??
+      lesson.contentMd ??
+      lesson.content_md ??
+      lesson.markdown ??
+      lesson;
+  }
+  
+  if (typeof contentSource === "string" && contentSource.trim().length > 0) {
+    return false; // raw string content is ready
+  }
+
   const blocks = parseLessonBlocks(contentSource);
-  return blocks.length === 0 || lesson?.enriched === false || lesson?.new === true;
+  if (blocks.length > 0) return false;
+  
+  return lesson?.enriched === false || lesson?.new === true;
 }
 

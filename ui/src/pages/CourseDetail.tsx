@@ -112,7 +112,6 @@ export default function CourseDetail() {
           getCourseById(courseId),
           getCompletedLessonIds(courseId).catch(() => [] as string[]),
         ]);
-
         const completedSet = new Set(completedIds);
         const rawModules = Array.isArray(data?.modules) ? data.modules : [];
 
