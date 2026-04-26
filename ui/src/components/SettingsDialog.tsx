@@ -5,12 +5,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  User, 
-  Settings, 
-  Globe, 
-  CreditCard, 
-  Users as UsersIcon, 
+import {
+  User,
+  Settings,
+  Globe,
+  CreditCard,
+  Users as UsersIcon,
   ChevronRight,
   Sparkles,
   ShieldCheck,
@@ -47,7 +47,8 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
   if (!user) return null;
 
   const displayName = user.displayName ?? user.username ?? "User";
-  const email = user.email ?? `${user.username}@aicourse.gen`;
+  const identifier = user.username ?? user.id ?? "user";
+  const email = user.email;
   const avatarLetter = displayName[0]?.toUpperCase() ?? "U";
 
   const sidebarItems = [
@@ -80,8 +81,8 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                         onClick={() => setActiveTab(item.id)}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all group",
-                          activeTab === item.id 
-                            ? "bg-muted text-foreground font-semibold shadow-sm" 
+                          activeTab === item.id
+                            ? "bg-muted text-foreground font-semibold shadow-sm"
                             : "text-muted-foreground font-medium hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
@@ -101,11 +102,11 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                 ))}
               </div>
             </ScrollArea>
-            
+
             <div className="p-4 border-t border-border mt-auto">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive gap-3 font-semibold"
                 onClick={logout}
               >
@@ -121,12 +122,25 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
               <div className="p-8 max-w-2xl mx-auto space-y-10">
                 {activeTab === "account" && (
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="space-y-1">
-                      <h2 className="text-2xl font-bold tracking-tight">Account information</h2>
-                      <p className="text-sm text-muted-foreground font-medium">Manage your profile details and private information.</p>
+                    <div className="flex items-center gap-5">
+                      <Avatar className="h-16 w-16 rounded-2xl border-2 border-background shadow-soft shrink-0">
+                        <AvatarImage src={user.profileImageUrl} />
+                        <AvatarFallback className="bg-gradient-cta text-white text-xl font-bold">
+                          {avatarLetter}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h2>
+                        <p className="text-sm text-muted-foreground font-medium">@{user.username || identifier}</p>
+                      </div>
                     </div>
 
                     <Separator className="bg-border/60" />
+
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-bold tracking-tight">Account information</h3>
+                      <p className="text-sm text-muted-foreground font-medium">Manage your profile details and private information.</p>
+                    </div>
 
                     {/* Profile Picture */}
                     <div className="space-y-4">
@@ -151,10 +165,10 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                         <Label className="text-sm font-bold flex items-center gap-2">
                           Email address <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                         </Label>
-                        <Input 
-                          defaultValue={email} 
-                          disabled 
-                          className="bg-muted/30 border-border/40 font-medium cursor-not-allowed opacity-80" 
+                        <Input
+                          defaultValue={email}
+                          disabled
+                          className="bg-muted/30 border-border/40 font-medium cursor-not-allowed opacity-80"
                         />
                       </div>
 

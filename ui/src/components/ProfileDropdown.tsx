@@ -30,8 +30,8 @@ export function ProfileDropdown() {
   if (!user) return null;
 
   const displayName = user.displayName ?? user.username ?? "User";
-  const userHandle = user.username ?? user.handle ?? "user";
-  const email = user.email ?? `${userHandle}@aicourse.gen`;
+  const identifier = user.username ?? user.id ?? "user";
+  const email = user.email ?? `${identifier}@aicourse.gen`;
   const avatarLetter = displayName[0]?.toUpperCase() ?? "U";
   const isAdmin = user.roles?.includes("ADMIN");
 
@@ -76,7 +76,7 @@ export function ProfileDropdown() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold truncate tracking-tight text-foreground">{displayName}</h4>
-                <p className="text-[11px] text-muted-foreground truncate font-medium">{email}</p>
+                <p className="text-[11px] text-muted-foreground truncate font-medium">@{user.username || identifier}</p>
                 {isAdmin && (
                   <div className="flex items-center gap-1 mt-1 text-[10px] font-black uppercase text-primary tracking-widest leading-none">
                     <AdminIcon className="w-3 h-3" />
