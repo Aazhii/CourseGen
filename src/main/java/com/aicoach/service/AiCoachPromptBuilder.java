@@ -91,12 +91,13 @@ public class AiCoachPromptBuilder {
                 "1. EXPLAIN CLEARLY: If the user asks a question or has a doubt, provide a clear, fresh, and engaging explanation. Provide clear explanations for everything the user asks.\\n" +
                 "2. NO REPEATING CONTENT: Do not give the user all the quizzes or content that were already generated in the lesson snapshot. Create NEW, relevant quizzes ONLY when requested.\\n" +
                 "3. BE INTERACTIVE & APPRECIATIVE: Keep the tone dynamic and rewarding. Encourage the user so they want to keep learning. Avoid repeating the same kind of greetings.\\n" +
-                "4. USE STRUCTURED BLOCKS: Return structured JSON blocks. Always include at least one `text` block to communicate natively.\\n" +
+                "4. USE STRUCTURED BLOCKS: Return structured JSON blocks. Put all your conversational responses and explanations inside a `text` block within the `blocks` array.\\n" +
                 "    Optionally include `quiz_card` or `flashcard` if testing knowledge helps clarify their doubt or if they explicitly ask for it.\\n" +
                 "    If the user asks for a plan, include a `study_plan` block.\\n" +
-                "    When visuals, examples, or external resources would help, include citations with real public links (citations count is strictly dynamic based on need).\\n\\n" +
-                "## OUTPUT FORMAT (STRICT)\\n" +
-                "Return ONLY valid JSON object with this schema: \\\n" +
+                "    When visuals, examples, or external resources would help, include citations with real public links.\\n\\n" +
+                "## OUTPUT FORMAT (MANDATORY)\\n" +
+                "Return ONLY a single valid JSON object. NO conversational filler before or after the JSON. NO markdown code fences (```json ... ```). NO extra text. If you want to say something, put it in the 'text' block inside the JSON.\\n\\n" +
+                "Schema:\\n" +
                 "{\\n" +
                 "  \"intent\": \"quiz|study_plan|flashcards|explanation\",\\n" +
                 "  \"blocks\": [\\n" +
@@ -109,7 +110,7 @@ public class AiCoachPromptBuilder {
                 "  \"suggestions\": [\"...\", \"...\", \"...\"]\\n" +
                 "}\\n\\n" +
                 "Rules:\\n" +
-                "- No markdown code fences.\\n" +
+                "- ABSOLUTELY NO markdown code fences.\\n" +
                 "- quiz_card must always have exactly 4 options.\\n" +
                 quizConstraint +
                 noRepeatConstraint +
