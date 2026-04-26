@@ -507,7 +507,7 @@ export default function LlmAdmin() {
                         onValueChange={(val) => saveRoute(workload, val === "_none" ? "" : val)}
                         disabled={loading || saving}
                       >
-                        <SelectTrigger className="w-full bg-background/50 font-medium">
+                        <SelectTrigger className="w-full bg-muted/50 border-border font-medium">
                           <SelectValue placeholder="Select provider" />
                         </SelectTrigger>
                         <SelectContent>
@@ -723,8 +723,8 @@ export default function LlmAdmin() {
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500">
                         <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                         <div className="space-y-0.5">
-                          <p className="text-[10px] text-amber-900/90 font-bold uppercase tracking-tight">Security & Persistence Policy:</p>
-                          <p className="text-[10px] text-amber-800/80 leading-relaxed font-semibold">
+                          <p className="text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-tight">Security & Persistence Policy:</p>
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400/80 leading-relaxed font-semibold">
                             Existing keys are protected. New entries will be merged into the active pool. 
                              One key per line.
                           </p>
@@ -961,7 +961,7 @@ export default function LlmAdmin() {
                             <div className="space-y-2">
                               <Label className="text-xs font-bold uppercase text-muted-foreground">JSON Payload</Label>
                               <Textarea 
-                                className="min-h-[120px] font-mono text-xs bg-muted/20 border-border/40"
+                                className="min-h-[120px] font-mono text-xs bg-muted/50 border-border"
                                 value={toolInput}
                                 onChange={(e) => setToolInput(e.target.value)}
                                 placeholder='{ "key": "value" }'

@@ -915,11 +915,11 @@ export default function AiCoach() {
                               <div className="flex flex-col gap-2 py-2">
                                 <div className="flex items-center gap-2">
                                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  <span className="text-[14px] text-emerald-600/90 font-medium animate-pulse">
+                                  <span className="text-[14px] text-emerald-700 dark:text-emerald-400 font-medium animate-pulse">
                                     Coach is responding...
                                   </span>
                                 </div>
-                                <div className="h-1 w-32 bg-emerald-100 rounded-full overflow-hidden">
+                                <div className="h-1 w-32 bg-emerald-200 dark:bg-emerald-900/40 rounded-full overflow-hidden">
                                   <div className="h-full bg-emerald-500/40 animate-[shimmer_2s_infinite]" style={{ width: '100%', backgroundSize: '200% 100%', backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
                                 </div>
                               </div>
