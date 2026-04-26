@@ -5,8 +5,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { useTheme } from "./ThemeProvider";
 import { Search, Bell, Sparkles, Sun, Moon } from "lucide-react";
 import { Button } from "./ui/button";
-import { cn } from "@/lib/utils";
 import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
+import { ProfileDropdown } from "./ProfileDropdown";
 
 export default function AppLayout() {
   const { token, loading } = useAuth();
@@ -201,6 +201,11 @@ export default function AppLayout() {
             >
               {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </button>
+
+            <span className="h-4 w-px bg-border/60 mx-1" />
+
+            {/* Profile Dropdown */}
+            <ProfileDropdown />
           </div>
         </header>
 

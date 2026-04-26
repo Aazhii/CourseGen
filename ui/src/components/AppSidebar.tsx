@@ -39,10 +39,6 @@ const NAV_GROUPS = [
       { label: "Notifications", icon: Bell, path: "/notifications" },
     ],
   },
-  {
-    label: "Account",
-    items: [{ label: "Profile", icon: User, path: "/profile" }],
-  },
 ];
 
 // Each section gets a distinct accent colour for the active border indicator
@@ -171,51 +167,8 @@ export default function AppSidebar() {
         ))}
       </nav>
 
-      {/* Footer — user profile */}
-      <div
-        className="border-t p-4"
-        style={{ borderColor: "var(--sidebar-border)" }}
-      >
-        <div
-          className="flex items-center gap-3 rounded-lg p-2 cursor-pointer transition-colors"
-          style={{ color: "var(--sidebar-foreground)" }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--sidebar-hover)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "transparent";
-          }}
-        >
-          <div className="relative">
-            <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-cta flex items-center justify-center font-bold text-white text-xs">
-              {avatarLetter}
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-[--sidebar]" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight" style={{ color: "var(--foreground)" }}>
-              {displayName}
-            </p>
-            <p className="truncate text-[10px] uppercase font-medium tracking-widest mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Pro workspace
-            </p>
-          </div>
-
-          <button
-            className="h-7 w-7 rounded-md flex items-center justify-center transition-colors"
-            style={{ color: "var(--muted-foreground)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--sidebar-hover)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
+      {/* Footer — Spacer or just end */}
+      <div className="p-4" />
     </aside>
   );
 }
