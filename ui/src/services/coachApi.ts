@@ -40,7 +40,16 @@ export async function streamCoachResponse(
   const token = localStorage.getItem('token');
   const url = "/api/coach/respond/stream";
   
+  if (USE_MCP_CLIENT) {
+    // We don't have a streaming implementation for MCP yet.
+    // Throw an error to trigger the fallback to getCoachResponse.
+    throw new Error("Streaming not supported with MCP client, falling back to standard response.");
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -49,7 +58,10 @@ export async function streamCoachResponse(
         ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`SSE failed: ${response.status}`);
@@ -60,21 +72,32 @@ export async function streamCoachResponse(
 
     const decoder = new TextDecoder();
     
+    // Add a heartbeat/watchdog to ensure we keep receiving data
+    let lastDataTime = Date.now();
+    let receivedAnyData = false;
+    
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
+      lastDataTime = Date.now();
       const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split("\n");
+
 
       for (const line of lines) {
         if (line.startsWith("data:")) {
           const content = line.replace("data:", "").trim();
           if (content) {
+            receivedAnyData = true;
             onToken(content);
           }
         }
       }
+    }
+    
+    if (!receivedAnyData) {
+      throw new Error("Stream closed without sending any data. Falling back.");
     }
     
     onComplete();
