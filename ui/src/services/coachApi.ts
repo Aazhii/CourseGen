@@ -48,7 +48,7 @@ export async function streamCoachResponse(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout to allow for model thinking
 
     const response = await fetch(url, {
       method: "POST",
@@ -76,24 +76,43 @@ export async function streamCoachResponse(
     let lastDataTime = Date.now();
     let receivedAnyData = false;
     
+    let buffer = "";
+    
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       lastDataTime = Date.now();
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
+      buffer += chunk;
+      
+      const lines = buffer.split("\n");
+      // The last element is either an empty string (if chunk ended with \n) 
+      // or a partial line. Keep it for the next round.
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
-        if (line.startsWith("data:")) {
-          const content = line.replace("data:", "").trim();
-          if (content) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith("data:")) {
+          let content = trimmedLine.substring(5);
+          if (content.startsWith(" ")) {
+            content = content.substring(1);
+          }
+          
+          if (content || trimmedLine.length > 5) {
             receivedAnyData = true;
             onToken(content);
           }
         }
       }
+    }
+    
+    // Process any remaining data in the buffer after stream ends
+    if (buffer.trim().startsWith("data:")) {
+      let content = buffer.trim().substring(5);
+      if (content.startsWith(" ")) content = content.substring(1);
+      onToken(content);
+      receivedAnyData = true;
     }
     
     if (!receivedAnyData) {

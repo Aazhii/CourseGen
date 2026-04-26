@@ -25,6 +25,44 @@ type ChatMessage = {
   payload?: CoachResponse;
 };
 
+function extractJson(text: string): { payload: any, textBefore: string } | null {
+  const trimmed = text.trim();
+  
+  // 1. Try direct parse of the whole thing
+  try {
+    const p = JSON.parse(trimmed);
+    if (p && typeof p === 'object') return { payload: p, textBefore: "" };
+  } catch (e) {}
+
+  // 2. Try grabbing content between ```json and ```
+  const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (jsonMatch && jsonMatch[1]) {
+    try {
+      const p = JSON.parse(jsonMatch[1].trim());
+      if (p && typeof p === 'object') {
+        const textBefore = text.substring(0, jsonMatch.index).trim();
+        return { payload: p, textBefore };
+      }
+    } catch (e) {}
+  }
+
+  // 3. Try finding the first { and last }
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const potentialJson = text.substring(firstBrace, lastBrace + 1);
+    try {
+      const p = JSON.parse(potentialJson);
+      if (p && typeof p === 'object') {
+        const textBefore = text.substring(0, firstBrace).trim();
+        return { payload: p, textBefore };
+      }
+    } catch (e) {}
+  }
+
+  return null;
+}
+
 function normalizeCoachBlocks(payload?: any): CoachBlock[] {
   if (!payload) return [];
   
@@ -49,7 +87,7 @@ function normalizeCoachBlocks(payload?: any): CoachBlock[] {
   }
 
   // 5. Fallback: If it's a raw string or has a message/text field, wrap it in a text block
-  const rawText = typeof payload === "string" ? payload : payload.message ?? payload.text ?? "";
+  const rawText = typeof payload === "string" ? payload : payload.message ?? payload.text ?? payload.body ?? "";
   if (rawText) {
     return [{
       type: "text",
@@ -600,35 +638,27 @@ export default function AiCoach() {
           (token) => {
             fullText += token;
 
-            // Improved detection: check for raw JSON OR markdown-wrapped JSON
-            const trimmed = fullText.trim();
-            const isJsonStart = trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("```json");
-
-            if (isJsonStart) {
-              try {
-                // Try to strip markdown before parsing
-                let toParse = trimmed;
-                if (toParse.startsWith("```json")) {
-                  toParse = toParse.replace(/^```json/, "").replace(/```$/, "").trim();
+            // Try to extract JSON at each token
+            const result = extractJson(fullText);
+            if (result) {
+              setSessions((prev) => {
+                const updated = [...prev];
+                const idx = updated.findIndex((s) => s.id === targetSessionId);
+                if (idx >= 0) {
+                  const msgs = [...updated[idx].messages];
+                  // If we found JSON, set it as payload and preserve any text before it
+                  msgs[msgs.length - 1] = { 
+                    role: "assistant", 
+                    payload: result.payload, 
+                    textStream: result.textBefore 
+                  };
+                  updated[idx] = { ...updated[idx], messages: msgs };
+                  setAnimatingMessageIndex(msgs.length - 1);
+                  setActiveBlockIndex(0);
                 }
-
-                const payload = JSON.parse(toParse);
-                setSessions((prev) => {
-                  const updated = [...prev];
-                  const idx = updated.findIndex((s) => s.id === targetSessionId);
-                  if (idx >= 0) {
-                    const msgs = [...updated[idx].messages];
-                    msgs[msgs.length - 1] = { role: "assistant", payload, textStream: "" };
-                    updated[idx] = { ...updated[idx], messages: msgs };
-                    setAnimatingMessageIndex(msgs.length - 1);
-                    setActiveBlockIndex(0);
-                  }
-                  return updated;
-                });
-                return;
-              } catch {
-                // Partial or malformed, continue buffering
-              }
+                return updated;
+              });
+              return;
             }
 
             setSessions((prev) => {
@@ -638,10 +668,13 @@ export default function AiCoach() {
                 const msgs = [...updated[idx].messages];
                 const lastMsg = msgs[msgs.length - 1];
 
-                // Hide from UI if it looks like we're still building a JSON object
-                const isBufferingJson = trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("```json");
-                const currentText = isBufferingJson
-                  ? `__DATA_STREAMING__:${fullText.length}`
+                // If no JSON found yet, update textStream.
+                // If it looks like we're starting a JSON object/block, use buffering id to show loader.
+                const trimmed = fullText.trim();
+                const isLikelyJsonStart = trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("```json");
+                
+                const currentText = isLikelyJsonStart 
+                  ? `__DATA_STREAMING__:${fullText.length}` 
                   : fullText;
 
                 if (lastMsg.textStream !== currentText) {
@@ -653,39 +686,35 @@ export default function AiCoach() {
             });
           },
           () => {
-            // Final check: if we have fullText that looks like JSON but wasn't parsed as payload
-            const trimmed = fullText.trim();
-            if (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("```json")) {
-              try {
-                let toParse = trimmed;
-                if (toParse.startsWith("```json")) {
-                  toParse = toParse.replace(/^```json/, "").replace(/```$/, "").trim();
+            // Final check on complete
+            const result = extractJson(fullText);
+            if (result) {
+              setSessions((prev) => {
+                const updated = [...prev];
+                const idx = updated.findIndex((s) => s.id === targetSessionId);
+                if (idx >= 0) {
+                  const msgs = [...updated[idx].messages];
+                  msgs[msgs.length - 1] = { 
+                    role: "assistant", 
+                    payload: result.payload, 
+                    textStream: result.textBefore 
+                  };
+                  updated[idx] = { ...updated[idx], messages: msgs };
                 }
-                const payload = JSON.parse(toParse);
-                setSessions((prev) => {
-                  const updated = [...prev];
-                  const idx = updated.findIndex((s) => s.id === targetSessionId);
-                  if (idx >= 0) {
-                    const msgs = [...updated[idx].messages];
-                    msgs[msgs.length - 1] = { role: "assistant", payload, textStream: "" };
-                    updated[idx] = { ...updated[idx], messages: msgs };
-                  }
-                  return updated;
-                });
-              } catch {
-                // If it's still malformed JSON in a code block, at least strip the backticks for the user
-                const cleanerText = trimmed.replace(/^```json/, "").replace(/```$/, "").trim();
-                setSessions((prev) => {
-                  const updated = [...prev];
-                  const idx = updated.findIndex((s) => s.id === targetSessionId);
-                  if (idx >= 0) {
-                    const msgs = [...updated[idx].messages];
-                    msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], textStream: cleanerText };
-                    updated[idx] = { ...updated[idx], messages: msgs };
-                  }
-                  return updated;
-                });
-              }
+                return updated;
+              });
+            } else {
+              // If not JSON even at the end, just keep text as is
+              setSessions((prev) => {
+                const updated = [...prev];
+                const idx = updated.findIndex((s) => s.id === targetSessionId);
+                if (idx >= 0) {
+                  const msgs = [...updated[idx].messages];
+                  msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], textStream: fullText };
+                  updated[idx] = { ...updated[idx], messages: msgs };
+                }
+                return updated;
+              });
             }
           },
           (error) => {
@@ -903,9 +932,12 @@ export default function AiCoach() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {/* 1. Show readable text stream (if not JSON/Technical) */}
-                            {message.textStream && !message.textStream.startsWith("__DATA_STREAMING__") && !message.textStream.trim().startsWith("{") && !message.textStream.trim().startsWith("```json") && (
-                              <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                            {/* 1. Show readable text stream */}
+                            {message.textStream && (
+                              <div className={cn(
+                                "text-[15px] leading-relaxed whitespace-pre-wrap",
+                                message.textStream.startsWith("__DATA_STREAMING__") && "opacity-0 h-0 overflow-hidden"
+                              )}>
                                 {renderBody(message.textStream)}
                               </div>
                             )}
