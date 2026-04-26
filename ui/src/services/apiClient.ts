@@ -39,6 +39,7 @@ export async function apiFetch(
   // Build headers with optional auth
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
     ...(requiresAuth && token && { Authorization: `Bearer ${token}` }),
     ...(fetchOptions.headers as Record<string, string>) || {},
   };
@@ -62,8 +63,8 @@ export async function apiFetch(
       headers,
     });
 
-    // Handle non-OK responses
-    if (!res.ok) {
+    // Handle non-OK responses (allow 304 Not Modified as it's a valid successful cache hit)
+    if (!res.ok && res.status !== 304) {
       const err = await res.text();
       console.error(`API Error [${url}]:`, res.status, err);
       throw new Error(err || `API Error: ${res.status}`);
@@ -71,34 +72,51 @@ export async function apiFetch(
 
     // Parse response based on content type
     const contentType = res.headers.get("content-type");
-    console.log("apiFetch: Response Status:", res.status, "Content-Type:", contentType);
+    console.log(`apiFetch: ${url} -> Status ${res.status} (${contentType || 'no-type'})`);
+
+    if (res.status === 304) {
+      console.log("apiFetch: Handling 304 (Not Modified). Browser should provide cached body.");
+      // Most browsers fill res.body with cached data even on 304, 
+      // but if not, this might return undefined/error depending on fetch impl.
+    }
 
     if (contentType && contentType.includes("application/json")) {
-      const json = await res.json();
-      console.log("apiFetch: Parsed JSON:", json);
-      return json;
+      try {
+        const json = await res.json();
+        return json;
+      } catch (err) {
+        console.warn(`apiFetch: Failed to parse JSON for ${url}. Returning standard fallback.`, err);
+        if (res.status === 304 || res.status === 204) return {} as any;
+        throw err;
+      }
     }
 
     // Return text response
-    const text = await res.text();
+    try {
+      const text = await res.text();
+      console.log(`apiFetch: Text/HTML response length: ${text.length}`);
 
-    // Check if we accidentally got HTML back (e.g., reverse proxy warning page).
-    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
-      console.error(`API received HTML instead of data [${url}]:`, text);
+      // Check if we accidentally got HTML back (e.g., reverse proxy warning page).
+      if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+        console.error(`API received HTML instead of data [${url}]:`, text);
 
-      if (text.includes("ERR_NGROK_6024") || text.includes("ngrok.com")) {
+        if (text.includes("ERR_NGROK_6024") || text.includes("ngrok.com")) {
+          throw new Error(
+            "Ngrok returned its browser warning page instead of API JSON. " +
+              "Set Vite proxy target correctly and include 'ngrok-skip-browser-warning: true' header."
+          );
+        }
+
         throw new Error(
-          "Ngrok returned its browser warning page instead of API JSON. " +
-            "Set Vite proxy target correctly and include 'ngrok-skip-browser-warning: true' header."
+          "Received HTML response from API (likely 404 or 500 error)"
         );
       }
 
-      throw new Error(
-        "Received HTML response from API (likely 404 or 500 error)"
-      );
+      return text;
+    } catch (err) {
+      if (res.status === 204 || res.status === 304) return "" as any;
+      throw err;
     }
-
-    return text;
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {
       throw new Error(

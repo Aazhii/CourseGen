@@ -16,8 +16,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         // Violet → Pink gradient CTA with glow
         hero: "bg-gradient-cta text-primary-foreground font-semibold shadow-glow hover:shadow-[0_18px_60px_-10px_oklch(0.72_0.21_285_/_70%)] hover:-translate-y-0.5 active:translate-y-0",
-        // Translucent glass for SSO buttons
-        glass: "glass text-foreground hover:bg-white/10 hover:border-white/20",
+        // Gradient alias for hero
+        gradient: "bg-gradient-cta text-primary-foreground font-semibold shadow-glow hover:shadow-[0_18px_60px_-10px_oklch(0.72_0.21_285_/_70%)] hover:-translate-y-0.5 active:translate-y-0",
+        // Translucent glass variant
+        glass: "glass text-foreground hover:bg-muted/80 hover:border-border/50",
         // Outlined neon (violet ring + glow)
         neon: "bg-background border border-[oklch(0.72_0.21_285_/_50%)] text-foreground shadow-[0_0_24px_-6px_oklch(0.72_0.21_285_/_60%)] hover:border-[oklch(0.72_0.21_285)] hover:shadow-[0_0_36px_-6px_oklch(0.72_0.21_285_/_80%)]",
       },

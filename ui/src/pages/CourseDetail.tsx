@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2 } from "lucide-react";
+import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { deleteCourse, getCourseById } from "@/services/courseApi";
+import { Input } from "@/components/ui/input";
+import { 
+  deleteCourse, 
+  getCourseById, 
+  addModule, 
+  addLesson, 
+  renameModule, 
+  renameLesson 
+} from "@/services/courseApi";
 import { getCompletedLessonIds } from "@/services/progressApi";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/AuthContext";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
-  const isEditMode = false;
+  const { user } = useAuth();
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,56 +29,45 @@ export default function CourseDetail() {
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  const isCreator = useMemo(() => {
+    if (!course || !user) return false;
+    return String(course.creator) === String(user.id);
+  }, [course, user]);
+
   const handleAddModule = async () => {
     if (!courseId) return;
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Module" }),
-      });
-      if (response.ok) {
-        const newModule = await response.json();
-        setCourse((prev: any) => ({
-          ...prev,
-          modules: [...prev.modules, { ...newModule, lessons: [] }]
-        }));
-        toast.success("Module added");
-      }
+      const newModule = await addModule(courseId, "New Module");
+      setCourse((prev: any) => ({
+        ...prev,
+        modules: [...prev.modules, { ...newModule, lessons: [] }]
+      }));
+      toast.success("Module added");
     } catch (e) {
       toast.error("Failed to add module");
     }
   };
 
   const handleAddLesson = async (moduleId: string) => {
+    if (!courseId) return;
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Lesson" }),
-      });
-      if (response.ok) {
-        const newLesson = await response.json();
-        setCourse((prev: any) => ({
-          ...prev,
-          modules: prev.modules.map((m: any) => 
-            m.id === moduleId ? { ...m, lessons: [...m.lessons, newLesson] } : m
-          )
-        }));
-        toast.success("Lesson added");
-      }
+      const newLesson = await addLesson(courseId, moduleId, "New Lesson");
+      setCourse((prev: any) => ({
+        ...prev,
+        modules: prev.modules.map((m: any) => 
+          m.id === moduleId ? { ...m, lessons: [...m.lessons, newLesson] } : m
+        )
+      }));
+      toast.success("Lesson added");
     } catch (e) {
       toast.error("Failed to add lesson");
     }
   };
 
   const handleRenameModule = async (moduleId: string) => {
+    if (!courseId) return;
     try {
-      await fetch(`/api/courses/${courseId}/modules/${moduleId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editValue }),
-      });
+      await renameModule(courseId, moduleId, editValue);
       setCourse((prev: any) => ({
         ...prev,
         modules: prev.modules.map((m: any) => m.id === moduleId ? { ...m, title: editValue } : m)
@@ -81,12 +80,9 @@ export default function CourseDetail() {
   };
 
   const handleRenameLesson = async (moduleId: string, lessonId: string) => {
+    if (!courseId) return;
     try {
-      await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editValue }),
-      });
+      await renameLesson(courseId, moduleId, lessonId, editValue);
       setCourse((prev: any) => ({
         ...prev,
         modules: prev.modules.map((m: any) => 
@@ -137,6 +133,11 @@ export default function CourseDetail() {
         });
 
         if (mounted) {
+          if (!data || !data.id) {
+            console.error("CourseDetail: Course data is missing or invalid", data);
+            setCourse(null);
+            return;
+          }
           setCourse({
             ...data,
             modules: modulesWithCompletion,
@@ -197,6 +198,16 @@ export default function CourseDetail() {
           </Button>
         </Link>
         <div className="flex items-center gap-3">
+          {isCreator && (
+            <Button 
+              variant={isEditMode ? "default" : "outline"} 
+              className={cn("gap-2", isEditMode && "bg-primary/10 border-primary/50 text-foreground")}
+              onClick={() => setIsEditMode(!isEditMode)}
+            >
+              {isEditMode ? <Settings2 className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              {isEditMode ? "Done Editing" : "Edit Course"}
+            </Button>
+          )}
           <Link to={`/courses/${course.id || courseId}/coach`}>
             <Button variant="outline" className="gap-2">
               <Sparkles className="h-4 w-4 text-purple-500" />

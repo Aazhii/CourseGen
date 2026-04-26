@@ -4,7 +4,7 @@ import { Bot, ChevronLeft, Send, Sparkles, User, RotateCw, CheckCircle2, XCircle
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { getCoachResponse } from "@/services/coachApi";
+import { getCoachResponse, streamCoachResponse } from "@/services/coachApi";
 import { USE_MCP_CLIENT } from "@/constants";
 import {
   CoachBlock,
@@ -130,7 +130,7 @@ const CHAT_STORAGE_PREFIX = "ai-coach-chat-v2";
 const MAX_PERSISTED_MESSAGES = 100;
 
 function getChatStorageKey(courseId?: string, lessonId?: string) {
-  if (!courseId) return null;
+  if (!courseId) return `${CHAT_STORAGE_PREFIX}:global`;
   return lessonId
     ? `${CHAT_STORAGE_PREFIX}:${courseId}:${lessonId}`
     : `${CHAT_STORAGE_PREFIX}:${courseId}`;
@@ -483,11 +483,15 @@ export default function AiCoach() {
   }, [sessions, chatStorageKey, isHydrated]);
 
   const submitMessage = async (message: string) => {
-    if (!courseId || !message.trim() || sending) return;
+    if (!message.trim() || sending) return;
 
     const numericIdPattern = /^\d+$/;
-    if (!numericIdPattern.test(courseId) || (lessonId && !numericIdPattern.test(lessonId))) {
-      toast.error("Invalid course or lesson context for AI Coach");
+    if (courseId && !numericIdPattern.test(courseId)) {
+      toast.error("Invalid course context for AI Coach");
+      return;
+    }
+    if (lessonId && !numericIdPattern.test(lessonId)) {
+      toast.error("Invalid lesson context for AI Coach");
       return;
     }
 
@@ -534,31 +538,71 @@ export default function AiCoach() {
       const previousQuizQuestions = extractPreviousQuizQuestions(activeSession?.messages ?? []);
       const chatHistory = extractChatHistory(activeSession?.messages ?? []);
 
-      // Revert to fetching the full payload and doing artificial typewriter
-      const payload = await getCoachResponse({
-        courseId,
-        lessonId,
-        message: message.trim(),
-        previousQuizQuestions,
-        chatHistory,
-      });
-      
+      // 1. Add empty assistant message for streaming
       setSessions((prev) => {
-        const updatedSessions = [...prev];
-        const idx = updatedSessions.findIndex((s) => s.id === targetSessionId);
+        const updated = [...prev];
+        const idx = updated.findIndex((s) => s.id === targetSessionId);
         if (idx >= 0) {
-          const newMessages = [...updatedSessions[idx].messages, { role: "assistant", payload } as ChatMessage].slice(-MAX_PERSISTED_MESSAGES);
-          updatedSessions[idx] = {
-            ...updatedSessions[idx],
-            updatedAt: Date.now(),
-            messages: newMessages,
+          updated[idx] = {
+            ...updated[idx],
+            messages: [...updated[idx].messages, { role: "assistant", textStream: "" }]
           };
-          // Start animating this new assistant message from the first block
-          setAnimatingMessageIndex(newMessages.length - 1);
-          setActiveBlockIndex(0);
         }
-        return updatedSessions;
+        return updated;
       });
+
+      // 2. Start streaming
+      let fullText = "";
+      await streamCoachResponse(
+        {
+          courseId,
+          lessonId,
+          message: message.trim(),
+          previousQuizQuestions,
+          chatHistory,
+        },
+        (token) => {
+          // If token starts with { it might be the final JSON payload
+          if (token.startsWith("{")) {
+            try {
+              const payload = JSON.parse(token);
+              setSessions((prev) => {
+                const updated = [...prev];
+                const idx = updated.findIndex((s) => s.id === targetSessionId);
+                if (idx >= 0) {
+                  const msgs = [...updated[idx].messages];
+                  msgs[msgs.length - 1] = { role: "assistant", payload };
+                  updated[idx] = { ...updated[idx], messages: msgs };
+                  setAnimatingMessageIndex(msgs.length - 1);
+                  setActiveBlockIndex(0);
+                }
+                return updated;
+              });
+              return;
+            } catch {
+              // Not valid JSON, treat as text
+            }
+          }
+
+          fullText += token;
+          setSessions((prev) => {
+            const updated = [...prev];
+            const idx = updated.findIndex((s) => s.id === targetSessionId);
+            if (idx >= 0) {
+              const msgs = [...updated[idx].messages];
+              msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], textStream: fullText };
+              updated[idx] = { ...updated[idx], messages: msgs };
+            }
+            return updated;
+          });
+        },
+        () => {
+          // Complete
+        },
+        (error) => {
+          throw error;
+        }
+      );
     } catch (error) {
       console.error("AI coach failed:", error);
       toast.error(error instanceof Error ? error.message : "Failed to get coach response");
@@ -593,36 +637,46 @@ export default function AiCoach() {
 
   // Group sessions by "Today", "Previous" visually (simplified to just a list here)
   return (
-    <div className="flex h-[100vh] bg-background text-foreground font-sans w-full relative overflow-hidden">
+    <div className="flex h-full bg-background text-foreground font-sans w-full relative overflow-hidden">
       
       {/* Mobile Sidebar Overlay */}
-      {/* 
-        isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/60 md:hidden z-40 transition-opacity" 
-            onClick={() => setIsSidebarOpen(false)} 
-          />
-        )
-      */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 md:hidden z-40 transition-opacity" 
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
 
-      {/* Sidebar - ChatGPT Style (#f9f9f9 light, #202123 dark generally, using shadcn tokens) */}
-      {/* 
+      {/* Sidebar - ChatGPT Style */}
       <div 
-        className={`${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-0 md:hidden"} 
-        fixed md:relative inset-y-0 left-0 w-64 lg:w-72 bg-muted/40 dark:bg-muted/10 border-r border-border/50 z-50 flex flex-col transition-all duration-300 ease-in-out`}
+        className={cn(
+          "fixed md:relative inset-y-0 left-0 w-64 lg:w-72 bg-muted/40 dark:bg-muted/10 border-r border-border/50 z-50 flex flex-col transition-all duration-300 ease-in-out",
+          !isSidebarOpen && "-translate-x-full md:translate-x-0 md:w-0 md:hidden"
+        )}
       >
-        <div className="p-3">
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 md:hidden ml-auto" onClick={() => setIsSidebarOpen(false)}>
-              <PanelLeftClose className="w-5 h-5" />
-            </Button>
-          </div>
+        <div className="p-4 flex items-center justify-between">
+          <Button 
+            onClick={startNewChat}
+            variant="outline" 
+            className="w-full justify-start gap-2 border-dashed border-border hover:border-primary/50"
+          >
+            <Plus className="w-4 h-4" />
+            New Chat
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden ml-2" 
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <PanelLeftClose className="w-5 h-5" />
+          </Button>
         </div>
         
         <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1 scrollbar-thin">
-          <div className="text-[12px] font-semibold text-muted-foreground/80 mt-4 mb-2 px-2">Chat History</div>
+          <div className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground/60 mt-4 mb-2 px-2">History</div>
           {sessions.length === 0 ? (
-            <div className="text-[14px] text-muted-foreground px-2 py-2">No history</div>
+            <div className="text-[13px] text-muted-foreground/60 px-2 py-4 italic">No chat history yet</div>
           ) : (
             sessions.map(session => (
               <button 
@@ -631,44 +685,57 @@ export default function AiCoach() {
                   setCurrentSessionId(session.id); 
                   if (window.innerWidth < 768) setIsSidebarOpen(false);
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-[14px] flex items-center gap-2.5 transition-colors group ${
+                className={cn(
+                  "w-full text-left px-3 py-2.5 rounded-lg text-[14px] flex items-center gap-3 transition-all duration-200 group relative",
                   currentSessionId === session.id 
-                    ? 'bg-muted/80 font-medium' 
-                    : 'hover:bg-muted/50 text-foreground/80'
-                }`}
+                    ? 'bg-secondary text-secondary-foreground font-semibold shadow-sm' 
+                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                )}
               >
+                <MessageSquare className={cn("w-4 h-4 shrink-0", currentSessionId === session.id ? "text-primary" : "text-muted-foreground/50")} />
                 <div className="truncate flex-1">{session.title}</div>
                 {currentSessionId === session.id && (
-                  <div className="shrink-0 text-muted-foreground opacity-50"><MoreHorizontal className="w-4 h-4"/></div>
+                  <div className="shrink-0 text-primary"><div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /></div>
                 )}
               </button>
             ))
           )}
         </div>
+
+        <div className="p-4 border-t border-border/50">
+           {courseId && (
+             <Link to={lessonId ? `/courses/${courseId}/lessons/${lessonId}` : `/courses/${courseId}`}>
+                <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground">
+                  <ChevronLeft className="w-4 h-4" /> Back to course
+                </Button>
+              </Link>
+           )}
+        </div>
       </div>
-      */}
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col relative min-w-0 transition-all duration-300">
         
         {/* Top Header - especially for mobile to toggle sidebar */}
-        <header className="h-14 flex items-center gap-3 px-4 flex-none">
-          {/* {!isSidebarOpen && (
+        <header className="h-14 flex items-center gap-3 px-4 flex-none border-b border-border/20">
+          {!isSidebarOpen && (
             <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground" onClick={() => setIsSidebarOpen(true)}>
               <PanelLeft className="w-5 h-5" />
             </Button>
-          )} */}
+          )}
           <div className="font-semibold text-foreground md:hidden mx-auto pr-10">AI Coach</div>
           <div className="ml-auto hidden md:flex items-center gap-2">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-background/50 text-xs font-medium text-muted-foreground">
               <Database className="w-3.5 h-3.5" />
               Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
             </div>
-            <Link to={lessonId ? `/courses/${courseId}/lessons/${lessonId}` : `/courses/${courseId}`}>
-              <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground">
-                <ChevronLeft className="w-4 h-4" /> Back to course
-              </Button>
-            </Link>
+            {courseId && (
+              <Link to={lessonId ? `/courses/${courseId}/lessons/${lessonId}` : `/courses/${courseId}`}>
+                <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground">
+                  <ChevronLeft className="w-4 h-4" /> Back to course
+                </Button>
+              </Link>
+            )}
           </div>
         </header>
 
@@ -720,6 +787,11 @@ export default function AiCoach() {
                         </div>
                       ) : (
                         <div className="space-y-4">
+                          {message.textStream && (
+                            <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                              {renderBody(message.textStream)}
+                            </div>
+                          )}
                           {message.payload && (
                             <>
                               {normalizeCoachBlocks(message.payload).map((block, blockIndex) => {

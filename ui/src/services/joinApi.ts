@@ -56,47 +56,38 @@ export const enrollUsingShareLink = async (token: string) => {
     () =>
       apiFetch(`/api/join/${safeToken}/enroll`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/join/enroll/${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/join/enroll?token=${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/sharing/join/${safeToken}/enroll`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/sharing/join/enroll/${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/sharing/join/enroll?token=${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/courses/join/${safeToken}/enroll`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/courses/join/enroll/${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
     () =>
       apiFetch(`/api/courses/join/enroll?token=${safeToken}`, {
         method: 'POST',
-        requiresAuth: false,
       }),
   ]);
 };

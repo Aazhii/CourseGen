@@ -50,9 +50,9 @@ export default function Leaderboard() {
   }, []);
 
   const rankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-5 w-5 text-yellow-400" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-slate-300" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
+    if (rank === 1) return <Trophy className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />;
+    if (rank === 2) return <Medal className="h-5 w-5 text-slate-500 dark:text-slate-300" />;
+    if (rank === 3) return <Medal className="h-5 w-5 text-amber-700 dark:text-amber-600" />;
     return <span className="font-display font-bold text-muted-foreground">#{rank}</span>;
   };
 
@@ -149,12 +149,13 @@ export default function Leaderboard() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${
-                            position === 1 ? "bg-yellow-400/20 text-yellow-400" :
-                            position === 2 ? "bg-slate-400/20 text-slate-300" :
-                            position === 3 ? "bg-amber-600/20 text-amber-500" :
+                          <div className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold",
+                            position === 1 ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" :
+                            position === 2 ? "bg-slate-500/20 text-slate-600 dark:text-slate-300" :
+                            position === 3 ? "bg-amber-600/20 text-amber-700 dark:text-amber-500" :
                             "bg-primary/20 text-primary"
-                          }`}>
+                          )}>
                             {displayName[0]?.toUpperCase() ?? "?"}
                           </div>
                           <div className="flex flex-col">

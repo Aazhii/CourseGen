@@ -90,7 +90,7 @@ export default function Projects() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8 md:px-8 lg:px-10 animate-fade-in">
+    <main className="mx-auto max-w-7xl px-8 py-10 animate-fade-in">
       <ProjectsHeader {...stats} onCreate={() => setCreateOpen(true)} />
 
       <div className="mt-6">

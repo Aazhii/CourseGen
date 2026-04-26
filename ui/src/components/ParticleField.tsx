@@ -34,6 +34,10 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
     let width = 0, height = 0;
     let particles: Particle[] = [];
     let bgGradient: CanvasGradient | null = null;
+    let lastFrameTs = 0;
+    const targetFrameMs = reduceMotion ? 50 : 33;
+    const linkDist = 110;
+    const linkStep = reduceMotion ? 4 : 2;
     const palette = [265, 285, 305, 200, 230, 330]; // violet → cyan → pink hues
 
     const init = () => {
@@ -42,7 +46,8 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.max(24, Math.min(96, Math.floor(width * height * density)));
+      const adjustedDensity = reduceMotion ? density * 0.55 : density;
+      const count = Math.max(18, Math.min(reduceMotion ? 64 : 96, Math.floor(width * height * adjustedDensity)));
       bgGradient = ctx.createRadialGradient(
         width * 0.5,
         height * 0.2,
@@ -98,8 +103,13 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
     window.addEventListener("pointerleave", onLeave);
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    const linkDist = 110;
-    const draw = () => {
+    const draw = (ts: number) => {
+      if (ts - lastFrameTs < targetFrameMs) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      lastFrameTs = ts;
+
       ctx.clearRect(0, 0, width, height);
 
       if (!runningRef.current) {
@@ -153,7 +163,7 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       if (drawLinks) {
         for (let i = 0; i < particles.length; i++) {
           const a = particles[i];
-          for (let j = i + 1; j < particles.length; j += 2) {
+          for (let j = i + 1; j < particles.length; j += linkStep) {
           const b = particles[j];
           const dx = a.x - b.x, dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
@@ -172,8 +182,7 @@ export function ParticleField({ density = 0.00009, className, influence = 140 }:
       rafRef.current = requestAnimationFrame(draw);
     };
 
-    if (!reduceMotion) rafRef.current = requestAnimationFrame(draw);
-    else { draw(); if (rafRef.current) cancelAnimationFrame(rafRef.current); }
+    rafRef.current = requestAnimationFrame(draw);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);

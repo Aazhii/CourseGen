@@ -96,7 +96,7 @@ export function PromptComposer({
   }
 
   return (
-    <div className="glass-strong rounded-[2.5rem] p-8 md:p-10 border-white/5 relative overflow-hidden group shadow-2xl">
+    <div className="glass-strong rounded-[2.5rem] p-8 md:p-10 border border-border relative overflow-hidden group shadow-2xl">
       {/* Decorative Glows */}
       <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[100px] rounded-full pointer-events-none group-hover:bg-primary/15 transition-all duration-700" />
       <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
@@ -104,15 +104,15 @@ export function PromptComposer({
       <div className="relative z-10">
         <header className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="h-10 w-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-primary">
+             <div className="h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center text-primary">
                 <Sparkles className="h-5 w-5 animate-pulse" />
              </div>
              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Project Engine</h2>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Project Engine</h2>
                 <p className="text-sm text-muted-foreground font-medium">Draft detailed prompts for your course fleet</p>
              </div>
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+          <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 bg-muted px-3 py-1.5 rounded-full border border-border/50">
              <Info className="h-3 w-3" />
              Context-Aware Generation
           </div>
@@ -130,16 +130,16 @@ export function PromptComposer({
                       <Textarea
                         rows={6}
                         placeholder='e.g., "A comprehensive guide to building responsive React applications with TailwindCSS, including modern hooks and state management..."'
-                        className="bg-white/[0.02] border-white/5 shadow-inner focus:border-primary/40 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/40 leading-relaxed overflow-hidden scrollbar-hide"
+                        className="bg-muted/30 border-border shadow-soft focus:border-primary/40 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/40 leading-relaxed overflow-hidden scrollbar-hide"
                         {...field}
                       />
                       
                       <div className="absolute bottom-4 right-4 flex items-center gap-3">
                         <Button 
                           type="button" 
-                          variant="glass" 
+                          variant="outline" 
                           size="sm" 
-                          className="h-10 px-4 rounded-xl border-white/10 hover:border-primary/30 transition-all group/btn"
+                          className="h-10 px-4 rounded-xl border-border hover:border-primary/30 transition-all group/btn"
                           onClick={handleEnhance}
                           disabled={isEnhancing || !text}
                         >
@@ -150,8 +150,8 @@ export function PromptComposer({
                           )}
                           <span className="ml-2 font-bold text-[10px] uppercase tracking-widest">Enhance Prompt</span>
                         </Button>
-                        <div className="h-8 w-px bg-white/5" />
-                        <span className="text-[10px] font-mono font-bold text-white/20 uppercase tracking-widest">{text.length} / 3000</span>
+                        <div className="h-8 w-px bg-border" />
+                        <span className="text-[10px] font-mono font-bold text-muted-foreground/40 uppercase tracking-widest">{text.length} / 3000</span>
                       </div>
                     </div>
                   </FormControl>
@@ -169,11 +169,11 @@ export function PromptComposer({
                     <FormLabel className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Reference existing content</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                       <FormControl>
-                        <SelectTrigger className="h-12 bg-white/[0.02] border-white/5 rounded-2xl focus:ring-primary/20">
+                        <SelectTrigger className="h-12 bg-muted/30 border-border rounded-2xl focus:ring-primary/20">
                           <SelectValue placeholder="Add to existing course..." />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-background/95 backdrop-blur-3xl border-white/10 rounded-2xl">
+                      <SelectContent className="bg-popover border-border rounded-2xl">
                         <SelectItem value="none" className="text-muted-foreground">New course</SelectItem>
                         {courses.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
@@ -189,8 +189,8 @@ export function PromptComposer({
               <div className="flex gap-3 h-12">
                 <Button 
                   type="button" 
-                  variant="glass" 
-                  className="flex-1 rounded-2xl border-white/10 font-bold text-[11px] uppercase tracking-widest" 
+                  variant="outline" 
+                  className="flex-1 rounded-2xl border-border font-bold text-[11px] uppercase tracking-widest" 
                   onClick={form.handleSubmit(onSubmit)} 
                   disabled={create.isPending || !text}
                 >
@@ -201,7 +201,7 @@ export function PromptComposer({
                 <Button 
                   type="button" 
                   variant="hero"
-                  className="flex-[1.5] rounded-2xl font-bold text-[11px] uppercase tracking-widest group shadow-[0_4px_20px_-5px_rgba(168,85,247,0.4)]" 
+                  className="flex-[1.5] rounded-2xl font-bold text-[11px] uppercase tracking-widest group shadow-glow" 
                   disabled={!text}
                   onClick={() => navigate(`/create-course?projectId=${projectId}&topic=${encodeURIComponent(text)}`)}
                 >
