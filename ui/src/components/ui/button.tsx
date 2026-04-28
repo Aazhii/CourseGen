@@ -22,6 +22,9 @@ const buttonVariants = cva(
         glass: "glass text-foreground hover:bg-muted/80 hover:border-border/50",
         // Outlined neon (violet ring + glow)
         neon: "bg-background border border-[oklch(0.72_0.21_285_/_50%)] text-foreground shadow-[0_0_24px_-6px_oklch(0.72_0.21_285_/_60%)] hover:border-[oklch(0.72_0.21_285)] hover:shadow-[0_0_36px_-6px_oklch(0.72_0.21_285_/_80%)]",
+        // Semantic variants
+        success: "bg-success text-success-foreground hover:bg-success/90 shadow-sm",
+        "outline-destructive": "border border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10",
       },
       size: {
         default: "h-10 px-5 py-2",

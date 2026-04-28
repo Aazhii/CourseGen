@@ -678,7 +678,7 @@ export default function ShareCourse() {
               placeholder="Search students..."
               value={enrollmentSearch}
               onChange={(e) => setEnrollmentSearch(e.target.value)}
-              className="pl-9 h-9 bg-muted/50 border-border/50 focus:bg-muted/80 focus:ring-1 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground/70"
+              className="pl-9 h-9 bg-white text-black border border-border/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/70"
             />
             {enrollmentSearch && (
               <button
