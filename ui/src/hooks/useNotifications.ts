@@ -80,7 +80,7 @@ function deriveAchievements(stats: any): AppNotification[] {
 // ─── Invite → AppNotification mapper ───────────────────────────────
 function mapInviteToNotification(inv: any): AppNotification {
   const status: "PENDING" | "ACCEPTED" | "DECLINED" =
-    inv.status ?? "PENDING";
+    inv.inviteStatus ?? "PENDING";
   const isPending = status === "PENDING";
   return {
     id: `invite-${inv.id ?? inv.inviteId}`,

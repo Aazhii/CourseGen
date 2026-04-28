@@ -8,6 +8,10 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { toast } from "sonner";
 import { Course } from "../types/course";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchSharedWithMeInvites, fetchSharedByMeInvites } from "../services/inviteApi";
+import { Badge } from "@/components/ui/badge";
+import { Users, Share2, Mail } from "lucide-react";
 
 export default function Courses() {
   const queryClient = useQueryClient();
@@ -17,6 +21,16 @@ export default function Courses() {
   const { data: courses = [], isLoading, isError } = useQuery({
     queryKey: ["courses"],
     queryFn: () => fetchCourses(),
+  });
+
+  const { data: sharedWithMe = [], isLoading: isLoadingShared } = useQuery({
+    queryKey: ["courses-shared-with-me"],
+    queryFn: () => fetchSharedWithMeInvites(),
+  });
+
+  const { data: sharedByMe = [], isLoading: isLoadingByMe } = useQuery({
+    queryKey: ["courses-shared-by-me"],
+    queryFn: () => fetchSharedByMeInvites(),
   });
 
   const deleteMutation = useMutation({
@@ -52,6 +66,17 @@ export default function Courses() {
   const filteredCourses = courses.filter((c: Course) => 
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const mapEnrollmentToCourse = (enr: any): Course => ({
+    id: enr.courseId,
+    title: enr.courseName,
+    description: enr.courseDescription,
+    progress: enr.progressPercentage || 0,
+    modules: Array(enr.moduleCount || 0).fill({}),
+    active: true,
+    createdAt: enr.enrolledAt,
+    updatedAt: enr.enrolledAt,
+  });
 
   return (
     <div className="mx-auto max-w-7xl animate-fade-in">
@@ -94,44 +119,116 @@ export default function Courses() {
         </div>
       </div>
 
-      <div className="p-8">
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-[320px] rounded-3xl animate-pulse bg-muted border border-border" />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="glass-card rounded-3xl p-16 text-center">
-             <h3 className="text-xl font-bold text-foreground mb-2">Something went wrong</h3>
-             <p className="text-muted-foreground mb-6">Failed to load your courses. Please try again later.</p>
-             <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["courses"] })}>Retry</Button>
-          </div>
-        ) : filteredCourses.length === 0 ? (
-          <div className="glass-card rounded-3xl p-16 text-center">
-            <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
-              <BookOpen className="h-8 w-8" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">No results found</h3>
-            <p className="text-muted-foreground max-w-xs mx-auto">
-              {searchQuery ? `No courses matching "${searchQuery}"` : "You haven't generated any courses yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
-            {filteredCourses.map((course: Course, i: number) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                index={i}
-                onDelete={handleDelete}
-                onToggleActive={handleToggleActive}
-                togglingId={togglingId}
-              />
-            ))}
-          </div>
-        )}
+      <div className="px-8">
+        <Tabs defaultValue="my-courses" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-3 bg-secondary/30 p-1 mb-8">
+            <TabsTrigger value="my-courses" className="text-xs font-bold uppercase tracking-widest">My Courses</TabsTrigger>
+            <TabsTrigger value="shared-with" className="text-xs font-bold uppercase tracking-widest">Shared With Me</TabsTrigger>
+            <TabsTrigger value="shared-by" className="text-xs font-bold uppercase tracking-widest">Shared By Me</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="my-courses">
+            {isLoading ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-[320px] rounded-3xl animate-pulse bg-muted border border-border" />
+                ))}
+              </div>
+            ) : filteredCourses.length === 0 ? (
+              <EmptyState message={searchQuery ? `No courses matching "${searchQuery}"` : "You haven't generated any courses yet."} />
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
+                {filteredCourses.map((course: Course, i: number) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    index={i}
+                    onDelete={handleDelete}
+                    onToggleActive={handleToggleActive}
+                    togglingId={togglingId}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shared-with">
+            {isLoadingShared ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-[320px] rounded-3xl animate-pulse bg-muted border border-border" />
+                ))}
+              </div>
+            ) : sharedWithMe.filter((enr: any) => enr.inviteStatus === "ACCEPTED").length === 0 ? (
+              <EmptyState message="No courses have been shared and accepted by you yet." />
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
+                {sharedWithMe.filter((enr: any) => enr.inviteStatus === "ACCEPTED").map((enr: any, i: number) => (
+                  <CourseCard
+                    key={enr.id}
+                    course={mapEnrollmentToCourse(enr)}
+                    index={i}
+                    onDelete={() => {}}
+                    onToggleActive={() => {}}
+                    togglingId={null}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shared-by">
+            {isLoadingByMe ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[1].map((i) => (
+                  <div key={i} className="h-[120px] rounded-2xl animate-pulse bg-muted border border-border" />
+                ))}
+              </div>
+            ) : sharedByMe.length === 0 ? (
+              <EmptyState message="You haven't shared any courses with others yet." />
+            ) : (
+              <div className="space-y-4 pb-10">
+                {sharedByMe.map((enr: any) => (
+                  <div key={enr.id} className="glass-card flex items-center justify-between p-6 rounded-2xl border border-border/50 hover:border-primary/30 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Share2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-bold text-foreground">{enr.courseName}</h4>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span>Shared with <span className="text-foreground font-semibold">{enr.studentName}</span> (@{enr.studentHandle})</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant={enr.inviteStatus === "ACCEPTED" ? "success" : enr.inviteStatus === "PENDING" ? "secondary" : "destructive"} className="text-[10px] font-bold uppercase tracking-widest px-3">
+                        {enr.inviteStatus}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Sent {new Date(enr.enrolledAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="glass-card rounded-3xl p-16 text-center">
+      <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
+        <BookOpen className="h-8 w-8" />
+      </div>
+      <h3 className="text-xl font-bold text-foreground mb-2">No results found</h3>
+      <p className="text-muted-foreground max-w-xs mx-auto">
+        {message}
+      </p>
     </div>
   );
 }
