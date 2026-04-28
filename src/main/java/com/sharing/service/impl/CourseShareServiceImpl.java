@@ -5,11 +5,13 @@ import com.aicourse.repo.CourseRepo;
 import com.auth.model.Users;
 import com.auth.repo.UserRepo;
 import com.sharing.dto.ShareLinkResponse;
+import com.sharing.event.NotificationEvent;
 import com.sharing.model.*;
 import com.sharing.repo.CourseEnrollmentRepo;
 import com.sharing.repo.CourseShareLinkAllowedUserRepo;
 import com.sharing.repo.CourseShareLinkRepo;
 import com.sharing.service.CourseShareService;
+import com.sharing.service.NotificationService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,9 @@ public class CourseShareServiceImpl implements CourseShareService {
 
     @Autowired
     private CourseShareLinkAllowedUserRepo allowedUserRepo;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     @Transactional
@@ -254,6 +259,22 @@ public class CourseShareServiceImpl implements CourseShareService {
 
                 courseEnrollmentRepo.save(enrollment);
                 invitesPrepared++;
+
+                // Send real-time notification via SSE
+                Users inviter = userRepo.findById(creatorId).orElse(null);
+                String inviterName = inviter != null ? inviter.getDisplayName() : "Someone";
+                if (inviterName == null && inviter != null) inviterName = inviter.getUsername();
+
+                notificationService.sendNotification(targetUser.getId(), NotificationEvent.builder()
+                        .type("INVITE_RECEIVED")
+                        .userId(targetUser.getId())
+                        .message(String.format("%s invited you to join \"%s\"", inviterName, course.getTitle()))
+                        .payload(Map.of(
+                                "courseId", courseId,
+                                "courseName", course.getTitle(),
+                                "invitedBy", creatorId
+                        ))
+                        .build());
             }
 
             if (invitesPrepared == 0) {
