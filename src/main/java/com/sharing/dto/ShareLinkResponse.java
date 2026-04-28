@@ -1,13 +1,19 @@
 package com.sharing.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.sharing.model.ShareLinkType;
 
 import java.time.OffsetDateTime;
 
 public class ShareLinkResponse {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
+
     private String shareToken;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long courseId;
+
     private ShareLinkType linkType;
     private OffsetDateTime createdAt;
     private OffsetDateTime expiresAt;

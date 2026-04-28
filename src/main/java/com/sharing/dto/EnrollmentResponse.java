@@ -1,13 +1,20 @@
 package com.sharing.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.sharing.model.EnrollmentStatus;
 
 import java.time.OffsetDateTime;
 
 public class EnrollmentResponse {
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long courseId;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long userId;
+
     private EnrollmentStatus status;
     private OffsetDateTime enrolledAt;
     private Double progressPercentage;
@@ -15,7 +22,10 @@ public class EnrollmentResponse {
     private String courseDescription;
     private Boolean isRead;
     private String inviteStatus;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long invitedBy;
+
     private String invitedByName;
     private int moduleCount;
     private int lessonCount;

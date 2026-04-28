@@ -37,14 +37,19 @@ public class JWTFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        String token = null;
 
-        // 🔹 No JWT → let OAuth session handle it
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7).trim();
+        } else if (request.getRequestURI().contains("/api/notifications/stream")) {
+            // Support token as query param for SSE (EventSource doesn't support headers)
+            token = request.getParameter("token");
+        }
+
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        String token = authHeader.substring(7).trim();
         LOGGER.log(Level.FINE, "JWTFilter: Extracted Token: [{0}...]",
                 new Object[]{token.substring(0, Math.min(token.length(), 10))});
         String username;
