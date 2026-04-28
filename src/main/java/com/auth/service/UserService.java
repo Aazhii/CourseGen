@@ -28,6 +28,8 @@ public class UserService {
     private AuthenticationManager authenticationManager;
     @Autowired
     private JWTService jwtService;
+    @Autowired
+    private com.search.service.SearchService searchService;
 
     public static BCryptPasswordEncoder getEncoder() {
         return encoder;
@@ -55,6 +57,14 @@ public class UserService {
             // @PrePersist
             Users savedUser = userRepo.save(user);
             LOGGER.log(Level.INFO, "User registered successfully with ID: {0}", new Object[]{savedUser.getId()});
+
+            // Refresh search indices so new user can be found
+            try {
+                searchService.refreshAllIndices();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to refresh search indices: {0}", e.getMessage());
+            }
+            
             return savedUser;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Registration failed for user: {0}: {1}",
