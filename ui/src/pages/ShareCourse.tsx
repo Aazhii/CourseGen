@@ -159,8 +159,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               onRemove(selected[selected.length - 1].id);
             }
           }}
-          placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
-          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
+          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground/60 flex-1"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
       </div>
@@ -174,7 +173,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               className="share-suggestion-item"
               onMouseDown={() => handleAdd(user)}
             >
-              <span className="font-medium text-foreground">{user.label}</span>
+              <span className="font-medium text-foreground group-hover:text-primary transition-colors">{user.label}</span>
               {user.handle ? (
                 <span className="text-xs text-muted-foreground">@{user.handle}</span>
               ) : user.description && user.description !== "User" ? (
@@ -528,7 +527,7 @@ export default function ShareCourse() {
               selected={selectedRecipients}
               onAdd={addRecipient}
               onRemove={removeRecipient}
-              placeholder="Type a user ID to search..."
+              placeholder="Search by name, handle or ID..."
             />
           </div>
           <Button
@@ -566,7 +565,7 @@ export default function ShareCourse() {
                 selected={allowlistedUsers}
                 onAdd={addAllowlistUser}
                 onRemove={removeAllowlistUser}
-                placeholder="Search users..."
+                placeholder="Search by name, handle or ID..."
               />
             </div>
             <div>

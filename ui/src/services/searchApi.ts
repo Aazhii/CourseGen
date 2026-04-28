@@ -92,10 +92,29 @@ export async function resolveByPrefix(
   const acRes = await autocomplete(prefix, options);
   let items: SearchResultItem[] = acRes.topResults ?? [];
 
-  if (items.length === 0 && acRes.suggestions && acRes.suggestions.length > 0) {
+  // If we have suggestions, use them to expand the search results
+  if (acRes.suggestions && acRes.suggestions.length > 0) {
     // Use expanded tokens from the trie to search the inverted index
     const expandedQuery = acRes.suggestions.slice(0, 5).join(' ');
     const searchRes = await search(expandedQuery, {
+      types: options.types,
+      limit: options.limit ?? 10,
+      excludeIds: options.excludeIds,
+    });
+    
+    const searchItems = searchRes.results ?? [];
+    
+    // Merge results, avoiding duplicates
+    const seenIds = new Set(items.map(i => i.id));
+    for (const item of searchItems) {
+      if (!seenIds.has(item.id)) {
+        items.push(item);
+        seenIds.add(item.id);
+      }
+    }
+  } else if (items.length === 0 && prefix.length >= 2) {
+    // Fallback: if no trie suggestions, try a direct search with the prefix
+    const searchRes = await search(prefix, {
       types: options.types,
       limit: options.limit ?? 10,
       excludeIds: options.excludeIds,
