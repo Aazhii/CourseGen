@@ -32,6 +32,10 @@ public class PrefixTrie {
         }
         List<Suggestion> results = new ArrayList<>();
         dfs(current, new StringBuilder(normalized), results, limit);
+
+        // Sort at the end once instead of during every recursion step
+        results.sort((a, b) -> Integer.compare(b.hits, a.hits));
+        
         List<String> terms = new ArrayList<>();
         for (Suggestion suggestion : results) {
             terms.add(suggestion.term);
@@ -40,23 +44,24 @@ public class PrefixTrie {
     }
 
     private void dfs(Node node, StringBuilder builder, List<Suggestion> results, int limit) {
-        if (results.size() >= limit) {
-            return;
-        }
         if (node.isTerminal) {
             results.add(new Suggestion(builder.toString(), node.hits));
         }
+
+        // Use a priority-aware limit if needed, but for now just find all and sort later
+        // or stop if we have "enough" candidates to find the best ones.
+        // We find up to 100 candidates to ensure we get the best 'limit' ones after sorting.
+        if (results.size() >= Math.max(limit * 2, 50)) {
+            return;
+        }
+
         for (Map.Entry<Character, Node> entry : node.children.entrySet()) {
             builder.append(entry.getKey());
             dfs(entry.getValue(), builder, results, limit);
             builder.setLength(builder.length() - 1);
-            if (results.size() >= limit) {
+            if (results.size() >= Math.max(limit * 2, 50)) {
                 break;
             }
-        }
-        results.sort((a, b) -> Integer.compare(b.hits, a.hits));
-        if (results.size() > limit) {
-            results.subList(limit, results.size()).clear();
         }
     }
 
