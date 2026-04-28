@@ -52,7 +52,7 @@ function normalizeShareLink(item: any): ShareLinkRow {
   const token = String(item?.token ?? item?.shareToken ?? extracted ?? "").trim();
 
   const frontendUrl = token ? `${window.location.origin}/join/${token}` : undefined;
-  
+
   return {
     id: String(item?.id ?? item?.shareLinkId ?? item?.token ?? ""),
     token,
@@ -160,7 +160,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
             }
           }}
           placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
-          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
+          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1 placeholder:text-muted-foreground/60"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
       </div>
@@ -248,7 +248,7 @@ export default function ShareCourse() {
           setCourse(courseData);
           setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
         }
-        
+
         // Load enrollments separately but initially
         setEnrollmentsLoading(true);
         try {
@@ -678,10 +678,10 @@ export default function ShareCourse() {
               placeholder="Search students..."
               value={enrollmentSearch}
               onChange={(e) => setEnrollmentSearch(e.target.value)}
-              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:bg-secondary/50 transition-all"
+              className="pl-9 h-9 bg-muted/50 border-border/50 focus:bg-muted/80 focus:ring-1 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground/70"
             />
             {enrollmentSearch && (
-              <button 
+              <button
                 onClick={() => setEnrollmentSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
@@ -690,7 +690,7 @@ export default function ShareCourse() {
             )}
           </div>
         </div>
-        
+
         {enrollmentsLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">Loading enrollments...</p>
         ) : filteredEnrollments.length === 0 ? (
@@ -727,9 +727,9 @@ export default function ShareCourse() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                          <div 
-                            className="h-full bg-primary" 
-                            style={{ width: `${Math.round(env.progressPercentage)}%` }} 
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${Math.round(env.progressPercentage)}%` }}
                           />
                         </div>
                         <span className="text-xs text-muted-foreground">{Math.round(env.progressPercentage)}%</span>
@@ -739,9 +739,8 @@ export default function ShareCourse() {
                       {env.enrolledAt ? new Date(env.enrolledAt).toLocaleDateString() : 'Unknown'}
                     </td>
                     <td className="px-4 py-3">
-                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        env.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
-                      }`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${env.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                        }`}>
                         {env.status}
                       </span>
                     </td>
