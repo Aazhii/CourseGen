@@ -26,11 +26,13 @@ export default function Courses() {
   const { data: sharedWithMe = [], isLoading: isLoadingShared } = useQuery({
     queryKey: ["courses-shared-with-me"],
     queryFn: () => fetchSharedWithMeInvites(),
+    refetchInterval: false, // Rely on global useNotifications SSE
   });
 
   const { data: sharedByMe = [], isLoading: isLoadingByMe } = useQuery({
     queryKey: ["courses-shared-by-me"],
     queryFn: () => fetchSharedByMeInvites(),
+    refetchInterval: false,
   });
 
   const deleteMutation = useMutation({

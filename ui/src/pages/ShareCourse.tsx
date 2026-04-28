@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2, Search as SearchIcon } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -194,6 +195,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
 export default function ShareCourse() {
   const { courseId } = useParams();
   const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const [course, setCourse] = useState<any>(null);
   const [courseLoading, setCourseLoading] = useState(true);
   const [courseActive, setCourseActive] = useState(true);
@@ -372,6 +374,7 @@ export default function ShareCourse() {
 
       await sendDirectInvite(courseId, recipients);
       setSelectedRecipients([]);
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-by-me"] });
       toast.success("Invites sent");
     } catch (error) {
       console.error("Failed to send invites:", error);
