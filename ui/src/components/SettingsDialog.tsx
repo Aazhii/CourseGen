@@ -172,7 +172,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                           defaultValue={email || ""}
                           disabled
                           placeholder="No email registered"
-                          className="bg-white text-black dark:bg-muted/40 dark:text-white border-border/40 shadow-sm font-medium cursor-not-allowed opacity-80"
+                          className="bg-white text-black border-none shadow-sm font-medium cursor-not-allowed opacity-80"
                         />
                       </div>
 
@@ -181,7 +181,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                           <Label className="text-sm font-bold">First name</Label>
                           <Input
                             defaultValue={user.displayName?.split(" ")[0] ?? ""}
-                            className="bg-white text-black dark:bg-muted/40 dark:text-white border-border/40 shadow-sm focus:ring-1 focus:ring-primary/20"
+                            className="bg-white text-black border-none shadow-sm focus:ring-primary/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -189,7 +189,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab = "account" }: S
                           <Input
                             defaultValue={user.displayName?.split(" ").slice(1).join(" ") ?? ""}
                             placeholder="Your last name"
-                            className="bg-white text-black dark:bg-muted/40 dark:text-white border-border/40 shadow-sm focus:ring-1 focus:ring-primary/20"
+                            className="bg-white text-black border-none shadow-sm focus:ring-primary/20"
                           />
                         </div>
                       </div>

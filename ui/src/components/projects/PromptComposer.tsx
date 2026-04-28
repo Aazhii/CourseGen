@@ -130,7 +130,7 @@ export function PromptComposer({
                       <Textarea
                         rows={6}
                         placeholder='e.g., "A comprehensive guide to building responsive React applications with TailwindCSS, including modern hooks and state management..."'
-                        className="bg-white text-black dark:bg-muted/40 dark:text-white border-border/40 shadow-xl focus:ring-1 focus:ring-primary/20 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-muted-foreground/50 leading-relaxed overflow-hidden scrollbar-hide"
+                        className="bg-white text-black border-none shadow-xl focus:ring-primary/20 text-lg p-6 resize-none min-h-[220px] rounded-3xl transition-all placeholder:text-slate-400 leading-relaxed overflow-hidden scrollbar-hide"
                         {...field}
                       />
 

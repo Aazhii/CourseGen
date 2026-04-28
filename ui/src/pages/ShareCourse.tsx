@@ -160,7 +160,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
             }
           }}
           placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
-          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1 placeholder:text-muted-foreground/60"
+          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
       </div>
