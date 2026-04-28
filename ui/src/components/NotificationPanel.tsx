@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 import { type AppNotification, type NotificationType, useNotifications } from "@/hooks/useNotifications";
 
 // ─── Config ───────────────────────────────────────────────────────
-const tabs = ["All", "Invites", "Achievements"] as const;
-type Tab = (typeof tabs)[number];
+export const notificationTabs = ["All", "Invites", "Achievements"] as const;
+export type NotificationTab = (typeof notificationTabs)[number];
 
 const typeIcon: Record<NotificationType, typeof Bell> = {
   invite: Share2,
@@ -35,8 +35,8 @@ function timeAgo(dateStr?: string): string {
 interface NotificationPanelProps {
   open: boolean;
   onClose: () => void;
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
+  activeTab: NotificationTab;
+  onTabChange: (tab: NotificationTab) => void;
 }
 
 export default function NotificationPanel({
@@ -89,7 +89,7 @@ export default function NotificationPanel({
       <div
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
+          "fixed inset-0 z-[100] bg-black/40 transition-opacity duration-300",
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
       />
@@ -97,7 +97,7 @@ export default function NotificationPanel({
       {/* Slide-over panel */}
       <div
         className={cn(
-          "fixed right-0 top-0 z-50 h-full w-full max-w-[420px] flex flex-col bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out",
+          "fixed right-0 top-0 z-[110] h-full w-full max-w-[420px] flex flex-col bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out",
           open ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -148,7 +148,7 @@ export default function NotificationPanel({
 
           {/* Tabs */}
           <div className="mt-3 flex gap-1 rounded-lg bg-secondary/50 p-1">
-            {tabs.map((tab) => (
+            {notificationTabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => onTabChange(tab)}

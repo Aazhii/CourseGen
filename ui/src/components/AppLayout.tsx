@@ -7,6 +7,8 @@ import { Search, Bell, Sparkles, Sun, Moon } from "lucide-react";
 import { Button } from "./ui/button";
 import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
 import { ProfileDropdown } from "./ProfileDropdown";
+import NotificationPanel, { notificationTabs, type NotificationTab } from "./NotificationPanel";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function AppLayout() {
   const { token, loading } = useAuth();
@@ -17,6 +19,11 @@ export default function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+  
+  // Notification state
+  const { unreadCount } = useNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifTab, setNotifTab] = useState<NotificationTab>("All");
 
   const trimmedQuery = query.trim();
   const canSearch = trimmedQuery.length >= 2;
@@ -188,9 +195,15 @@ export default function AppLayout() {
             <span className="mr-1 h-5 w-px bg-border" />
 
             {/* Bell */}
-            <button className="relative h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+            <button 
+              onClick={() => setNotifOpen(true)}
+              className="relative h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Open notifications"
+            >
               <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary border-2 border-background" />
+              )}
             </button>
 
             {/* Theme toggle */}
@@ -213,7 +226,16 @@ export default function AppLayout() {
         <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
            <Outlet />
         </div>
+
       </div>
+
+      {/* Global Components */}
+      <NotificationPanel 
+        open={notifOpen} 
+        onClose={() => setNotifOpen(false)} 
+        activeTab={notifTab}
+        onTabChange={setNotifTab}
+      />
     </div>
   );
 }

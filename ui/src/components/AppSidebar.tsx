@@ -4,7 +4,6 @@ import {
   BookOpen, 
   FolderKanban, 
   Trophy,
-  Bell,
   User,
   Sparkles,
   Settings,
@@ -36,7 +35,6 @@ const NAV_GROUPS = [
     items: [
       { label: "AI Coach", icon: Bot, path: "/ai-coach", badge: "BETA" },
       { label: "Leaderboard", icon: Trophy, path: "/leaderboard" },
-      { label: "Notifications", icon: Bell, path: "/notifications" },
     ],
   },
 ];
