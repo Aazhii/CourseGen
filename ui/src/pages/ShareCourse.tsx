@@ -246,6 +246,16 @@ export default function ShareCourse() {
           getCourseShareLinks(courseId).catch(() => []),
         ]);
         if (mounted) {
+          // Verify ownership: Only creator can share
+          const creatorId = String(courseData.creator || courseData.creatorId || "");
+          const currentId = String(currentUser?.id || "");
+          
+          if (creatorId !== currentId) {
+            toast.error("You are not authorized to share this course");
+            window.location.href = `/courses/${courseId}`;
+            return;
+          }
+
           setCourse(courseData);
           setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
         }
