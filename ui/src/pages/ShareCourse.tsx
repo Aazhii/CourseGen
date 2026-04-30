@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2, Search as SearchIcon } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -159,8 +160,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               onRemove(selected[selected.length - 1].id);
             }
           }}
-          placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
-          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
+          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground/60 flex-1"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
       </div>
@@ -174,7 +174,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               className="share-suggestion-item"
               onMouseDown={() => handleAdd(user)}
             >
-              <span className="font-medium text-foreground">{user.label}</span>
+              <span className="font-medium text-foreground group-hover:text-primary transition-colors">{user.label}</span>
               {user.handle ? (
                 <span className="text-xs text-muted-foreground">@{user.handle}</span>
               ) : user.description && user.description !== "User" ? (
@@ -195,6 +195,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
 export default function ShareCourse() {
   const { courseId } = useParams();
   const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const [course, setCourse] = useState<any>(null);
   const [courseLoading, setCourseLoading] = useState(true);
   const [courseActive, setCourseActive] = useState(true);
@@ -245,6 +246,16 @@ export default function ShareCourse() {
           getCourseShareLinks(courseId).catch(() => []),
         ]);
         if (mounted) {
+          // Verify ownership: Only creator can share
+          const creatorId = String(courseData.creator || courseData.creatorId || "");
+          const currentId = String(currentUser?.id || "");
+          
+          if (creatorId !== currentId) {
+            toast.error("You are not authorized to share this course");
+            window.location.href = `/courses/${courseId}`;
+            return;
+          }
+
           setCourse(courseData);
           setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
         }
@@ -373,6 +384,7 @@ export default function ShareCourse() {
 
       await sendDirectInvite(courseId, recipients);
       setSelectedRecipients([]);
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-by-me"] });
       toast.success("Invites sent");
     } catch (error) {
       console.error("Failed to send invites:", error);
@@ -528,7 +540,7 @@ export default function ShareCourse() {
               selected={selectedRecipients}
               onAdd={addRecipient}
               onRemove={removeRecipient}
-              placeholder="Type a user ID to search..."
+              placeholder="Search by name, handle or ID..."
             />
           </div>
           <Button
@@ -566,7 +578,7 @@ export default function ShareCourse() {
                 selected={allowlistedUsers}
                 onAdd={addAllowlistUser}
                 onRemove={removeAllowlistUser}
-                placeholder="Search users..."
+                placeholder="Search by name, handle or ID..."
               />
             </div>
             <div>

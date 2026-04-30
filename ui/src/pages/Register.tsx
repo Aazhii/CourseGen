@@ -136,7 +136,7 @@ export default function RegisterPage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     disabled={loading}
-                    className="h-12 bg-secondary/30 border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
+                    className="h-12 bg-white text-black border border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                    />
                 </div>
 
@@ -151,7 +151,7 @@ export default function RegisterPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="choose_a_user_id"
-                      className="h-12 pl-11 bg-secondary/30 border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
+                      className="h-12 pl-11 bg-white text-black border border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                     />
                   </div>
                   <p className="text-[9px] text-muted-foreground/60 pl-1 uppercase tracking-tighter">Use any normal user id</p>
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="h-12 pr-12 bg-secondary/30 border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all"
+                      className="h-12 pr-12 bg-white text-black border border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all"
                     />
                     <button
                       type="button"
@@ -188,7 +188,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-12 bg-secondary/30 border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all"
+                    className="h-12 bg-white text-black border border-border/50 rounded-2xl focus-visible:ring-primary/20 transition-all"
                    />
                 </div>
 

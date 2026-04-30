@@ -247,6 +247,7 @@ export default function Profile() {
                       value={newDisplayName}
                       onChange={(e) => setNewDisplayName(e.target.value)}
                       placeholder="Enter display name"
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -255,6 +256,7 @@ export default function Profile() {
                       value={newHandle}
                       onChange={(e) => setNewHandle(e.target.value)}
                       placeholder="your_id"
+                      className="bg-white text-black border border-border"
                     />
                     <p className="text-xs text-muted-foreground">6-25 chars, lowercase letters, numbers, '.' or '_'.</p>
                   </div>
@@ -263,7 +265,7 @@ export default function Profile() {
                     <Input
                       value={profile?.role ?? "—"}
                       disabled
-                      className="opacity-60 cursor-not-allowed"
+                      className="bg-white text-black border border-border opacity-60 cursor-not-allowed"
                     />
                     <p className="text-xs text-muted-foreground">Role cannot be changed.</p>
                   </div>
@@ -295,6 +297,7 @@ export default function Profile() {
                       placeholder="Enter current password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -304,6 +307,7 @@ export default function Profile() {
                       placeholder="Enter new password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -313,6 +317,7 @@ export default function Profile() {
                       placeholder="Confirm new password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <Button

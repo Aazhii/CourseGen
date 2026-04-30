@@ -214,12 +214,14 @@ export default function CourseDetail() {
               AI Coach
             </Button>
           </Link>
-          <Link to={`/courses/${course.id || courseId}/share`}>
-            <Button variant="ghost" className="gap-2">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </Link>
+          {isCreator && (
+            <Link to={`/courses/${course.id || courseId}/share`}>
+              <Button variant="ghost" className="gap-2">
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

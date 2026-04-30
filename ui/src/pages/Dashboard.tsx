@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -37,10 +37,35 @@ import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { Course } from "../types/course";
 import { CourseCard } from "../components/CourseCard";
+import { useAuth } from "../auth/AuthContext";
+import { OnboardingTutorial } from "../components/OnboardingTutorial";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+
+  // Check tutorial status
+  useEffect(() => {
+    if (user?.id) {
+      const tutorialKey = `tutorial_completed_${user.id}`;
+      const hasCompleted = localStorage.getItem(tutorialKey);
+      if (!hasCompleted) {
+        setShowTutorial(true);
+        setIsNewUser(true);
+      }
+    }
+  }, [user?.id]);
+
+  const handleTutorialComplete = () => {
+    if (user?.id) {
+      localStorage.setItem(`tutorial_completed_${user.id}`, "true");
+    }
+    setShowTutorial(false);
+  };
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["courses"],
@@ -119,7 +144,9 @@ export default function Dashboard() {
     <div className="mx-auto max-w-7xl px-8 py-10 animate-fade-in space-y-10">
       {/* Welcome Header */}
       <div>
-        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Welcome back</p>
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+          {isNewUser ? "Welcome" : "Welcome back"}
+        </p>
         <h1 className="mt-1 font-display text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-2">
           Let’s build something <span className="text-gradient">remarkable</span> today.
         </h1>
@@ -294,6 +321,12 @@ export default function Dashboard() {
           </Button>
         </div>
       </section>
+
+      <OnboardingTutorial 
+        open={showTutorial} 
+        onComplete={handleTutorialComplete} 
+        userName={user?.displayName?.split(' ')?.[0] ?? user?.username} 
+      />
     </div>
   );
 }

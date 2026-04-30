@@ -163,7 +163,7 @@ export default function LoginPage() {
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder="you@company.com or your_user_id"
-                      className="h-12 pl-11 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
+                      className="h-12 pl-11 bg-white text-black border border-white/10 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                     />
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="h-12 pr-12 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all"
+                      className="h-12 pr-12 bg-white text-black border border-white/10 rounded-2xl focus-visible:ring-primary/20 transition-all"
                     />
                     <button
                       type="button"

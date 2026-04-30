@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchSharedWithMeInvites,
   fetchInviteSummary,
@@ -8,6 +9,8 @@ import {
   markAllInvitesRead,
 } from "../services/inviteApi";
 import { getProfile } from "../services/aboutApi";
+import { useAuth } from "@/auth/AuthContext";
+import { toast } from "sonner";
 
 // ─── Unified Notification Type ─────────────────────────────────────
 export type NotificationType =
@@ -80,7 +83,7 @@ function deriveAchievements(stats: any): AppNotification[] {
 // ─── Invite → AppNotification mapper ───────────────────────────────
 function mapInviteToNotification(inv: any): AppNotification {
   const status: "PENDING" | "ACCEPTED" | "DECLINED" =
-    inv.status ?? "PENDING";
+    inv.inviteStatus ?? "PENDING";
   const isPending = status === "PENDING";
   return {
     id: `invite-${inv.id ?? inv.inviteId}`,
@@ -97,50 +100,87 @@ function mapInviteToNotification(inv: any): AppNotification {
 
 // ─── Hook ──────────────────────────────────────────────────────────
 export function useNotifications() {
+  const { user, token } = useAuth();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Polling interval ref (30 seconds)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Smart Polling (Phase 1) - Long interval, pauses when tab is blurred
+  const { data: sharedWithMe = [], refetch: refetchInvites } = useQuery({
+    queryKey: ["courses-shared-with-me"],
+    queryFn: () => fetchSharedWithMeInvites(),
+    refetchInterval: false, // Rely entirely on SSE and window focus
+    enabled: !!user,
+  });
 
   const loadAll = useCallback(async () => {
     try {
-      const [inviteRaw, profileRaw] = await Promise.allSettled([
-        fetchSharedWithMeInvites(),
-        getProfile(),
-      ]);
-
-      const invites: AppNotification[] =
-        inviteRaw.status === "fulfilled" && Array.isArray(inviteRaw.value)
-          ? inviteRaw.value.map(mapInviteToNotification)
-          : [];
-
-      const stats =
-        profileRaw.status === "fulfilled"
-          ? (profileRaw.value?.data ?? profileRaw.value)?.stats
-          : null;
-
+      const profileRes = await getProfile();
+      const stats = (profileRes?.data ?? profileRes)?.stats;
       const achievements = deriveAchievements(stats);
 
-      // Merge: invites first (most actionable), then achievements
+      const invites: AppNotification[] = Array.isArray(sharedWithMe)
+        ? sharedWithMe.map(mapInviteToNotification)
+        : [];
+
       setNotifications([...invites, ...achievements]);
     } catch {
       // keep previous state
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sharedWithMe]);
 
-  // Initial load + polling
   useEffect(() => {
     loadAll();
-    intervalRef.current = setInterval(loadAll, 30_000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, [loadAll]);
+
+  // Real-time Push (Phase 3) - SSE Connection
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const sseUrl = `/api/notifications/stream/${user.id}?token=${token}`;
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onmessage = (event) => {
+      console.log("Real-time notification received:", event);
+      // When any notification event happens, invalidate the relevant queries
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-with-me"] });
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-by-me"] });
+      refetchInvites();
+      
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "INVITE_RECEIVED") {
+          toast.info(data.message || "New course invite received!", {
+            description: "Check your notifications for details.",
+          });
+        }
+      } catch (e) {
+        // Fallback if not JSON
+      }
+    };
+
+    eventSource.addEventListener("INVITE_RECEIVED", (event: any) => {
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-with-me"] });
+      refetchInvites();
+      try {
+        const data = JSON.parse(event.data);
+        toast.info(data.message || "New course invite received!");
+      } catch {}
+    });
+
+    eventSource.onerror = () => {
+      console.warn("SSE connection lost. Reconnecting...");
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user?.id, queryClient, refetchInvites]);
 
   // Recompute unread count
   useEffect(() => {
@@ -155,6 +195,7 @@ export function useNotifications() {
     try {
       await acceptInvite(notif.inviteId);
       await markInviteRead(notif.inviteId);
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-with-me"] });
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === notif.id ? { ...n, inviteStatus: "ACCEPTED", read: true } : n
@@ -163,13 +204,14 @@ export function useNotifications() {
     } finally {
       setProcessingId(null);
     }
-  }, []);
+  }, [queryClient]);
 
   const decline = useCallback(async (notif: AppNotification) => {
     if (!notif.inviteId) return;
     setProcessingId(notif.id);
     try {
       await declineInvite(notif.inviteId);
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-with-me"] });
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === notif.id ? { ...n, inviteStatus: "DECLINED", read: true } : n
@@ -178,11 +220,10 @@ export function useNotifications() {
     } finally {
       setProcessingId(null);
     }
-  }, []);
+  }, [queryClient]);
 
   const markRead = useCallback(async (notif: AppNotification) => {
     if (notif.read) return;
-    // Optimistic
     setNotifications((prev) =>
       prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
@@ -190,7 +231,6 @@ export function useNotifications() {
       try {
         await markInviteRead(notif.inviteId);
       } catch {
-        // revert on error
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, read: false } : n))
         );
@@ -202,15 +242,14 @@ export function useNotifications() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
       await markAllInvitesRead();
-    } catch {
-      // silent — UI already updated
-    }
+    } catch {}
   }, []);
 
   const refresh = useCallback(() => {
     setLoading(true);
     loadAll();
-  }, [loadAll]);
+    refetchInvites();
+  }, [loadAll, refetchInvites]);
 
   return {
     notifications,
