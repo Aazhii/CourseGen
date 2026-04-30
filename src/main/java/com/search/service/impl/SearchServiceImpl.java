@@ -23,6 +23,7 @@ public class SearchServiceImpl implements SearchService {
 
     private final CourseRepo courseRepo;
     private final UserRepo userRepo;
+    private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger(SearchServiceImpl.class.getName());
 
     private final Map<String, SearchDocument> documents = new HashMap<>();
     private final Map<String, Set<String>> invertedIndex = new HashMap<>();
@@ -55,6 +56,8 @@ public class SearchServiceImpl implements SearchService {
 
         lock.readLock().lock();
         try {
+            LOGGER.log(java.util.logging.Level.INFO, "Searching for: {0} with tokens: {1} types: {2}",
+                    new Object[]{request.getQuery(), tokens, typeFilter});
             Set<String> candidateKeys = new HashSet<>();
             for (String token : tokens) {
                 Set<String> keys = invertedIndex.get(token);
@@ -95,6 +98,8 @@ public class SearchServiceImpl implements SearchService {
             int to = Math.min(from + limit, scored.size());
             List<SearchResultItem> paged = scored.subList(from, to);
 
+            LOGGER.log(java.util.logging.Level.INFO, "Found {0} total results, returning {1} results.",
+                    new Object[]{scored.size(), paged.size()});
             return new SearchResponse(paged, scored.size());
         } finally {
             lock.readLock().unlock();
@@ -109,6 +114,8 @@ public class SearchServiceImpl implements SearchService {
         lock.readLock().lock();
         try {
             List<String> suggestions = trie.suggest(prefix, resolvedLimit);
+            LOGGER.log(java.util.logging.Level.INFO, "Autocomplete for prefix: {0} suggestions: {1}",
+                    new Object[]{prefix, suggestions});
             SearchRequest quickRequest = new SearchRequest(prefix, new ArrayList<>(typeFilter), 0, resolvedLimit, excludeUserIds);
             SearchResponse quickResults = search(quickRequest);
             return new AutocompleteResponse(suggestions, quickResults.results());
@@ -161,12 +168,20 @@ public class SearchServiceImpl implements SearchService {
     private void indexUser(Users user) {
         String handle = safe(user.getUsername());
         String displayName = safe(user.getDisplayName());
+        String userIdStr = String.valueOf(user.getId());
+        
         if (displayName.isBlank()) {
             displayName = handle;
         }
         String description = handle.isBlank() ? "User" : "@" + handle;
-        Set<String> tokens = tokenize(displayName + " " + handle).stream().collect(Collectors.toSet());
+
+        // Include ID in tokens so users can be searched by their numeric ID as well
+        String combined = displayName + " " + handle + " " + userIdStr;
+        Set<String> tokens = tokenize(combined).stream().collect(Collectors.toSet());
         double popularityWeight = 0.5;
+
+        LOGGER.log(java.util.logging.Level.INFO, "Indexing user: {0} ({1}) ID: {2} with tokens: {3}",
+                new Object[]{displayName, handle, userIdStr, tokens});
 
         SearchDocument doc = new SearchDocument(
                 user.getId(),
@@ -193,34 +208,57 @@ public class SearchServiceImpl implements SearchService {
         if (input == null || input.isBlank()) {
             return Collections.emptyList();
         }
-        String normalized = input.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._ ]", " ");
-        String[] parts = normalized.split("\\s+");
+
         List<String> tokens = new ArrayList<>();
-        for (String part : parts) {
-            if (part.length() >= 2) {
-                tokens.add(part);
+        StringBuilder currentToken = new StringBuilder();
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = Character.toLowerCase(input.charAt(i));
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '_') {
+                currentToken.append(c);
+            } else {
+                if (currentToken.length() >= 2) {
+                    tokens.add(currentToken.toString());
+                }
+                currentToken.setLength(0);
             }
         }
+
+        if (currentToken.length() >= 2) {
+            tokens.add(currentToken.toString());
+        }
+
         return tokens;
     }
 
     private double computeScore(SearchDocument doc, List<String> queryTokens, OffsetDateTime now) {
         if (doc.getTokens().isEmpty()) {
-            return 0;
+            return 0.0;
         }
+
         int matches = 0;
         for (String token : queryTokens) {
             if (doc.getTokens().contains(token)) {
                 matches++;
             }
         }
+
+        if (matches == 0) return 0.0;
+
         double coverage = matches / (double) queryTokens.size();
-        double recencyBoost = 0;
-        if (doc.getCreatedAt() != null) {
-            long ageDays = Math.max(0, ChronoUnit.DAYS.between(doc.getCreatedAt(), now));
-            recencyBoost = 1.0 / (1 + ageDays);
+
+        // Time decay: 1.0 for now, decaying to 0.5 over 30 days
+        long daysOld = ChronoUnit.DAYS.between(doc.getCreatedAt(), now);
+        double recency = 1.0 / (1.0 + (Math.max(0, daysOld) / 30.0));
+
+        // Exact match bonus for handles or labels
+        double exactBonus = 0.0;
+        String rawQuery = String.join(" ", queryTokens).toLowerCase();
+        if (doc.getHandle() != null && doc.getHandle().toLowerCase().contains(rawQuery) || doc.getTitle().toLowerCase().contains(rawQuery)) {
+            exactBonus = 0.5;
         }
-        return (coverage * 0.7) + (doc.getPopularityWeight() * 0.2) + (recencyBoost * 0.1);
+
+        return (coverage * 0.6) + (recency * 0.2) + (doc.getPopularityWeight() * 0.2) + exactBonus;
     }
 
     private String safe(String value) {

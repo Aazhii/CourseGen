@@ -32,12 +32,14 @@ public class LessonGenerateTool implements McpToolHandler {
 
     @Override
     public JsonNode inputSchema() {
+        var properties = objectMapper.createObjectNode();
+        properties.set("courseId", objectMapper.createObjectNode().put("type", "number"));
+        properties.set("moduleId", objectMapper.createObjectNode().put("type", "number"));
+        properties.set("lessonId", objectMapper.createObjectNode().put("type", "number"));
+
         return objectMapper.createObjectNode()
                 .put("type", "object")
-                .set("properties", objectMapper.createObjectNode()
-                        .set("courseId", objectMapper.createObjectNode().put("type", "number"))
-                        .set("moduleId", objectMapper.createObjectNode().put("type", "number"))
-                        .set("lessonId", objectMapper.createObjectNode().put("type", "number")));
+                .set("properties", properties);
     }
 
     @Override
