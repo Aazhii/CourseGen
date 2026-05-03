@@ -201,6 +201,13 @@ public class CourseServiceImpl implements CourseService {
                             ? courseJson.get("description").asText()
                             : "Generated course for " + title);
 
+            if (courseJson.has("overview")) {
+                course.setOverview(courseJson.get("overview"));
+            }
+            if (courseJson.has("capstoneProject")) {
+                course.setCapstoneProject(courseJson.get("capstoneProject"));
+            }
+
             List<Module> modules = new ArrayList<>();
 
             JsonNode modulesNode = courseJson.get("modules");
@@ -210,22 +217,41 @@ public class CourseServiceImpl implements CourseService {
             }
 
             for (JsonNode moduleNode : modulesNode) {
-
                 Module module = new Module();
                 module.setId(SnowflakeIdGenerator.generateId());
-                module.setTitle(moduleNode.get("title").asText());
+                module.setTitle(moduleNode.has("title") ? moduleNode.get("title").asText() : "Untitled Module");
+                module.setDescription(moduleNode.has("description") ? moduleNode.get("description").asText() : null);
+                module.setModuleLevel(moduleNode.has("moduleLevel") ? moduleNode.get("moduleLevel").asText() : null);
+                module.setEstimatedMinutes(moduleNode.has("estimatedMinutes") ? moduleNode.get("estimatedMinutes").asInt() : null);
+                module.setLearningObjectives(moduleNode.has("learningObjectives") ? moduleNode.get("learningObjectives") : null);
                 module.setCourse(course);
 
                 List<Lesson> lessons = new ArrayList<>();
+                JsonNode lessonsNode = moduleNode.get("lessons");
+                if (lessonsNode != null && lessonsNode.isArray()) {
+                    for (int i = 0; i < lessonsNode.size(); i++) {
+                        JsonNode lessonNode = lessonsNode.get(i);
+                        Lesson lesson = new Lesson();
+                        lesson.setId(SnowflakeIdGenerator.generateId());
 
-                for (JsonNode lessonNode : moduleNode.get("lessons")) {
-                    Lesson lesson = new Lesson();
-                    lesson.setId(SnowflakeIdGenerator.generateId());
-                    lesson.setTitle(lessonNode.asText());
-                    lesson.setContent(JsonParserUtil.parseStringToJsonObject("[]"));
-                    lesson.setModule(module);
+                        String lessonTitle = lessonNode.isObject() && lessonNode.has("title")
+                                ? lessonNode.get("title").asText()
+                                : lessonNode.asText();
 
-                    lessons.add(lesson);
+                        lesson.setTitle(lessonTitle);
+                        lesson.setOrder(i);
+
+                        // Always start with empty content to trigger the rich LessonPromptBuilder flow
+                        lesson.setContent(JsonParserUtil.parseStringToJsonObject("[]"));
+
+
+                        if (lessonNode.isObject() && lessonNode.has("estimatedMinutes")) {
+                            lesson.setEstimatedMinutes(lessonNode.get("estimatedMinutes").asInt());
+                        }
+
+                        lesson.setModule(module);
+                        lessons.add(lesson);
+                    }
                 }
 
                 module.setLessons(lessons);

@@ -84,7 +84,6 @@ public class CourseOutlinePromptBuilder {
                 ## SCOPE & SIZE
                 - Modules: 5 to 9 (including Overview module #1 and Capstone module last).
                 - Lessons per content module: 4 to 8.
-                - Each lesson `contentBlocks` must contain at least 3 substantive `text` blocks (intro / deep-dive / summary or exercise).
                 
                 ## TOPIC-AWARE GUIDANCE
                 Detect topic family from title and tailor:
@@ -114,12 +113,7 @@ public class CourseOutlinePromptBuilder {
                       "lessons": [
                         {
                           "title": "Lesson Title",
-                          "estimatedMinutes": 12,
-                          "contentBlocks": [
-                            { "type": "text", "content": "Intro paragraph using a real-world analogy." },
-                            { "type": "text", "content": "Deep-dive explanation with concrete examples." },
-                            { "type": "text", "content": "Summary, common pitfalls, and a practice prompt." }
-                          ]
+                          "estimatedMinutes": 12
                         }
                       ]
                     }
