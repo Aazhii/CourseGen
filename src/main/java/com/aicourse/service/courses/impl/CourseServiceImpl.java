@@ -250,6 +250,35 @@ public class CourseServiceImpl implements CourseService {
                         }
 
                         lesson.setModule(module);
+
+                        // Parse sub-lessons if present
+                        if (lessonNode.isObject() && lessonNode.has("subLessons") && lessonNode.get("subLessons").isArray()) {
+                            List<Lesson> subLessonsList = new ArrayList<>();
+                            JsonNode subNodes = lessonNode.get("subLessons");
+                            for (int j = 0; j < subNodes.size(); j++) {
+                                JsonNode subNode = subNodes.get(j);
+                                Lesson subLesson = new Lesson();
+                                subLesson.setId(SnowflakeIdGenerator.generateId());
+
+                                String subTitle = subNode.isObject() && subNode.has("title")
+                                        ? subNode.get("title").asText()
+                                        : subNode.asText();
+
+                                subLesson.setTitle(subTitle);
+                                subLesson.setOrder(j);
+                                subLesson.setContent(JsonParserUtil.parseStringToJsonObject("[]"));
+
+                                if (subNode.isObject() && subNode.has("estimatedMinutes")) {
+                                    subLesson.setEstimatedMinutes(subNode.get("estimatedMinutes").asInt());
+                                }
+
+                                subLesson.setModule(module);
+                                subLesson.setParentLesson(lesson);
+                                subLessonsList.add(subLesson);
+                            }
+                            lesson.setSubLessons(subLessonsList);
+                        }
+
                         lessons.add(lesson);
                     }
                 }

@@ -249,4 +249,5 @@
     <include file="db/changelog/db.changelog-project-prompts.xml"/>
     <include file="db/changelog/db.changelog-marketing-content.xml"/>
     <include file="db/changelog/db.changelog-course-enrichment.xml"/>
+    <include file="db/changelog/db.changelog-sublessons.xml"/>
 </databaseChangeLog>
