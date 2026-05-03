@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Progress } from "../components/ui/progress";
 import { Input } from "../components/ui/input";
@@ -232,6 +232,77 @@ export default function CourseDetail() {
         </div>
         <Progress value={progress} className="mt-2 h-2" />
       </div>
+
+      {course.overview && (
+        <div className="mt-8 border-t border-border pt-8 animate-fade-in">
+          <div className="glass-card rounded-2xl p-6 md:p-8 space-y-8">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">Course Overview</h2>
+              <p className="text-muted-foreground">{course.overview.learningFlow}</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-primary" /> What you'll learn</h3>
+                <div className="flex flex-wrap gap-2">
+                  {course.overview.whatYouWillLearn?.map((item: string, i: number) => (
+                    <span key={i} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-blue-500" /> Topics covered</h3>
+                <ul className="space-y-2">
+                  {course.overview.topicsCovered?.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50 mt-1.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Prerequisites</h3>
+                <ul className="space-y-2">
+                  {course.overview.prerequisites?.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 mt-1.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Real-world use cases</h3>
+                <ul className="space-y-2">
+                  {course.overview.realWorldUseCases?.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500/50 mt-1.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {modules.length > 0 && modules[0].lessons?.length > 0 && (
+              <div className="pt-4 flex justify-end">
+                <Link to={`/courses/${course.id || courseId}/lessons/${modules[0].lessons[0].id}?moduleId=${modules[0].id}`}>
+                  <Button size="lg" className="gap-2">
+                    Start with Module 1 <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 border-t border-border pt-8">
         <div className="flex items-center justify-between mb-6">

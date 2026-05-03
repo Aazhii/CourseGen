@@ -26,7 +26,7 @@ export function StepMetadata() {
     });
   };
 
-  const handleDifficultyChange = (val: "beginner" | "intermediate" | "advanced") => {
+  const handleDifficultyChange = (val: "beginner" | "intermediate" | "advanced" | "BEGINNER_TO_ADVANCED") => {
     dispatch({ type: "UPDATE_METADATA", payload: { difficulty: val } });
   };
 
@@ -197,6 +197,7 @@ export function StepMetadata() {
                   <SelectItem value="beginner">Beginner</SelectItem>
                   <SelectItem value="intermediate">Intermediate</SelectItem>
                   <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectItem value="BEGINNER_TO_ADVANCED">Beginner → Advanced (Full Path)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

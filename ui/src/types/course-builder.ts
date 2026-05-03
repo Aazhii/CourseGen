@@ -4,7 +4,7 @@ export type Course = {
   description: string;
   category: string;
   tags: string[];
-  difficulty: "beginner" | "intermediate" | "advanced";
+  difficulty: "beginner" | "intermediate" | "advanced" | "BEGINNER_TO_ADVANCED";
   estimatedDuration: { value: number; unit: "hours" | "weeks" };
   thumbnailUrl?: string;
   modules: Module[];
