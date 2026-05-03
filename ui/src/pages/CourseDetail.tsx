@@ -198,16 +198,6 @@ export default function CourseDetail() {
           </Button>
         </Link>
         <div className="flex items-center gap-3">
-          {isCreator && (
-            <Button 
-              variant={isEditMode ? "default" : "outline"} 
-              className={cn("gap-2", isEditMode && "bg-primary/10 border-primary/50 text-foreground")}
-              onClick={() => setIsEditMode(!isEditMode)}
-            >
-              {isEditMode ? <Settings2 className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-              {isEditMode ? "Done Editing" : "Edit Course"}
-            </Button>
-          )}
           <Link to={`/courses/${course.id || courseId}/coach`}>
             <Button variant="outline" className="gap-2">
               <Sparkles className="h-4 w-4 text-purple-500" />
