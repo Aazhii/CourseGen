@@ -9,6 +9,7 @@ import com.aicourse.model.Module;
 import com.aicourse.repo.CourseRepo;
 import com.aicourse.repo.LessonRepo;
 import com.aicourse.repo.ModuleRepo;
+import com.aicourse.service.courses.CourseOutlinePromptBuilder;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.aicourse.utils.json.JsonParserUtil;
@@ -138,51 +139,11 @@ public class CourseServiceImpl implements CourseService {
         LOGGER.log(Level.INFO, "Generating course OUTLINE ''{0}'' (Difficulty: {1}, Duration: {2})",
                 new Object[]{title, difficulty, duration});
 
-        String prompt = """
-                Create a full editable course draft about "%s".
-                Difficulty: %s
-                Duration: %s
-                
-                IMPORTANT:
-                - Do NOT return outline-only data.
-                - Every lesson must include substantial teaching content.
-                - Keep all content practical, clear, and beginner-friendly for the specified difficulty.
-                - Return ONLY raw JSON (no markdown, no explanation text).
-                
-                Required JSON shape:
-                {
-                  "title": "Course Title",
-                  "description": "Course Description",
-                  "modules": [
-                    {
-                      "title": "Module Title",
-                      "description": "Module description",
-                      "learningObjectives": ["objective 1", "objective 2"],
-                      "lessons": [
-                        {
-                          "title": "Lesson Title",
-                          "contentBlocks": [
-                            {
-                              "type": "text",
-                              "content": "Detailed lesson explanation with examples, step-by-step guidance, and key takeaways."
-                            },
-                            {
-                              "type": "text",
-                              "content": "Practice tasks or mini exercises for the learner."
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-                
-                Constraints:
-                - 3 to 6 modules.
-                - 3 to 6 lessons per module.
-                - At least 2 text content blocks per lesson.
-                - Each text block should be useful and non-trivial (not one-liners).
-                """.formatted(title, difficulty, duration);
+        String prompt = new CourseOutlinePromptBuilder()
+                .title(title)
+                .difficulty(difficulty)
+                .duration(duration)
+                .build();
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for outline generation: {0}", new Object[]{title});
@@ -221,23 +182,11 @@ public class CourseServiceImpl implements CourseService {
 
         course.setCreator(userId);
 
-        String prompt = """
-                Create a comprehensive course outline about "%s".
-                Difficulty: %s
-                Duration: %s
-
-                Respond ONLY with raw JSON:
-                {
-                  "title": "Course Title",
-                  "description": "Course Description",
-                  "modules": [
-                    {
-                      "title": "Module Title",
-                      "lessons": ["Lesson 1", "Lesson 2"]
-                    }
-                  ]
-                }
-                """.formatted(title, difficulty, duration);
+        String prompt = new CourseOutlinePromptBuilder()
+                .title(title)
+                .difficulty(difficulty)
+                .duration(duration)
+                .build();
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for course generation: {0}", new Object[]{title});
