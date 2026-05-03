@@ -86,6 +86,14 @@ public class Course implements Persistable<Long> {
     @JdbcTypeCode(SqlTypes.JSON)
     private JsonNode finalExam;
 
+    @Column(name = "overview", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode overview;
+
+    @Column(name = "capstone_project", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode capstoneProject;
+
     // --- Persistable ---
     @Override
     public Long getId() {
@@ -247,5 +255,21 @@ public class Course implements Persistable<Long> {
 
     public void setFinalExam(JsonNode finalExam) {
         this.finalExam = finalExam;
+    }
+
+    public JsonNode getOverview() {
+        return overview;
+    }
+
+    public void setOverview(JsonNode overview) {
+        this.overview = overview;
+    }
+
+    public JsonNode getCapstoneProject() {
+        return capstoneProject;
+    }
+
+    public void setCapstoneProject(JsonNode capstoneProject) {
+        this.capstoneProject = capstoneProject;
     }
 }
