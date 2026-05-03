@@ -50,7 +50,7 @@ function getSectionColor(path: string): string {
   return "oklch(0.6 0.05 260)";                                       // Slate fallback
 }
 
-export default function AppSidebar() {
+export default function AppSidebar({ isCollapsed = false }: { isCollapsed?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -73,7 +73,10 @@ export default function AppSidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r"
+      className={cn(
+        "fixed left-0 top-0 z-50 flex h-screen flex-col border-r overflow-hidden group transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-[72px] hover:w-64" : "w-64"
+      )}
       style={{
         background: "var(--sidebar)",
         borderColor: "var(--sidebar-border)",
@@ -81,7 +84,7 @@ export default function AppSidebar() {
       }}
     >
       {/* Brand */}
-      <div className="px-5 py-6">
+      <div className={cn("px-5 py-6 whitespace-nowrap transition-opacity duration-300", isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100")}>
         <Logo />
       </div>
 
@@ -89,11 +92,16 @@ export default function AppSidebar() {
       <div className="px-4 pb-4">
         <Button
           variant="hero"
-          className="w-full h-10 rounded-lg justify-start px-3 gap-2.5 bg-gradient-cta shadow-glow text-white border-0"
+          className={cn(
+            "w-full h-10 rounded-lg bg-gradient-cta shadow-glow text-white border-0 transition-all duration-300 flex items-center px-3 gap-2.5",
+            isCollapsed ? "justify-center group-hover:justify-start" : "justify-start"
+          )}
           onClick={() => navigate("/create-course")}
         >
-          <Sparkles className="h-4 w-4" />
-          <span className="font-semibold text-sm">New course</span>
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span className={cn("font-semibold text-sm transition-opacity duration-300 whitespace-nowrap", isCollapsed ? "hidden group-hover:inline-block" : "inline-block")}>
+            New course
+          </span>
         </Button>
       </div>
 
@@ -103,7 +111,9 @@ export default function AppSidebar() {
           <div key={gi}>
             {group.label && (
               <div
-                className="mb-1 px-2 text-[11px] font-medium uppercase tracking-wider"
+                className={cn("mb-1 px-2 text-[11px] font-medium uppercase tracking-wider transition-opacity duration-300 whitespace-nowrap",
+                  isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                )}
                 style={{ color: "var(--muted-foreground)" }}
               >
                 {group.label}
@@ -144,10 +154,14 @@ export default function AppSidebar() {
                         className="h-4 w-4 shrink-0 transition-colors"
                         style={{ color: isActive ? accentColor : "var(--muted-foreground)" }}
                       />
-                      <span className="flex-1 truncate">{item.label}</span>
+                      <span className={cn("flex-1 truncate transition-opacity duration-300 whitespace-nowrap", isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100")}>
+                        {item.label}
+                      </span>
                       {"badge" in item && item.badge && (
                         <span
-                          className="rounded-sm px-1.5 py-0.5 text-[9px] font-semibold tracking-wide"
+                          className={cn("rounded-sm px-1.5 py-0.5 text-[9px] font-semibold tracking-wide transition-opacity duration-300",
+                            isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                          )}
                           style={{
                             background: "var(--muted)",
                             color: "var(--muted-foreground)",

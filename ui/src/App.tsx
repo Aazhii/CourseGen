@@ -53,6 +53,20 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -69,6 +83,7 @@ const App = () => (
                   <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
                   <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
                   <Route path="/join/:token" element={<JoinCourse />} />
+
                   <Route element={<AppLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/courses" element={<Courses />} />

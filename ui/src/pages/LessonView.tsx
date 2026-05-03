@@ -9,6 +9,8 @@ import { getCourseById } from "../services/courseApi";
 import { markLessonComplete, markLessonIncomplete, startLessonSession, stopLessonSession } from "../services/progressApi";
 import { toast } from "sonner";
 import { USE_MCP_CLIENT } from "../constants";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "../components/ui/sidebar";
+import { CourseSidebar } from "../components/CourseSidebar";
 
 export default function LessonView() {
   const { courseId, lessonId } = useParams();
@@ -128,17 +130,23 @@ export default function LessonView() {
   }
 
   return (
-    <div className="animate-fade-in min-h-screen">
-      <div className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-6 py-3">
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <Link to={`/courses/${courseId}`}>
-            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-              <ChevronLeft className="h-4 w-4" />
-              Back to Course
-            </Button>
-          </Link>
-          
-          <div className="flex items-center gap-2">
+    <SidebarProvider>
+      <CourseSidebar courseId={courseId!} activeLessonId={lessonId} />
+      <SidebarInset>
+        <div className="animate-fade-in min-h-screen">
+          <div className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md px-6 py-3">
+            <div className="mx-auto flex max-w-4xl items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger className="-ml-2" />
+                <Link to={`/courses/${courseId}`}>
+                  <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                    <ChevronLeft className="h-4 w-4" />
+                    Back to Course
+                  </Button>
+                </Link>
+              </div>
+              
+              <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-background/50 text-xs font-medium text-muted-foreground">
               <Database className="w-3.5 h-3.5" />
               Transport: {USE_MCP_CLIENT ? "MCP" : "Legacy"}
@@ -206,5 +214,7 @@ export default function LessonView() {
         </div>
       </div>
     </div>
+    </SidebarInset>
+    </SidebarProvider>
   );
 }
