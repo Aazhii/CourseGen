@@ -20,6 +20,10 @@ public class LessonPromptBuilder {
     private String difficultyLevel = "beginner"; // beginner | intermediate | advanced
     private String targetAudience = "college students";
     private String language = "English";
+    private String courseLevelPath = "core"; // foundation | core | advanced | capstone
+    private boolean includeArchitectureDiagram = true;
+    private boolean includeRealWorldScenario = true;
+    private int minTextBlocks = 4;
 
     // --- Fluent Setters ---
 
@@ -78,6 +82,26 @@ public class LessonPromptBuilder {
         return this;
     }
 
+    public LessonPromptBuilder courseLevelPath(String courseLevelPath) {
+        this.courseLevelPath = courseLevelPath;
+        return this;
+    }
+
+    public LessonPromptBuilder includeArchitectureDiagram(boolean includeArchitectureDiagram) {
+        this.includeArchitectureDiagram = includeArchitectureDiagram;
+        return this;
+    }
+
+    public LessonPromptBuilder includeRealWorldScenario(boolean includeRealWorldScenario) {
+        this.includeRealWorldScenario = includeRealWorldScenario;
+        return this;
+    }
+
+    public LessonPromptBuilder minTextBlocks(int minTextBlocks) {
+        this.minTextBlocks = minTextBlocks;
+        return this;
+    }
+
     // --- Build ---
 
     public String build() {
@@ -101,36 +125,46 @@ public class LessonPromptBuilder {
 
         // ---- TASK ----
         sb.append("## TASK\n");
-        sb.append("Generate a comprehensive, engaging lesson as a JSON array of content blocks.\n\n");
+        sb.append("Generate a comprehensive, mentor-style lesson as a JSON array of content blocks. Depth and clarity matter more than brevity. Do NOT compress.\n\n");
 
         // ---- STRUCTURE REQUIREMENTS ----
-        sb.append("## REQUIRED LESSON STRUCTURE\n");
-        sb.append("Follow this order strictly:\n");
-        sb.append("1. A \"heading\" block with the lesson title\n");
-        sb.append("2. 1-2 \"text\" blocks as introduction/overview\n");
-        sb.append("3. For each major concept:\n");
-        sb.append("   a. A \"heading\" block for the concept name\n");
-        sb.append("   b. 1-2 \"text\" blocks explaining the concept\n");
-        sb.append("   c. A \"list\" block for key features/points (if applicable)\n");
+        sb.append("## TEACHING FLOW (strict order)\n");
+        sb.append("1. heading: lesson title\n");
+        sb.append("2. text: \"Why this matters\" — real-world hook / analogy (2-4 sentences)\n");
+        sb.append("3. text: \"What you will learn in this lesson\"\n");
+        sb.append("4. list: 3-6 outcome bullets\n");
+        sb.append("5. For EACH key concept (aim for 3-5 concepts):\n");
+        sb.append("   a. heading: concept name\n");
+        sb.append("   b. text: first-principles explanation using analogy\n");
+        sb.append("   c. text: precise/technical explanation\n");
+        sb.append("   d. list: key points or steps (when useful)\n");
         if (includeCodeExamples) {
-            sb.append("   d. A \"code\" block with a practical example (if applicable to the topic)\n");
+            sb.append("   e. code: runnable example (only when topic involves code)\n");
         }
+        if (includeRealWorldScenario) {
+            sb.append("   f. text: \"How this works in production\" — name a real product/company pattern\n");
+        }
+        if (includeArchitectureDiagram) {
+            sb.append("6. If topic is a system/architecture (Kafka, Redis, K8s, DBs, queues, caches, networking, microservices), include heading \"Architecture Deep-Dive\" followed by:\n");
+            sb.append("   - text: components & responsibilities\n");
+            sb.append("   - code (language: \"text\"): ASCII architecture diagram with labelled boxes/arrows\n");
+            sb.append("   - list: failure modes and how the system handles them\n");
+            sb.append("   - table: trade-offs (consistency vs availability, throughput vs latency, etc.)\n");
+        }
+        sb.append("7. heading: \"Mini Hands-On\" — 1 text describing the task + 1 code scaffold\n");
         if (includeTable) {
-            sb.append("4. A \"table\" block comparing/summarizing key concepts\n");
+            sb.append("8. table: summary / cheat-sheet\n");
         }
         if (youtubeCount > 0) {
-            sb.append("5. Exactly ").append(youtubeCount).append(" \"youtube\" block(s) with REAL, existing, popular YouTube video URLs related to the topic. ");
-            sb.append("Use well-known educational channels (e.g., freeCodeCamp, Fireship, Traversy Media, CS50, MIT OpenCourseWare, etc.). ");
-            sb.append("The URL must be a valid youtube.com/watch?v= link.\n");
+            sb.append("9. youtube blocks: real videos from reputable channels (NEVER invent URLs)\n");
         }
-        sb.append("6. Include \"image\" blocks where visual aids would be helpful. Use descriptive placeholder URLs or leave the URL empty if you cannot find a specific one, but provide a high-quality 'alt' and 'prompt' for what the image should show.\n");
         if (quizCount > 0) {
-            sb.append("7. Exactly ").append(quizCount).append(" \"quiz\" block(s) to test understanding, placed near the end\n");
+            sb.append("10. quiz blocks: each question tests a DIFFERENT concept\n");
         }
         if (includeReferences) {
-            sb.append("8. A \"reference\" block at the very end with 3-5 real, authoritative external links (official docs, Wikipedia, reputable tutorials)\n");
+            sb.append("11. reference: 4-6 authoritative links\n");
         }
-        sb.append("9. A \"heading\" block titled \"Conclusion\" followed by 1-2 summary \"text\" blocks\n\n");
+        sb.append("12. heading: \"Recap & What's Next\" + closing text linking to next lesson's topic\n\n");
 
         // ---- STRICT JSON SCHEMA ----
         sb.append("## BLOCK TYPE SCHEMAS (follow EXACTLY)\n\n");
@@ -181,22 +215,29 @@ public class LessonPromptBuilder {
         // ---- QUALITY RULES ----
         sb.append("## QUALITY RULES\n");
         sb.append("- Content must be factually accurate and up-to-date\n");
-        sb.append("- Use clear, engaging language appropriate for ").append(targetAudience).append("\n");
+        sb.append("- USE EXTREMELY SIMPLE ENGLISH. Write as if you are explaining to a 10th-grade student.\n");
+        sb.append("- Avoid complex jargon. If you must use a technical term, explain it immediately with a simple real-world analogy.\n");
+        sb.append("- Keep sentences short and clear.\n");
         sb.append("- Each quiz question must test a different concept from the lesson\n");
         sb.append("- Quiz options must be plausible (no obviously wrong answers)\n");
         sb.append("- Code examples must be syntactically correct and runnable\n");
         sb.append("- YouTube URLs must be real videos from well-known channels (do NOT invent URLs)\n");
         sb.append("- References must link to real, existing websites\n");
         if (difficultyLevel.equals("advanced")) {
-            sb.append("- Include advanced concepts, edge cases, and real-world production considerations\n");
+            sb.append("- Even for advanced concepts, explain the *why* using simple analogies before diving into the complex *how*.\n");
+            sb.append("- Include real-world production considerations and advanced edge cases.\n");
             sb.append("- Add more references to research papers and official documentation\n");
         } else if (difficultyLevel.equals("intermediate")) {
             sb.append("- Balance theory with practical examples\n");
             sb.append("- Include common pitfalls and best practices\n");
         } else {
-            sb.append("- Use simple analogies and real-world comparisons\n");
-            sb.append("- Avoid jargon without explanation\n");
+            sb.append("- Use very simple analogies (e.g., a postal system, a restaurant kitchen).\n");
+            sb.append("- Absolutely zero unexplained jargon.\n");
         }
+        sb.append("- Minimum ").append(minTextBlocks).append(" substantive text blocks across the lesson — never one-liners.\n");
+        sb.append("- If the topic has no code, OMIT code blocks entirely instead of inventing trivial snippets.\n");
+        sb.append("- Architecture diagrams in code blocks must use language `text` with clearly labelled boxes/arrows.\n");
+        sb.append("- Real-world scenarios MUST name a real product/company pattern (e.g., LinkedIn-Kafka, Discord-Cassandra, Netflix-Cassandra), not generic 'a company'.\n");
         sb.append("\n");
 
         // ---- OUTPUT FORMAT ----
