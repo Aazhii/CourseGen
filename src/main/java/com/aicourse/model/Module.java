@@ -42,6 +42,12 @@ public class Module implements Persistable<Long> {
     @Column(name = "sort_order", nullable = false)
     private Integer order = 0;
 
+    @Column(name = "module_level")
+    private String moduleLevel;
+
+    @Column(name = "estimated_minutes")
+    private Integer estimatedMinutes;
+
     @OneToMany(
             mappedBy = "module",
             cascade = CascadeType.ALL,
@@ -118,5 +124,21 @@ public class Module implements Persistable<Long> {
 
     public void setOrder(Integer order) {
         this.order = order;
+    }
+
+    public String getModuleLevel() {
+        return moduleLevel;
+    }
+
+    public void setModuleLevel(String moduleLevel) {
+        this.moduleLevel = moduleLevel;
+    }
+
+    public Integer getEstimatedMinutes() {
+        return estimatedMinutes;
+    }
+
+    public void setEstimatedMinutes(Integer estimatedMinutes) {
+        this.estimatedMinutes = estimatedMinutes;
     }
 }

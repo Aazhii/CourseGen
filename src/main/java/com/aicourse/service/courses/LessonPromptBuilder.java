@@ -215,21 +215,24 @@ public class LessonPromptBuilder {
         // ---- QUALITY RULES ----
         sb.append("## QUALITY RULES\n");
         sb.append("- Content must be factually accurate and up-to-date\n");
-        sb.append("- Use clear, engaging language appropriate for ").append(targetAudience).append("\n");
+        sb.append("- USE EXTREMELY SIMPLE ENGLISH. Write as if you are explaining to a 10th-grade student.\n");
+        sb.append("- Avoid complex jargon. If you must use a technical term, explain it immediately with a simple real-world analogy.\n");
+        sb.append("- Keep sentences short and clear.\n");
         sb.append("- Each quiz question must test a different concept from the lesson\n");
         sb.append("- Quiz options must be plausible (no obviously wrong answers)\n");
         sb.append("- Code examples must be syntactically correct and runnable\n");
         sb.append("- YouTube URLs must be real videos from well-known channels (do NOT invent URLs)\n");
         sb.append("- References must link to real, existing websites\n");
         if (difficultyLevel.equals("advanced")) {
-            sb.append("- Include advanced concepts, edge cases, and real-world production considerations\n");
+            sb.append("- Even for advanced concepts, explain the *why* using simple analogies before diving into the complex *how*.\n");
+            sb.append("- Include real-world production considerations and advanced edge cases.\n");
             sb.append("- Add more references to research papers and official documentation\n");
         } else if (difficultyLevel.equals("intermediate")) {
             sb.append("- Balance theory with practical examples\n");
             sb.append("- Include common pitfalls and best practices\n");
         } else {
-            sb.append("- Use simple analogies and real-world comparisons\n");
-            sb.append("- Avoid jargon without explanation\n");
+            sb.append("- Use very simple analogies (e.g., a postal system, a restaurant kitchen).\n");
+            sb.append("- Absolutely zero unexplained jargon.\n");
         }
         sb.append("- Minimum ").append(minTextBlocks).append(" substantive text blocks across the lesson — never one-liners.\n");
         sb.append("- If the topic has no code, OMIT code blocks entirely instead of inventing trivial snippets.\n");
