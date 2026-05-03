@@ -42,6 +42,14 @@ public class Lesson implements Persistable<Long> {
     @JsonIgnore
     private Module module;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonIgnore
+    private Lesson parentLesson;
+
+    @OneToMany(mappedBy = "parentLesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Lesson> subLessons;
+
     @Column(name = "sort_order", nullable = false)
     private Integer order = 0;
 
@@ -108,5 +116,21 @@ public class Lesson implements Persistable<Long> {
 
     public void setOrder(Integer order) {
         this.order = order;
+    }
+
+    public Lesson getParentLesson() {
+        return parentLesson;
+    }
+
+    public void setParentLesson(Lesson parentLesson) {
+        this.parentLesson = parentLesson;
+    }
+
+    public java.util.List<Lesson> getSubLessons() {
+        return subLessons;
+    }
+
+    public void setSubLessons(java.util.List<Lesson> subLessons) {
+        this.subLessons = subLessons;
     }
 }

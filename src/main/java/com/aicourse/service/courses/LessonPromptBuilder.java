@@ -128,43 +128,35 @@ public class LessonPromptBuilder {
         sb.append("Generate a comprehensive, mentor-style lesson as a JSON array of content blocks. Depth and clarity matter more than brevity. Do NOT compress.\n\n");
 
         // ---- STRUCTURE REQUIREMENTS ----
-        sb.append("## TEACHING FLOW (strict order)\n");
-        sb.append("1. heading: lesson title\n");
-        sb.append("2. text: \"Why this matters\" — real-world hook / analogy (2-4 sentences)\n");
-        sb.append("3. text: \"What you will learn in this lesson\"\n");
-        sb.append("4. list: 3-6 outcome bullets\n");
-        sb.append("5. For EACH key concept (aim for 3-5 concepts):\n");
-        sb.append("   a. heading: concept name\n");
-        sb.append("   b. text: first-principles explanation using analogy\n");
-        sb.append("   c. text: precise/technical explanation\n");
-        sb.append("   d. list: key points or steps (when useful)\n");
+        sb.append("## DYNAMIC TEACHING FLOW (Crucial!)\n");
+        sb.append("To prevent the user from getting bored, DO NOT follow a rigid 'Intro -> Concept -> Code -> Summary' template for every lesson.\n");
+        sb.append("Instead, dynamically choose an engaging pedagogical approach suited to the specific topic. Examples of valid dynamic flows:\n");
+        sb.append("- **The Mystery/Problem First:** Start by presenting a broken code snippet, a failing system, or a paradox. Then explain the theory, and finally show how the concept solves the mystery.\n");
+        sb.append("- **The Storyteller:** Start with a historical anecdote (e.g., 'Why did NASA need this algorithm?'). Teach the concept through the lens of that story.\n");
+        sb.append("- **The Socratic Method:** Ask a series of thought-provoking questions, then provide the answers.\n");
+        sb.append("- **The Traditional Deep-Dive:** (Use sparingly) Concept -> Architecture -> Code -> Trade-offs.\n\n");
+        sb.append("Regardless of the flow you choose, you MUST ALWAYS include:\n");
+        sb.append("1. A 'heading' block as the lesson title at the very top.\n");
+        sb.append("2. High-quality 'text' blocks explaining the content (extremely simple 10th-grade English).\n");
         if (includeCodeExamples) {
-            sb.append("   e. code: runnable example (only when topic involves code)\n");
-        }
-        if (includeRealWorldScenario) {
-            sb.append("   f. text: \"How this works in production\" — name a real product/company pattern\n");
+            sb.append("3. 'code' blocks (only if the topic involves code; otherwise omit entirely).\n");
         }
         if (includeArchitectureDiagram) {
-            sb.append("6. If topic is a system/architecture (Kafka, Redis, K8s, DBs, queues, caches, networking, microservices), include heading \"Architecture Deep-Dive\" followed by:\n");
-            sb.append("   - text: components & responsibilities\n");
-            sb.append("   - code (language: \"text\"): ASCII architecture diagram with labelled boxes/arrows\n");
-            sb.append("   - list: failure modes and how the system handles them\n");
-            sb.append("   - table: trade-offs (consistency vs availability, throughput vs latency, etc.)\n");
+            sb.append("4. For system/architecture topics, include an ASCII diagram inside a 'text' language 'code' block.\n");
         }
-        sb.append("7. heading: \"Mini Hands-On\" — 1 text describing the task + 1 code scaffold\n");
         if (includeTable) {
-            sb.append("8. table: summary / cheat-sheet\n");
+            sb.append("5. A 'table' block summarizing key takeaways or trade-offs.\n");
         }
         if (youtubeCount > 0) {
-            sb.append("9. youtube blocks: real videos from reputable channels (NEVER invent URLs)\n");
+            sb.append("6. 'youtube' blocks (use ONLY real, reputable channels; do NOT invent URLs).\n");
         }
         if (quizCount > 0) {
-            sb.append("10. quiz blocks: each question tests a DIFFERENT concept\n");
+            sb.append("7. quiz blocks: each question tests a DIFFERENT concept\n");
         }
         if (includeReferences) {
-            sb.append("11. reference: 4-6 authoritative links\n");
+            sb.append("8. reference: 4-6 authoritative links\n");
         }
-        sb.append("12. heading: \"Recap & What's Next\" + closing text linking to next lesson's topic\n\n");
+        sb.append("9. A 'heading' block titled \"Recap & What's Next\" + closing text linking to next lesson's topic\n\n");
 
         // ---- STRICT JSON SCHEMA ----
         sb.append("## BLOCK TYPE SCHEMAS (follow EXACTLY)\n\n");

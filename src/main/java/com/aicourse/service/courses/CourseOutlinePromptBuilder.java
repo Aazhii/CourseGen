@@ -83,7 +83,7 @@ public class CourseOutlinePromptBuilder {
                 
                 ## SCOPE & SIZE
                 - Modules: 5 to 9 (including Overview module #1 and Capstone module last).
-                - Lessons per content module: 4 to 8.
+                - Lessons per content module: 4 to 8. If a topic is massive or highly hierarchical (e.g. Arrays -> Sliding Window -> Fixed Size Window), you MAY use an array of `subLessons` inside a lesson to group them logically. Do NOT nest deeper than one level of subLessons.
                 
                 ## TOPIC-AWARE GUIDANCE
                 Detect topic family from title and tailor:
@@ -113,7 +113,13 @@ public class CourseOutlinePromptBuilder {
                       "lessons": [
                         {
                           "title": "Lesson Title",
-                          "estimatedMinutes": 12
+                          "estimatedMinutes": 12,
+                          "subLessons": [
+                            {
+                              "title": "Sub-lesson Title",
+                              "estimatedMinutes": 8
+                            }
+                          ]
                         }
                       ]
                     }
