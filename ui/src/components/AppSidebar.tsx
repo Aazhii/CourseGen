@@ -92,8 +92,9 @@ export default function AppSidebar({ isCollapsed = false }: { isCollapsed?: bool
       <div className="px-4 pb-4">
         <Button
           variant="hero"
-          className={cn("w-full h-10 rounded-lg justify-start px-3 gap-2.5 bg-gradient-cta shadow-glow text-white border-0 transition-all duration-300",
-            isCollapsed && "group-hover:px-3 justify-center group-hover:justify-start"
+          className={cn(
+            "w-full h-10 rounded-lg bg-gradient-cta shadow-glow text-white border-0 transition-all duration-300 flex items-center px-3 gap-2.5",
+            isCollapsed ? "justify-center group-hover:justify-start" : "justify-start"
           )}
           onClick={() => navigate("/create-course")}
         >

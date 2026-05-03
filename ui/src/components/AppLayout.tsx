@@ -200,7 +200,12 @@ export default function AppLayout() {
 
           <div className="flex flex-1 items-center justify-end gap-1">
             {/* Generate CTA */}
-            <Button variant="hero" size="sm" className="mr-2 h-8 gap-1.5 px-3">
+            <Button 
+              variant="hero" 
+              size="sm" 
+              className="mr-2 h-8 gap-1.5 px-3"
+              onClick={() => navigate("/create-course")}
+            >
               <Sparkles className="h-3.5 w-3.5" />
               Generate
             </Button>
