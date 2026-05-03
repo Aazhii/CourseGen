@@ -70,22 +70,51 @@ export function CourseSidebar({ courseId, activeLessonId }: { courseId: string, 
                     const isCompleted = completedSet.has(lesson.id);
 
                     return (
-                      <SidebarMenuItem key={lesson.id}>
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={lesson.title}>
-                          <Link to={`/courses/${courseId}/lessons/${lesson.id}?moduleId=${module.id}`}>
-                            {isCompleted ? (
-                              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                            ) : isActive ? (
-                              <PlayCircle className="h-4 w-4 text-primary shrink-0" />
-                            ) : (
-                              <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
-                            )}
-                            <span className={cn("truncate", isActive && "font-medium text-foreground")}>
-                              {lesson.title || "Untitled"}
-                            </span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <div key={lesson.id} className="flex flex-col">
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={lesson.title}>
+                            <Link to={`/courses/${courseId}/lessons/${lesson.id}?moduleId=${module.id}`}>
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                              ) : isActive ? (
+                                <PlayCircle className="h-4 w-4 text-primary shrink-0" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                              )}
+                              <span className={cn("truncate", isActive && "font-medium text-foreground")}>
+                                {lesson.title || "Untitled"}
+                              </span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        
+                        {Array.isArray(lesson.subLessons) && lesson.subLessons.length > 0 && (
+                          <div className="ml-4 border-l-2 border-border pl-2 my-1 space-y-1">
+                            {lesson.subLessons.map((sub: any) => {
+                              const isSubActive = sub.id === activeLessonId;
+                              const isSubCompleted = completedSet.has(sub.id);
+                              return (
+                                <SidebarMenuItem key={sub.id}>
+                                  <SidebarMenuButton asChild isActive={isSubActive} tooltip={sub.title} size="sm">
+                                    <Link to={`/courses/${courseId}/lessons/${sub.id}?moduleId=${module.id}`}>
+                                      {isSubCompleted ? (
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                      ) : isSubActive ? (
+                                        <PlayCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                                      ) : (
+                                        <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      )}
+                                      <span className={cn("truncate text-sm", isSubActive && "font-medium text-foreground")}>
+                                        {sub.title || "Untitled"}
+                                      </span>
+                                    </Link>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </SidebarMenu>
