@@ -269,11 +269,18 @@ export default function CourseDetail() {
             <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-border/50">
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg text-foreground">Prerequisites</h3>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {course.overview.prerequisites?.map((item: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 mt-1.5 shrink-0" />
-                      <span>{item}</span>
+                    <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground p-2 rounded-lg border border-border/50 bg-background/50">
+                      <div className="flex items-start gap-2 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 mt-1.5 shrink-0" />
+                        <span className="font-medium text-foreground">{item}</span>
+                      </div>
+                      <Link to={`/create-course?topic=${encodeURIComponent(item)}`}>
+                        <Button variant="secondary" size="sm" className="h-7 text-xs font-medium w-full sm:w-auto">
+                          Learn this
+                        </Button>
+                      </Link>
                     </li>
                   ))}
                 </ul>
