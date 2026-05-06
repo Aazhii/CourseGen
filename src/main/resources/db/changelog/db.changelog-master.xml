@@ -214,22 +214,6 @@
         <modifyDataType tableName="courses" columnName="description" newDataType="TEXT"/>
     </changeSet>
 
-    <changeSet id="userstats-add-creation-counters" author="ari">
-
-        <addColumn tableName="userstats">
-            <column name="total_courses_created" type="INT" defaultValueNumeric="0">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-
-        <addColumn tableName="userstats">
-            <column name="total_projects_created" type="INT" defaultValueNumeric="0">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-
-    </changeSet>
-
     <changeSet id="courses-add-is-active-field" author="ari">
         <addColumn tableName="courses">
             <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
@@ -250,4 +234,21 @@
     <include file="db/changelog/db.changelog-marketing-content.xml"/>
     <include file="db/changelog/db.changelog-course-enrichment.xml"/>
     <include file="db/changelog/db.changelog-sublessons.xml"/>
+
+    <!-- Add creation counters columns after userstats table is created -->
+    <changeSet id="userstats-add-creation-counters" author="ari">
+
+        <addColumn tableName="userstats">
+            <column name="total_courses_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="userstats">
+            <column name="total_projects_created" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+    </changeSet>
 </databaseChangeLog>
