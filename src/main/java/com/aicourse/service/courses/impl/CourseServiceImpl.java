@@ -13,6 +13,7 @@ import com.aicourse.service.courses.CourseOutlinePromptBuilder;
 import com.aicourse.service.courses.CourseService;
 import com.aicourse.utils.id.SnowflakeIdGenerator;
 import com.aicourse.utils.json.JsonParserUtil;
+import com.auth.enums.UserRole;
 import com.auth.model.UserPrincipal;
 import com.auth.model.Users;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,7 +28,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,61 +73,15 @@ public class CourseServiceImpl implements CourseService {
     public Course saveBuiltCourse(CourseBuilderRequest payload, Authentication auth) throws Exception {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
         Long userId = principal.getUser().getId();
-        int lifetimeCount = userStatsService.getTotalCoursesCreated(userId);
-        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, principal.getUser().getRoles(), lifetimeCount);
+
+        validateCourseCreationLimit(userId, principal.getUser().getRoles());
 
         Course course = new Course();
         course.setId(SnowflakeIdGenerator.generateId());
         course.setCreator(userId);
-        course.setTitle(payload.getTitle() != null && !payload.getTitle().isEmpty() ? payload.getTitle() : "Untitled");
-        course.setDescription(payload.getDescription());
-        course.setCategory(payload.getCategory());
-        course.setTagsJson(payload.getTags());
-        course.setDifficulty(payload.getDifficulty());
-        course.setFinalExam(payload.getFinalExam());
-        course.setThumbnailUrl(payload.getThumbnailUrl());
 
-        if (payload.getEstimatedDuration() != null) {
-            course.setEstimatedDurationValue(payload.getEstimatedDuration().getValue());
-            course.setEstimatedDurationUnit(payload.getEstimatedDuration().getUnit());
-        }
-
-        if (payload.getSettings() != null) {
-            course.setVisibility(payload.getSettings().getVisibility());
-            course.setEnrollmentType(payload.getSettings().getEnrollmentType());
-        }
-
-        List<Module> modules = new ArrayList<>();
-        if (payload.getModules() != null) {
-            for (int i = 0; i < payload.getModules().size(); i++) {
-                CourseBuilderRequest.ModuleRequest modReq = payload.getModules().get(i);
-                Module module = new Module();
-                module.setId(SnowflakeIdGenerator.generateId());
-                module.setTitle(modReq.getTitle() != null ? modReq.getTitle() : "Untitled Module");
-                module.setDescription(modReq.getDescription());
-                module.setLearningObjectives(modReq.getLearningObjectives());
-                module.setAssessment(modReq.getAssessment());
-                module.setOrder(modReq.getOrder() != null ? modReq.getOrder() : i);
-                module.setCourse(course);
-
-                List<Lesson> lessons = new ArrayList<>();
-                if (modReq.getLessons() != null) {
-                    for (int j = 0; j < modReq.getLessons().size(); j++) {
-                        CourseBuilderRequest.LessonRequest lessReq = modReq.getLessons().get(j);
-                        Lesson lesson = new Lesson();
-                        lesson.setId(SnowflakeIdGenerator.generateId());
-                        lesson.setTitle(lessReq.getTitle() != null ? lessReq.getTitle() : "Untitled Lesson");
-                        lesson.setContent(lessReq.getContentBlocks() != null ? lessReq.getContentBlocks() : JsonParserUtil.parseStringToJsonObject("[]"));
-                        lesson.setOrder(lessReq.getOrder() != null ? lessReq.getOrder() : j);
-                        lesson.setModule(module);
-                        lessons.add(lesson);
-                    }
-                }
-                module.setLessons(lessons);
-                modules.add(module);
-            }
-        }
-        course.setModules(modules);
+        populateCourseBasicInfo(course, payload);
+        populateCourseModulesAndLessons(course, payload);
 
         Course savedCourse = courseRepo.save(course);
         userStatsService.incrementTotalCoursesCreated(userId);
@@ -139,146 +98,7 @@ public class CourseServiceImpl implements CourseService {
         LOGGER.log(Level.INFO, "Generating course OUTLINE ''{0}'' (Difficulty: {1}, Duration: {2})",
                 new Object[]{title, difficulty, duration});
 
-        String prompt = new CourseOutlinePromptBuilder()
-                .title(title)
-                .difficulty(difficulty)
-                .duration(duration)
-                .build();
-
-        try {
-            LOGGER.log(Level.FINE, "Sending prompt to AI for outline generation: {0}", new Object[]{title});
-            String response = aiDynamicGateway.getResponse(AiWorkload.COURSE_GENERATION, prompt);
-            LOGGER.log(Level.FINE, "Received response from AI");
-
-            String cleanJson = JsonParserUtil.extractRawJson(response);
-            return JsonParserUtil.parseStringToJsonObject(cleanJson);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to generate course outline ''{0}'': {1}", new Object[]{title, e.getMessage()});
-            throw e;
-        }
-    }
-
-    @Override
-    @Transactional
-    public Course saveBuiltCourse(CourseBuilderRequest payload, Authentication auth) throws Exception {
-        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        Long userId = principal.getUser().getId();
-        int lifetimeCount = userStatsService.getTotalCoursesCreated(userId);
-        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, principal.getUser().getRoles(), lifetimeCount);
-
-        Course course = new Course();
-        course.setId(SnowflakeIdGenerator.generateId());
-        course.setCreator(userId);
-        course.setTitle(payload.getTitle() != null && !payload.getTitle().isEmpty() ? payload.getTitle() : "Untitled");
-        course.setDescription(payload.getDescription());
-        course.setCategory(payload.getCategory());
-        course.setTagsJson(payload.getTags());
-        course.setDifficulty(payload.getDifficulty());
-        course.setFinalExam(payload.getFinalExam());
-        course.setThumbnailUrl(payload.getThumbnailUrl());
-
-        if (payload.getEstimatedDuration() != null) {
-            course.setEstimatedDurationValue(payload.getEstimatedDuration().getValue());
-            course.setEstimatedDurationUnit(payload.getEstimatedDuration().getUnit());
-        }
-
-        if (payload.getSettings() != null) {
-            course.setVisibility(payload.getSettings().getVisibility());
-            course.setEnrollmentType(payload.getSettings().getEnrollmentType());
-        }
-
-        List<Module> modules = new ArrayList<>();
-        if (payload.getModules() != null) {
-            for (int i = 0; i < payload.getModules().size(); i++) {
-                CourseBuilderRequest.ModuleRequest modReq = payload.getModules().get(i);
-                Module module = new Module();
-                module.setId(SnowflakeIdGenerator.generateId());
-                module.setTitle(modReq.getTitle() != null ? modReq.getTitle() : "Untitled Module");
-                module.setDescription(modReq.getDescription());
-                module.setLearningObjectives(modReq.getLearningObjectives());
-                module.setAssessment(modReq.getAssessment());
-                module.setOrder(modReq.getOrder() != null ? modReq.getOrder() : i);
-                module.setCourse(course);
-
-                List<Lesson> lessons = new ArrayList<>();
-                if (modReq.getLessons() != null) {
-                    for (int j = 0; j < modReq.getLessons().size(); j++) {
-                        CourseBuilderRequest.LessonRequest lessReq = modReq.getLessons().get(j);
-                        Lesson lesson = new Lesson();
-                        lesson.setId(SnowflakeIdGenerator.generateId());
-                        lesson.setTitle(lessReq.getTitle() != null ? lessReq.getTitle() : "Untitled Lesson");
-                        lesson.setContent(lessReq.getContentBlocks() != null ? lessReq.getContentBlocks() : JsonParserUtil.parseStringToJsonObject("[]"));
-                        lesson.setOrder(lessReq.getOrder() != null ? lessReq.getOrder() : j);
-                        lesson.setModule(module);
-                        lessons.add(lesson);
-                    }
-                }
-                module.setLessons(lessons);
-                modules.add(module);
-            }
-        }
-        course.setModules(modules);
-
-        Course savedCourse = courseRepo.save(course);
-        userStatsService.incrementTotalCoursesCreated(userId);
-        LOGGER.log(Level.INFO, "Custom Course built and saved successfully with ID: {0}", savedCourse.getId());
-        return savedCourse;
-    }
-
-    @Override
-    public JsonNode generateCourseOutlineOnly(Map<String, String> payload, Authentication auth) throws Exception {
-        String title = payload.get("title");
-        String difficulty = payload.getOrDefault("difficulty", "Beginner");
-        String duration = payload.getOrDefault("duration", "2 Hours");
-
-        LOGGER.log(Level.INFO, "Generating course OUTLINE ''{0}'' (Difficulty: {1}, Duration: {2})",
-                new Object[]{title, difficulty, duration});
-
-        String prompt = """
-                Create a full editable course draft about "%s".
-                Difficulty: %s
-                Duration: %s
-                
-                IMPORTANT:
-                - Do NOT return outline-only data.
-                - Every lesson must include substantial teaching content.
-                - Keep all content practical, clear, and beginner-friendly for the specified difficulty.
-                - Return ONLY raw JSON (no markdown, no explanation text).
-                
-                Required JSON shape:
-                {
-                  "title": "Course Title",
-                  "description": "Course Description",
-                  "modules": [
-                    {
-                      "title": "Module Title",
-                      "description": "Module description",
-                      "learningObjectives": ["objective 1", "objective 2"],
-                      "lessons": [
-                        {
-                          "title": "Lesson Title",
-                          "contentBlocks": [
-                            {
-                              "type": "text",
-                              "content": "Detailed lesson explanation with examples, step-by-step guidance, and key takeaways."
-                            },
-                            {
-                              "type": "text",
-                              "content": "Practice tasks or mini exercises for the learner."
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-                
-                Constraints:
-                - 3 to 6 modules.
-                - 3 to 6 lessons per module.
-                - At least 2 text content blocks per lesson.
-                - Each text block should be useful and non-trivial (not one-liners).
-                """.formatted(title, difficulty, duration);
+        String prompt = buildOutlinePrompt(title, difficulty, duration);
 
         try {
             LOGGER.log(Level.FINE, "Sending prompt to AI for outline generation: {0}", new Object[]{title});
@@ -584,5 +404,172 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     public void deleteLesson(Long lessonId) throws Exception {
         lessonRepo.deleteById(lessonId);
+    }
+
+    // ===========================
+    // HELPER METHODS
+    // ===========================
+
+    /**
+     * Validates course creation limit for the user based on their role.
+     *
+     * @param userId   User ID
+     * @param userRole User role
+     * @throws Exception if user exceeds course creation limit
+     */
+    private void validateCourseCreationLimit(Long userId, UserRole userRole) throws Exception {
+        int lifetimeCount = userStatsService.getTotalCoursesCreated(userId);
+        featureGuard.requireWithinLimit(Feature.COURSE_CREATE, userRole, lifetimeCount);
+    }
+
+    /**
+     * Populates basic course information from the request payload.
+     *
+     * @param course  Course object to populate
+     * @param payload Course builder request payload
+     */
+    private void populateCourseBasicInfo(Course course, CourseBuilderRequest payload) {
+        course.setTitle(payload.getTitle() != null && !payload.getTitle().isEmpty() ? payload.getTitle() : "Untitled");
+        course.setDescription(payload.getDescription());
+        course.setCategory(payload.getCategory());
+        course.setTagsJson(payload.getTags());
+        course.setDifficulty(payload.getDifficulty());
+        course.setFinalExam(payload.getFinalExam());
+        course.setThumbnailUrl(payload.getThumbnailUrl());
+
+        if (payload.getEstimatedDuration() != null) {
+            course.setEstimatedDurationValue(payload.getEstimatedDuration().getValue());
+            course.setEstimatedDurationUnit(payload.getEstimatedDuration().getUnit());
+        }
+
+        if (payload.getSettings() != null) {
+            course.setVisibility(payload.getSettings().getVisibility());
+            course.setEnrollmentType(payload.getSettings().getEnrollmentType());
+        }
+    }
+
+    /**
+     * Populates modules and lessons for a course from the request payload.
+     *
+     * @param course  Course object to populate
+     * @param payload Course builder request payload
+     */
+    private void populateCourseModulesAndLessons(Course course, CourseBuilderRequest payload) throws Exception {
+        List<Module> modules = new ArrayList<>();
+
+        if (payload.getModules() != null) {
+            for (int i = 0; i < payload.getModules().size(); i++) {
+                CourseBuilderRequest.ModuleRequest modReq = payload.getModules().get(i);
+                Module module = buildModule(modReq, i, course);
+                modules.add(module);
+            }
+        }
+
+        course.setModules(modules);
+    }
+
+    /**
+     * Builds a module with its lessons from the module request.
+     *
+     * @param modReq Module request
+     * @param index  Module index
+     * @param course Parent course
+     * @return Populated Module object
+     */
+    private Module buildModule(CourseBuilderRequest.ModuleRequest modReq, int index, Course course) throws Exception {
+        Module module = new Module();
+        module.setId(SnowflakeIdGenerator.generateId());
+        module.setTitle(modReq.getTitle() != null ? modReq.getTitle() : "Untitled Module");
+        module.setDescription(modReq.getDescription());
+        module.setLearningObjectives(modReq.getLearningObjectives());
+        module.setAssessment(modReq.getAssessment());
+        module.setOrder(modReq.getOrder() != null ? modReq.getOrder() : index);
+        module.setCourse(course);
+
+        List<Lesson> lessons = new ArrayList<>();
+        if (modReq.getLessons() != null) {
+            for (int j = 0; j < modReq.getLessons().size(); j++) {
+                CourseBuilderRequest.LessonRequest lessReq = modReq.getLessons().get(j);
+                Lesson lesson = buildLesson(lessReq, j, module);
+                lessons.add(lesson);
+            }
+        }
+
+        module.setLessons(lessons);
+        return module;
+    }
+
+    /**
+     * Builds a lesson from the lesson request.
+     *
+     * @param lessReq Lesson request
+     * @param index   Lesson index
+     * @param module  Parent module
+     * @return Populated Lesson object
+     */
+    private Lesson buildLesson(CourseBuilderRequest.LessonRequest lessReq, int index, Module module) throws Exception {
+        Lesson lesson = new Lesson();
+        lesson.setId(SnowflakeIdGenerator.generateId());
+        lesson.setTitle(lessReq.getTitle() != null ? lessReq.getTitle() : "Untitled Lesson");
+        lesson.setContent(lessReq.getContentBlocks() != null ? lessReq.getContentBlocks() : JsonParserUtil.parseStringToJsonObject("[]"));
+        lesson.setOrder(lessReq.getOrder() != null ? lessReq.getOrder() : index);
+        lesson.setModule(module);
+        return lesson;
+    }
+
+    /**
+     * Builds the prompt for course outline generation.
+     *
+     * @param title      Course title
+     * @param difficulty Course difficulty level
+     * @param duration   Estimated course duration
+     * @return Formatted prompt string
+     */
+    private String buildOutlinePrompt(String title, String difficulty, String duration) {
+        return """
+                Create a full editable course draft about "%s".
+                Difficulty: %s
+                Duration: %s
+                
+                IMPORTANT:
+                - Do NOT return outline-only data.
+                - Every lesson must include substantial teaching content.
+                - Keep all content practical, clear, and beginner-friendly for the specified difficulty.
+                - Return ONLY raw JSON (no markdown, no explanation text).
+                
+                Required JSON shape:
+                {
+                  "title": "Course Title",
+                  "description": "Course Description",
+                  "modules": [
+                    {
+                      "title": "Module Title",
+                      "description": "Module description",
+                      "learningObjectives": ["objective 1", "objective 2"],
+                      "lessons": [
+                        {
+                          "title": "Lesson Title",
+                          "contentBlocks": [
+                            {
+                              "type": "text",
+                              "content": "Detailed lesson explanation with examples, step-by-step guidance, and key takeaways."
+                            },
+                            {
+                              "type": "text",
+                              "content": "Practice tasks or mini exercises for the learner."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+                
+                Constraints:
+                - 3 to 6 modules.
+                - 3 to 6 lessons per module.
+                - At least 2 text content blocks per lesson.
+                - Each text block should be useful and non-trivial (not one-liners).
+                """.formatted(title, difficulty, duration);
     }
 }
