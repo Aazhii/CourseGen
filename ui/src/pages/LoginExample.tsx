@@ -135,26 +135,16 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="mt-10 grid grid-cols-2 gap-4 relative z-10">
-                <Button variant="glass" type="button" className="h-12 border-white/5 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
-                  <GoogleIcon /> Google
-                </Button>
-                <Button variant="glass" type="button" className="h-12 border-white/5 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
-                  <Github className="h-4 w-4" /> GitHub
-                </Button>
-              </div>
+              {/* Social login moved below form */}
 
-              <div className="my-8 flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
-                <div className="h-px flex-1 bg-white/5" />
-                {content.right.divider}
-                <div className="h-px flex-1 bg-white/5" />
-              </div>
+
+
 
               <form onSubmit={onSubmit} className="space-y-5 relative z-10">
                 <div className="space-y-2">
                   <Label htmlFor="identifier" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Email or User ID</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40" />
                     <Input
                       id="identifier"
                       type="text"
@@ -170,9 +160,6 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pl-1 pr-1">
                     <Label htmlFor="password" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{content.right.passwordLabel}</Label>
-                    <a href="#" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 hover:text-white transition-colors">
-                      {content.right.forgot}
-                    </a>
                   </div>
                   <div className="relative">
                     <Input
@@ -194,6 +181,11 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  <div className="flex justify-start mt-2">
+                    <a href="#" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 hover:text-white transition-colors">
+                      {content.right.forgot}
+                    </a>
+                  </div>
                 </div>
 
                 <Button
@@ -210,6 +202,23 @@ export default function LoginPage() {
                     </div>
                   ) : content.right.submit}
                 </Button>
+
+                <div className="pt-4 space-y-6">
+                  <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
+                    <div className="h-px flex-1 bg-white/10" />
+                    {content.right.divider}
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 relative z-10">
+                    <Button variant="glass" type="button" className="h-12 border-white/10 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
+                      <GoogleIcon /> Google
+                    </Button>
+                    <Button variant="glass" type="button" className="h-12 border-white/10 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
+                      <Github className="h-4 w-4" /> GitHub
+                    </Button>
+                  </div>
+                </div>
               </form>
 
               <p className="mt-10 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground relative z-10">

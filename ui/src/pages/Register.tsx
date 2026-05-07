@@ -143,7 +143,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                    <label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">User ID</label>
                    <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40" />
                     <Input
                       type="text"
                       autoComplete="username"
@@ -206,16 +206,26 @@ export default function RegisterPage() {
                     </div>
                   ) : "Create Account"}
                 </Button>
+
+                <div className="pt-4 space-y-6">
+                  <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
+                    <div className="h-px flex-1 bg-white/10" />
+                    OR REGISTER WITH
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 relative z-10">
+                    <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
+                      <GoogleIcon /> Google
+                    </Button>
+                    <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
+                      <Github className="h-4 w-4" /> GitHub
+                    </Button>
+                  </div>
+                </div>
               </form>
 
-              <div className="mt-10 grid grid-cols-2 gap-4 relative z-10">
-                <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
-                  <GoogleIcon /> Google
-                </Button>
-                <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
-                  <Github className="h-4 w-4" /> GitHub
-                </Button>
-              </div>
+
 
               <p className="mt-10 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground relative z-10">
                 Already have an account?{" "}
