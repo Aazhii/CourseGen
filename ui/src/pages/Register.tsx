@@ -215,10 +215,20 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 relative z-10">
-                    <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
+                    <Button 
+                      variant="glass" 
+                      type="button" 
+                      className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest"
+                      onClick={() => window.location.href = "/oauth2/authorization/google"}
+                    >
                       <GoogleIcon /> Google
                     </Button>
-                    <Button variant="glass" type="button" className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest">
+                    <Button 
+                      variant="glass" 
+                      type="button" 
+                      className="h-12 border-border/50 hover:bg-muted transition-all font-bold text-xs uppercase tracking-widest"
+                      onClick={() => window.location.href = "/oauth2/authorization/github"}
+                    >
                       <Github className="h-4 w-4" /> GitHub
                     </Button>
                   </div>

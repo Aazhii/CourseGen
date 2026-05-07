@@ -119,7 +119,9 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  const isLessonMode = location.pathname.includes("/lessons/");
+  const isCollapsedMode = location.pathname.includes("/lessons/") || 
+                          location.pathname.includes("/ai-coach") || 
+                          location.pathname.endsWith("/coach");
 
   return (
     <div className="flex h-screen w-full bg-background font-body text-foreground selection:bg-primary/20 overflow-hidden">
@@ -128,8 +130,8 @@ export default function AppLayout() {
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-background" />
 
       {/* Premium Sidebar Wrapper */}
-      <div className={cn("hidden lg:block shrink-0 h-full relative z-50 transition-all duration-300", isLessonMode ? "w-[72px]" : "w-64")}>
-        <AppSidebar isCollapsed={isLessonMode} />
+      <div className={cn("hidden lg:block shrink-0 h-full relative z-50 transition-all duration-300", isCollapsedMode ? "w-[72px]" : "w-64")}>
+        <AppSidebar isCollapsed={isCollapsedMode} />
       </div>
 
       <div className="flex flex-1 flex-col min-w-0 h-full relative z-10">

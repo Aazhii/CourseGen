@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -55,6 +56,7 @@ export default function AppSidebar({ isCollapsed = false }: { isCollapsed?: bool
   const location = useLocation();
   const { user } = useAuth();
   const adminFeature = useFeature("ADMIN_PANEL");
+  const [forceCollapse, setForceCollapse] = useState(false);
 
   const displayName = user?.displayName ?? user?.username ?? "Creator";
   const avatarLetter = displayName[0]?.toUpperCase() ?? "C";
@@ -75,8 +77,9 @@ export default function AppSidebar({ isCollapsed = false }: { isCollapsed?: bool
     <aside
       className={cn(
         "fixed left-0 top-0 z-50 flex h-screen flex-col border-r overflow-hidden group transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-[72px] hover:w-64" : "w-64"
+        isCollapsed ? (forceCollapse ? "w-[72px]" : "w-[72px] hover:w-64") : "w-64"
       )}
+      onMouseLeave={() => setForceCollapse(false)}
       style={{
         background: "var(--sidebar)",
         borderColor: "var(--sidebar-border)",
@@ -147,6 +150,11 @@ export default function AppSidebar({ isCollapsed = false }: { isCollapsed?: bool
                       onMouseLeave={(e) => {
                         if (!isActive) {
                           (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }
+                      }}
+                      onClick={() => {
+                        if (item.path === "/ai-coach") {
+                          setForceCollapse(true);
                         }
                       }}
                     >
