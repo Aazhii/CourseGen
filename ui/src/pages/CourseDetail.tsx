@@ -158,7 +158,20 @@ export default function CourseDetail() {
     };
   }, [courseId]);
 
-  const modules = useMemo(() => (Array.isArray(course?.modules) ? course.modules : []), [course]);
+  const modules = useMemo(() => {
+    if (!Array.isArray(course?.modules)) return [];
+    
+    // Sort modules by order
+    return [...course.modules]
+      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+      .map((module: any) => ({
+        ...module,
+        // Sort lessons within each module by order
+        lessons: Array.isArray(module.lessons) 
+          ? [...module.lessons].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          : []
+      }));
+  }, [course]);
 
   const handleDelete = async () => {
     if (!courseId) return;

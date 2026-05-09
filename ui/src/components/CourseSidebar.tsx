@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "./ui/sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getCourseById } from "../services/courseApi";
 import { getCompletedLessonIds } from "../services/progressApi";
 import { cn } from "../lib/utils";
@@ -18,6 +18,19 @@ import { cn } from "../lib/utils";
 export function CourseSidebar({ courseId, activeLessonId }: { courseId: string, activeLessonId?: string }) {
   const [course, setCourse] = useState<any>(null);
   const [completedSet, setCompletedSet] = useState<Set<string>>(new Set());
+
+  // Keep hook order stable across renders; derive modules even when course is not loaded yet.
+  const modules = useMemo(() => {
+    if (!Array.isArray(course?.modules)) return [];
+    return [...course.modules]
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .map(m => ({
+        ...m,
+        lessons: Array.isArray(m.lessons)
+          ? [...m.lessons].sort((a, b) => (a.order || 0) - (b.order || 0))
+          : []
+      }));
+  }, [course]);
 
   useEffect(() => {
     let mounted = true;
@@ -43,8 +56,6 @@ export function CourseSidebar({ courseId, activeLessonId }: { courseId: string, 
   }, [courseId, activeLessonId]);
 
   if (!course) return <Sidebar className="border-r" />;
-
-  const modules = Array.isArray(course.modules) ? course.modules : [];
 
   return (
     <Sidebar className="border-r z-40 bg-sidebar" collapsible="icon">
