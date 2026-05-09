@@ -118,6 +118,7 @@ export default function LlmAdmin() {
   const [toolInput, setToolInput] = useState<string>("{}");
   const [toolResult, setToolResult] = useState<any>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [viewingAuditItem, setViewingAuditItem] = useState<McpAuditLogItem | null>(null);
   const auditFiltersRef = useRef(auditFilters);
 
   const [form, setForm] = useState({
@@ -1082,13 +1083,14 @@ export default function LlmAdmin() {
               <div className="rounded-lg border border-border/60 overflow-hidden">
                 <div className="overflow-x-auto">
                   <div className="min-w-[1320px]">
-                    <div className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/30">
+                    <div className="grid grid-cols-[220px_280px_130px_160px_160px_1fr_100px] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/30">
                       <div>Time</div>
                       <div>Tool</div>
                       <div>Status</div>
                       <div className="whitespace-nowrap">User</div>
                       <div className="whitespace-nowrap">Latency</div>
-                      <div>Error</div>
+                      <div>Result / Error</div>
+                      <div className="text-right">Action</div>
                     </div>
 
                     <div className="max-h-[420px] overflow-y-auto">
@@ -1098,7 +1100,7 @@ export default function LlmAdmin() {
                     </div>
                   ) : (
                     auditItems.map((item) => (
-                      <div key={item.id} className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-xs border-t border-border/40 hover:bg-muted/20 transition-colors">
+                      <div key={item.id} className="grid grid-cols-[220px_280px_130px_160px_160px_1fr_100px] gap-3 px-5 py-3 text-xs border-t border-border/40 hover:bg-muted/20 transition-colors items-center">
                         <div className="font-medium text-foreground/90 whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</div>
                         <div className="font-mono text-[11px] text-foreground/80 break-all">{item.tool}</div>
                         <div>
@@ -1108,7 +1110,25 @@ export default function LlmAdmin() {
                         </div>
                         <div className="text-foreground/80 whitespace-nowrap">{item.userId ?? "-"}</div>
                         <div className="text-foreground/80 whitespace-nowrap">{item.latencyMs != null ? `${item.latencyMs}ms` : "-"}</div>
-                        <div className="text-muted-foreground break-words">{item.errorMessage || "-"}</div>
+                        <div className="text-muted-foreground break-words line-clamp-1">
+                          {item.status === "SUCCESS" ? (
+                            <span className="font-mono text-[10px] opacity-70">
+                              {item.responseBody ? "Captured Response" : "No Content"}
+                            </span>
+                          ) : (
+                            item.errorMessage || "-"
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-[10px] uppercase font-bold"
+                            onClick={() => setViewingAuditItem(item)}
+                          >
+                            Details
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -1148,6 +1168,110 @@ export default function LlmAdmin() {
         </TabsContent>
       </Tabs>
       
+      <Dialog open={!!viewingAuditItem} onOpenChange={(open) => !open && setViewingAuditItem(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden border-border/40 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="p-6 border-b bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="flex items-center gap-2 font-mono text-lg">
+                  <Activity className="w-5 h-5 text-primary" />
+                  Audit Record: {viewingAuditItem?.requestId.split('-')[0]}...
+                </DialogTitle>
+                <DialogDescription className="text-xs uppercase font-bold tracking-widest text-muted-foreground">
+                  Detailed Tool Execution Metadata
+                </DialogDescription>
+              </div>
+              {viewingAuditItem && (
+                <Badge variant={viewingAuditItem.status === "SUCCESS" ? "default" : "destructive"}>
+                  {viewingAuditItem.status}
+                </Badge>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Tool</div>
+                <div className="font-mono text-xs font-bold truncate">{viewingAuditItem?.tool}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Latency</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.latencyMs}ms</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">User ID</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.userId ?? "N/A"}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Role</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.userRole ?? "N/A"}</div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {viewingAuditItem?.errorMessage && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black text-destructive/80 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Error Message
+                  </Label>
+                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-sm font-medium leading-relaxed">
+                    {viewingAuditItem.errorMessage}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black text-muted-foreground/70 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5" />
+                  Response Content
+                </Label>
+                <div className="rounded-xl bg-muted/50 border border-border/40 p-0 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border/20">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">JSON Payload</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-[10px] hover:bg-primary/10 hover:text-primary"
+                      onClick={() => {
+                        if (viewingAuditItem?.responseBody) {
+                          navigator.clipboard.writeText(viewingAuditItem.responseBody);
+                          toast.success("Copied to clipboard");
+                        }
+                      }}
+                    >
+                      Copy JSON
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[300px] w-full">
+                    <pre className="p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+                      {viewingAuditItem?.responseBody ? (
+                        (() => {
+                          try {
+                            return JSON.stringify(JSON.parse(viewingAuditItem.responseBody), null, 2);
+                          } catch {
+                            return viewingAuditItem.responseBody;
+                          }
+                        })()
+                      ) : (
+                        <span className="italic text-muted-foreground/50">No response body captured for this record.</span>
+                      )}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t bg-muted/10">
+            <Button variant="outline" className="h-9 px-6 font-bold text-xs uppercase" onClick={() => setViewingAuditItem(null)}>
+              Dismiss Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(55%_45%_at_50%_40%,rgba(var(--primary-rgb),0.02)_0%,transparent_100%)]" />
     </div>
   );

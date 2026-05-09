@@ -48,6 +48,7 @@ export interface McpAuditLogItem {
   status: string;
   latencyMs?: number | null;
   errorMessage?: string | null;
+  responseBody?: string | null;
   createdAt: string;
 }
 
