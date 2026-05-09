@@ -74,7 +74,8 @@ public class McpFacadeService {
                     inputNode.toString().length(),
                     "SUCCESS",
                     elapsedMs,
-                    null
+                    null,
+                    data != null ? data.toString() : null
             );
             return McpToolResponse.success(tool, data);
         } catch (Exception ex) {
@@ -90,7 +91,8 @@ public class McpFacadeService {
                     inputNode.toString().length(),
                     "FAILURE",
                     elapsedMs,
-                    ex.getMessage()
+                    ex.getMessage(),
+                    null
             );
             return McpToolResponse.failure(tool, ex.getMessage());
         }
