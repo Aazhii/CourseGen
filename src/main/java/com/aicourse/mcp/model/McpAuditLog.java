@@ -1,6 +1,12 @@
 package com.aicourse.mcp.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
 
@@ -35,6 +41,9 @@ public class McpAuditLog {
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
+
+    @Column(name = "response_body", columnDefinition = "TEXT")
+    private String responseBody;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
@@ -116,6 +125,14 @@ public class McpAuditLog {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
+    }
+
+    public void setResponseBody(String responseBody) {
+        this.responseBody = responseBody;
     }
 
     public OffsetDateTime getCreatedAt() {

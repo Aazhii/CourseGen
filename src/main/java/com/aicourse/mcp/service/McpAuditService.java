@@ -35,7 +35,8 @@ public class McpAuditService {
                        int inputSize,
                        String status,
                        long latencyMs,
-                       String errorMessage) {
+                       String errorMessage,
+                       String responseBody) {
         try {
             McpAuditLog log = new McpAuditLog();
             log.setRequestId(requestId);
@@ -46,6 +47,7 @@ public class McpAuditService {
             log.setStatus(status);
             log.setLatencyMs(Math.max(0L, latencyMs));
             log.setErrorMessage(errorMessage);
+            log.setResponseBody(responseBody);
             auditLogRepo.save(log);
         } catch (Exception ex) {
             // Audit persistence must never break tool execution.
@@ -86,7 +88,7 @@ public class McpAuditService {
         Long totalItems = jdbcTemplate.queryForObject(countSql, params, Long.class);
         long safeTotalItems = totalItems == null ? 0L : totalItems;
 
-        String dataSql = "select id, request_id, tool, user_id, user_role, input_size, status, latency_ms, error_message, created_at " +
+        String dataSql = "select id, request_id, tool, user_id, user_role, input_size, status, latency_ms, error_message, response_body, created_at " +
                 "from mcp_audit_logs" + where + " order by created_at desc limit :limit offset :offset";
         params.addValue("limit", safeSize);
         params.addValue("offset", (long) safePage * safeSize);
@@ -102,6 +104,7 @@ public class McpAuditService {
             response.setStatus(rs.getString("status"));
             response.setLatencyMs(rs.getObject("latency_ms", Long.class));
             response.setErrorMessage(rs.getString("error_message"));
+            response.setResponseBody(rs.getString("response_body"));
             response.setCreatedAt(rs.getObject("created_at", OffsetDateTime.class));
             return response;
         });

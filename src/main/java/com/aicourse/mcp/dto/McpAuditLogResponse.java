@@ -13,6 +13,7 @@ public class McpAuditLogResponse {
     private String status;
     private Long latencyMs;
     private String errorMessage;
+    private String responseBody;
     private OffsetDateTime createdAt;
 
     public Long getId() {
@@ -85,6 +86,14 @@ public class McpAuditLogResponse {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
+    }
+
+    public void setResponseBody(String responseBody) {
+        this.responseBody = responseBody;
     }
 
     public OffsetDateTime getCreatedAt() {
