@@ -79,6 +79,44 @@ import { USE_MCP_CLIENT } from "../constants";
 
 const WORKLOADS: WorkloadType[] = ["COURSE_GENERATION", "LESSON_GENERATION", "AI_COACH"];
 
+function JsonHighlighter({ json }: { json: string | null | undefined }) {
+  if (!json) return <span className="italic text-muted-foreground/50">No response body captured for this record.</span>;
+  
+  let formatted = "";
+  try {
+    formatted = JSON.stringify(JSON.parse(json), null, 2);
+  } catch {
+    formatted = json;
+  }
+
+  const highlighted = formatted
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, (match) => {
+      let cls = 'text-emerald-600 dark:text-emerald-400'; // default (numbers)
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'text-blue-600 dark:text-sky-300'; // key
+        } else {
+          cls = 'text-orange-600 dark:text-orange-400'; // string
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'text-purple-600 dark:text-purple-400'; // boolean
+      } else if (/null/.test(match)) {
+        cls = 'text-gray-500 dark:text-gray-400'; // null
+      }
+      return `<span class="${cls}">${match}</span>`;
+    });
+
+  return (
+    <pre 
+      className="p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground/90" 
+      dangerouslySetInnerHTML={{ __html: highlighted }} 
+    />
+  );
+}
+
 export default function LlmAdmin() {
   const adminFeature = useFeature("ADMIN_PANEL");
   const [loading, setLoading] = useState(true);
@@ -1244,20 +1282,8 @@ export default function LlmAdmin() {
                       Copy JSON
                     </Button>
                   </div>
-                  <ScrollArea className="h-[300px] w-full">
-                    <pre className="p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
-                      {viewingAuditItem?.responseBody ? (
-                        (() => {
-                          try {
-                            return JSON.stringify(JSON.parse(viewingAuditItem.responseBody), null, 2);
-                          } catch {
-                            return viewingAuditItem.responseBody;
-                          }
-                        })()
-                      ) : (
-                        <span className="italic text-muted-foreground/50">No response body captured for this record.</span>
-                      )}
-                    </pre>
+                  <ScrollArea className="h-[450px] w-full">
+                    <JsonHighlighter json={viewingAuditItem?.responseBody} />
                   </ScrollArea>
                 </div>
               </div>
