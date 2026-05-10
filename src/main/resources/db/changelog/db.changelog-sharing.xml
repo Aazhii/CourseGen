@@ -677,6 +677,44 @@
                 onDelete="CASCADE"/>
     </changeSet>
 
+    <!-- Add missing columns to course_share_links for enrollment management -->
+    <changeSet id="course-share-links-add-link-type" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_share_links" columnName="link_type"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_share_links">
+            <column name="link_type" type="VARCHAR(20)" defaultValue="PUBLIC">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-share-links-add-max-enrollments" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_share_links" columnName="max_enrollments"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_share_links">
+            <column name="max_enrollments" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="course-share-links-add-current-enrollments" author="ari">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="course_share_links" columnName="current_enrollments"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="course_share_links">
+            <column name="current_enrollments" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
 
 
