@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
   "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -16,10 +16,15 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         // Violet → Pink gradient CTA with glow
         hero: "bg-gradient-cta text-primary-foreground font-semibold shadow-glow hover:shadow-[0_18px_60px_-10px_oklch(0.72_0.21_285_/_70%)] hover:-translate-y-0.5 active:translate-y-0",
-        // Translucent glass for SSO buttons
-        glass: "glass text-foreground hover:bg-white/10 hover:border-white/20",
+        // Gradient alias for hero
+        gradient: "bg-gradient-cta text-primary-foreground font-semibold shadow-glow hover:shadow-[0_18px_60px_-10px_oklch(0.72_0.21_285_/_70%)] hover:-translate-y-0.5 active:translate-y-0",
+        // Translucent glass variant
+        glass: "glass text-foreground hover:bg-muted/80 hover:border-border/50",
         // Outlined neon (violet ring + glow)
         neon: "bg-background border border-[oklch(0.72_0.21_285_/_50%)] text-foreground shadow-[0_0_24px_-6px_oklch(0.72_0.21_285_/_60%)] hover:border-[oklch(0.72_0.21_285)] hover:shadow-[0_0_36px_-6px_oklch(0.72_0.21_285_/_80%)]",
+        // Semantic variants
+        success: "bg-success text-success-foreground hover:bg-success/90 shadow-sm",
+        "outline-destructive": "border border-destructive/30 bg-transparent text-destructive hover:bg-destructive/10",
       },
       size: {
         default: "h-10 px-5 py-2",

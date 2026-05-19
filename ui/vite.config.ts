@@ -21,9 +21,18 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           headers: {
-            // Required for free ngrok tunnels to bypass the browser warning HTML page.
             "ngrok-skip-browser-warning": "true",
           },
+        },
+        "/oauth2": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/login/oauth2": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
         },
       },
     },

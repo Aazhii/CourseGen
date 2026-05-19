@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { User, Lock, Award, BookOpen, Zap, Flame, TrendingUp, CheckCircle, Loader2, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getProfile, updateProfile, changePassword } from "@/services/aboutApi";
-import { useAuth } from "@/auth/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { getProfile, updateProfile, changePassword } from "../services/aboutApi";
+import { useAuth } from "../auth/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 type Section = "profile" | "security";
 
@@ -135,22 +135,22 @@ export default function Profile() {
       label: "Total Points",
       value: stats?.totalPoints ?? 0,
       icon: Award,
-      color: "text-yellow-400",
-      bg: "bg-yellow-400/10",
+      color: "text-amber-600 dark:text-yellow-400",
+      bg: "bg-amber-600/10 dark:bg-yellow-400/10",
     },
     {
       label: "Weekly Points",
       value: stats?.weeklyPoints ?? 0,
       icon: TrendingUp,
-      color: "text-blue-400",
-      bg: "bg-blue-400/10",
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-600/10 dark:bg-blue-400/10",
     },
     {
       label: "Courses Completed",
       value: stats?.coursesCompleted ?? 0,
       icon: BookOpen,
-      color: "text-green-400",
-      bg: "bg-green-400/10",
+      color: "text-emerald-600 dark:text-green-400",
+      bg: "bg-emerald-600/10 dark:bg-green-400/10",
     },
     {
       label: "Lessons Completed",
@@ -163,8 +163,8 @@ export default function Profile() {
       label: "Current Streak",
       value: `${stats?.currentStreak ?? 0}d`,
       icon: Flame,
-      color: "text-orange-400",
-      bg: "bg-orange-400/10",
+      color: "text-orange-600 dark:text-orange-400",
+      bg: "bg-orange-600/10 dark:bg-orange-400/10",
     },
   ];
 
@@ -247,6 +247,7 @@ export default function Profile() {
                       value={newDisplayName}
                       onChange={(e) => setNewDisplayName(e.target.value)}
                       placeholder="Enter display name"
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -255,6 +256,7 @@ export default function Profile() {
                       value={newHandle}
                       onChange={(e) => setNewHandle(e.target.value)}
                       placeholder="your_id"
+                      className="bg-white text-black border border-border"
                     />
                     <p className="text-xs text-muted-foreground">6-25 chars, lowercase letters, numbers, '.' or '_'.</p>
                   </div>
@@ -263,7 +265,7 @@ export default function Profile() {
                     <Input
                       value={profile?.role ?? "—"}
                       disabled
-                      className="opacity-60 cursor-not-allowed"
+                      className="bg-white text-black border border-border opacity-60 cursor-not-allowed"
                     />
                     <p className="text-xs text-muted-foreground">Role cannot be changed.</p>
                   </div>
@@ -295,6 +297,7 @@ export default function Profile() {
                       placeholder="Enter current password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -304,6 +307,7 @@ export default function Profile() {
                       placeholder="Enter new password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <div className="space-y-2">
@@ -313,6 +317,7 @@ export default function Profile() {
                       placeholder="Confirm new password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-white text-black border border-border"
                     />
                   </div>
                   <Button

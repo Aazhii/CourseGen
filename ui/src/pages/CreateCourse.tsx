@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
-import { CourseBuilderProvider, useCourseBuilder } from "@/context/CourseBuilderContext";
-import { WizardStepper } from "@/components/course-builder/WizardStepper";
-import { StepMetadata } from "@/components/course-builder/StepMetadata";
-import { StepStructure } from "@/components/course-builder/StepStructure";
-import { StepQuiz } from "@/components/course-builder/StepQuiz";
-import { StepPreview } from "@/components/course-builder/StepPreview";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { saveBuiltCourse, createCourse } from "@/services/courseApi";
-import { addCourseToProject, getProjectById } from "@/services/projectApi";
+import { CourseBuilderProvider, useCourseBuilder } from "../context/CourseBuilderContext";
+import { WizardStepper } from "../components/course-builder/WizardStepper";
+import { StepMetadata } from "../components/course-builder/StepMetadata";
+import { StepStructure } from "../components/course-builder/StepStructure";
+import { StepQuiz } from "../components/course-builder/StepQuiz";
+import { StepPreview } from "../components/course-builder/StepPreview";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { saveBuiltCourse, createCourse } from "../services/courseApi";
+import { addCourseToProject, getProjectById } from "../services/projectApi";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, Library, PenLine, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 // --- Original Power User Wizard (moved to a component) ---
 function CourseBuilderWizard({ onBack }: { onBack: () => void }) {
@@ -87,6 +94,7 @@ function CourseBuilderWizard({ onBack }: { onBack: () => void }) {
 function CourseEntryScreen() {
   const [mode, setMode] = useState<"entry" | "blank">("entry");
   const [topic, setTopic] = useState("");
+  const [difficulty, setDifficulty] = useState("Beginner");
   const [generating, setGenerating] = useState(false);
   const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -125,7 +133,7 @@ function CourseEntryScreen() {
     try {
       setGenerating(true);
       toast.loading("Generating your course...", { id: "generate" });
-      const created = await createCourse({ topic: topic, difficulty: "Beginner", duration: "2 Hours" });
+      const created = await createCourse({ topic: topic, difficulty: difficulty, duration: "2 Hours" });
       if (projectId) {
         await addCourseToProject(projectId, created.id);
       }
@@ -193,18 +201,31 @@ function CourseEntryScreen() {
                 }}
               />
             </div>
-            <Button 
-              size="lg" 
-              className="w-full sm:w-auto mt-4 sm:mt-8 shrink-0 text-md px-8 py-6 rounded-xl hover:scale-105 transition-transform"
-              onClick={handleAIGenerate}
-              disabled={generating}
-            >
-              {generating ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> Generating...</>
-              ) : (
-                <>✨ Generate <ChevronRight className="ml-2 w-5 h-5" /></>
-              )}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 mt-4 sm:mt-8 shrink-0 w-full sm:w-auto">
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger className="w-full sm:w-[180px] h-14 rounded-xl">
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Beginner">Beginner</SelectItem>
+                  <SelectItem value="Intermediate">Intermediate</SelectItem>
+                  <SelectItem value="Advanced">Advanced</SelectItem>
+                  <SelectItem value="BEGINNER_TO_ADVANCED">Beginner → Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto text-md px-8 py-6 rounded-xl hover:scale-105 transition-transform h-14"
+                onClick={handleAIGenerate}
+                disabled={generating}
+              >
+                {generating ? (
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> Generating...</>
+                ) : (
+                  <>✨ Generate <ChevronRight className="ml-2 w-5 h-5" /></>
+                )}
+              </Button>
+            </div>
           </Card>
         </div>
 

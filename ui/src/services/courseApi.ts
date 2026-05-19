@@ -1,7 +1,7 @@
 import { apiFetch } from './apiClient';
 import { executeMcpTool } from './mcpApi';
-import { USE_MCP_CLIENT } from '@/constants';
-import { Course, CourseCreatePayload } from '@/types/course';
+import { USE_MCP_CLIENT } from '../constants';
+import { Course, CourseCreatePayload } from '../types/course';
 
 function unwrapApiData<T>(payload: any): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {
@@ -205,5 +205,63 @@ export async function getLessonById(id: string) {
     const response = await apiFetch(`/api/lessons/${id}`);
     return unwrapApiData<any>(response);
   }
+}
+
+/**
+ * Add a module to a course
+ */
+export async function addModule(courseId: string, title: string) {
+  return apiFetch(`/api/courses/${courseId}/modules`, {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Rename a module
+ */
+export async function renameModule(courseId: string, moduleId: string, title: string) {
+  return apiFetch(`/api/courses/${courseId}/modules/${moduleId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Delete a module
+ */
+export async function deleteModule(courseId: string, moduleId: string) {
+  return apiFetch(`/api/courses/${courseId}/modules/${moduleId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Add a lesson to a module
+ */
+export async function addLesson(courseId: string, moduleId: string, title: string) {
+  return apiFetch(`/api/courses/${courseId}/modules/${moduleId}/lessons`, {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Rename a lesson
+ */
+export async function renameLesson(courseId: string, moduleId: string, lessonId: string, title: string) {
+  return apiFetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Delete a lesson
+ */
+export async function deleteLesson(courseId: string, moduleId: string, lessonId: string) {
+  return apiFetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, {
+    method: 'DELETE',
+  });
 }
 

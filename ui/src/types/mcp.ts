@@ -13,5 +13,6 @@ export interface McpToolResponse<T = unknown> {
 export interface McpToolDescriptor {
   name: string;
   description: string;
+  inputSchema?: any;
 }
 

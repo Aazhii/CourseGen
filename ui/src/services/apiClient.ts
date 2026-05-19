@@ -39,6 +39,7 @@ export async function apiFetch(
   // Build headers with optional auth
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
     ...(requiresAuth && token && { Authorization: `Bearer ${token}` }),
     ...(fetchOptions.headers as Record<string, string>) || {},
   };
@@ -62,27 +63,23 @@ export async function apiFetch(
       headers,
     });
 
-    // Handle non-OK responses
-    if (!res.ok) {
+    // Handle non-OK responses (allow 304 Not Modified as it's a valid successful cache hit)
+    if (!res.ok && res.status !== 304) {
       const err = await res.text();
       console.error(`API Error [${url}]:`, res.status, err);
       throw new Error(err || `API Error: ${res.status}`);
     }
 
-    // Parse response based on content type
+    // Always read as text first to handle flexibly
+    const text = await res.text();
     const contentType = res.headers.get("content-type");
-    console.log("apiFetch: Response Status:", res.status, "Content-Type:", contentType);
+    console.log(`apiFetch: ${url} -> Status ${res.status} (${contentType || 'no-type'}), length: ${text.length}`);
 
-    if (contentType && contentType.includes("application/json")) {
-      const json = await res.json();
-      console.log("apiFetch: Parsed JSON:", json);
-      return json;
+    if (res.status === 304) {
+      console.log("apiFetch: Handling 304 (Not Modified).");
+      return {} as any;
     }
 
-    // Return text response
-    const text = await res.text();
-
-    // Check if we accidentally got HTML back (e.g., reverse proxy warning page).
     if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
       console.error(`API received HTML instead of data [${url}]:`, text);
 
@@ -98,7 +95,17 @@ export async function apiFetch(
       );
     }
 
-    return text;
+    // Try parsing as JSON first, fallback to text
+    if (text.trim() === "") {
+      return (res.status === 204 || res.status === 304) ? ("" as any) : ({} as any);
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      console.warn(`apiFetch: Failed to parse response as JSON for ${url}. Returning as text.`);
+      return text;
+    }
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {
       throw new Error(

@@ -1,10 +1,10 @@
-import { API_BASE_URL } from "@/constants";
+import { API_BASE_URL } from "../constants";
 import {
   fallbackLandingContent,
   fallbackLoginContent,
   type LandingContent,
   type LoginContent,
-} from "@/data/marketingContent";
+} from "../data/marketingContent";
 
 type MarketingResponse<T> = {
   pageKey: string;

@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 import { executeMcpTool } from "./mcpApi";
-import { USE_MCP_CLIENT } from "@/constants";
+import { USE_MCP_CLIENT } from "../constants";
 
 export type ProviderType = "GEMINI" | "GROQ";
 export type WorkloadType = "COURSE_GENERATION" | "LESSON_GENERATION" | "AI_COACH";
@@ -48,6 +48,7 @@ export interface McpAuditLogItem {
   status: string;
   latencyMs?: number | null;
   errorMessage?: string | null;
+  responseBody?: string | null;
   createdAt: string;
 }
 

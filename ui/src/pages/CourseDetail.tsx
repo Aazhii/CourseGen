@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { deleteCourse, getCourseById } from "@/services/courseApi";
-import { getCompletedLessonIds } from "@/services/progressApi";
+import { ChevronLeft, ChevronRight, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Progress } from "../components/ui/progress";
+import { Input } from "../components/ui/input";
+import { 
+  deleteCourse, 
+  getCourseById, 
+  addModule, 
+  addLesson, 
+  renameModule, 
+  renameLesson 
+} from "../services/courseApi";
+import { getCompletedLessonIds } from "../services/progressApi";
 import { toast } from "sonner";
+import { useAuth } from "../auth/AuthContext";
+import { cn } from "../lib/utils";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
-  const isEditMode = false;
+  const { user } = useAuth();
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -19,56 +30,45 @@ export default function CourseDetail() {
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  const isCreator = useMemo(() => {
+    if (!course || !user) return false;
+    return String(course.creator) === String(user.id);
+  }, [course, user]);
+
   const handleAddModule = async () => {
     if (!courseId) return;
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Module" }),
-      });
-      if (response.ok) {
-        const newModule = await response.json();
-        setCourse((prev: any) => ({
-          ...prev,
-          modules: [...prev.modules, { ...newModule, lessons: [] }]
-        }));
-        toast.success("Module added");
-      }
+      const newModule = await addModule(courseId, "New Module");
+      setCourse((prev: any) => ({
+        ...prev,
+        modules: [...prev.modules, { ...newModule, lessons: [] }]
+      }));
+      toast.success("Module added");
     } catch (e) {
       toast.error("Failed to add module");
     }
   };
 
   const handleAddLesson = async (moduleId: string) => {
+    if (!courseId) return;
     try {
-      const response = await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Lesson" }),
-      });
-      if (response.ok) {
-        const newLesson = await response.json();
-        setCourse((prev: any) => ({
-          ...prev,
-          modules: prev.modules.map((m: any) => 
-            m.id === moduleId ? { ...m, lessons: [...m.lessons, newLesson] } : m
-          )
-        }));
-        toast.success("Lesson added");
-      }
+      const newLesson = await addLesson(courseId, moduleId, "New Lesson");
+      setCourse((prev: any) => ({
+        ...prev,
+        modules: prev.modules.map((m: any) => 
+          m.id === moduleId ? { ...m, lessons: [...m.lessons, newLesson] } : m
+        )
+      }));
+      toast.success("Lesson added");
     } catch (e) {
       toast.error("Failed to add lesson");
     }
   };
 
   const handleRenameModule = async (moduleId: string) => {
+    if (!courseId) return;
     try {
-      await fetch(`/api/courses/${courseId}/modules/${moduleId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editValue }),
-      });
+      await renameModule(courseId, moduleId, editValue);
       setCourse((prev: any) => ({
         ...prev,
         modules: prev.modules.map((m: any) => m.id === moduleId ? { ...m, title: editValue } : m)
@@ -81,12 +81,9 @@ export default function CourseDetail() {
   };
 
   const handleRenameLesson = async (moduleId: string, lessonId: string) => {
+    if (!courseId) return;
     try {
-      await fetch(`/api/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editValue }),
-      });
+      await renameLesson(courseId, moduleId, lessonId, editValue);
       setCourse((prev: any) => ({
         ...prev,
         modules: prev.modules.map((m: any) => 
@@ -115,7 +112,6 @@ export default function CourseDetail() {
           getCourseById(courseId),
           getCompletedLessonIds(courseId).catch(() => [] as string[]),
         ]);
-
         const completedSet = new Set(completedIds);
         const rawModules = Array.isArray(data?.modules) ? data.modules : [];
 
@@ -137,6 +133,11 @@ export default function CourseDetail() {
         });
 
         if (mounted) {
+          if (!data || !data.id) {
+            console.error("CourseDetail: Course data is missing or invalid", data);
+            setCourse(null);
+            return;
+          }
           setCourse({
             ...data,
             modules: modulesWithCompletion,
@@ -157,7 +158,20 @@ export default function CourseDetail() {
     };
   }, [courseId]);
 
-  const modules = useMemo(() => (Array.isArray(course?.modules) ? course.modules : []), [course]);
+  const modules = useMemo(() => {
+    if (!Array.isArray(course?.modules)) return [];
+    
+    // Sort modules by order
+    return [...course.modules]
+      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+      .map((module: any) => ({
+        ...module,
+        // Sort lessons within each module by order
+        lessons: Array.isArray(module.lessons) 
+          ? [...module.lessons].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+          : []
+      }));
+  }, [course]);
 
   const handleDelete = async () => {
     if (!courseId) return;
@@ -203,12 +217,14 @@ export default function CourseDetail() {
               AI Coach
             </Button>
           </Link>
-          <Link to={`/courses/${course.id || courseId}/share`}>
-            <Button variant="ghost" className="gap-2">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </Link>
+          {isCreator && (
+            <Link to={`/courses/${course.id || courseId}/share`}>
+              <Button variant="ghost" className="gap-2">
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -229,6 +245,84 @@ export default function CourseDetail() {
         </div>
         <Progress value={progress} className="mt-2 h-2" />
       </div>
+
+      {course.overview && (
+        <div className="mt-8 border-t border-border pt-8 animate-fade-in">
+          <div className="glass-card rounded-2xl p-6 md:p-8 space-y-8">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">Course Overview</h2>
+              <p className="text-muted-foreground">{course.overview.learningFlow}</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-primary" /> What you'll learn</h3>
+                <div className="flex flex-wrap gap-2">
+                  {course.overview.whatYouWillLearn?.map((item: string, i: number) => (
+                    <span key={i} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-blue-500" /> Topics covered</h3>
+                <ul className="space-y-2">
+                  {course.overview.topicsCovered?.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50 mt-1.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 pt-6 border-t border-border/50">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Prerequisites</h3>
+                <ul className="space-y-3">
+                  {course.overview.prerequisites?.map((item: string, i: number) => (
+                    <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground p-2 rounded-lg border border-border/50 bg-background/50">
+                      <div className="flex items-start gap-2 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 mt-1.5 shrink-0" />
+                        <span className="font-medium text-foreground">{item}</span>
+                      </div>
+                      <Link to={`/create-course?topic=${encodeURIComponent(item)}`}>
+                        <Button variant="secondary" size="sm" className="h-7 text-xs font-medium w-full sm:w-auto">
+                          Learn this
+                        </Button>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-foreground">Real-world use cases</h3>
+                <ul className="space-y-2">
+                  {course.overview.realWorldUseCases?.map((item: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500/50 mt-1.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {modules.length > 0 && modules[0].lessons?.length > 0 && (
+              <div className="pt-4 flex justify-end">
+                <Link to={`/courses/${course.id || courseId}/lessons/${modules[0].lessons[0].id}?moduleId=${modules[0].id}`}>
+                  <Button size="lg" className="gap-2">
+                    Start with Module 1 <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 border-t border-border pt-8">
         <div className="flex items-center justify-between mb-6">

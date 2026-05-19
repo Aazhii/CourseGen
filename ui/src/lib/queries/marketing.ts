@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queries/keys";
-import { getLandingContent, getLoginContent } from "@/services/marketingContentApi";
+import { queryKeys } from "../../lib/queries/keys";
+import { getLandingContent, getLoginContent } from "../../services/marketingContentApi";
 
 export const landingContentQueryOptions = () =>
   queryOptions({

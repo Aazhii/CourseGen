@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { projectsQueryOptions } from "@/lib/queries/projects";
-import { ProjectsHeader } from "@/components/projects/ProjectsHeader";
-import { ProjectsToolbar, type Sort, type View, type Filter } from "@/components/projects/ProjectsToolbar";
-import { ProjectsGrid } from "@/components/projects/ProjectsGrid";
-import { ProjectsTable } from "@/components/projects/ProjectsTable";
-import { EmptyProjects } from "@/components/projects/EmptyProjects";
-import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
-import { MobileNewProjectFab } from "@/components/projects/MobileNewProjectFab";
+import { Button } from "../components/ui/button";
+import { projectsQueryOptions } from "../lib/queries/projects";
+import { ProjectsHeader } from "../components/projects/ProjectsHeader";
+import { ProjectsToolbar, type Sort, type View, type Filter } from "../components/projects/ProjectsToolbar";
+import { ProjectsGrid } from "../components/projects/ProjectsGrid";
+import { ProjectsTable } from "../components/projects/ProjectsTable";
+import { EmptyProjects } from "../components/projects/EmptyProjects";
+import { CreateProjectDialog } from "../components/projects/CreateProjectDialog";
+import { MobileNewProjectFab } from "../components/projects/MobileNewProjectFab";
 import { FolderGit2 } from "lucide-react";
 
 export default function Projects() {
@@ -90,7 +90,7 @@ export default function Projects() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8 md:px-8 lg:px-10 animate-fade-in">
+    <main className="mx-auto max-w-7xl px-8 py-10 animate-fade-in">
       <ProjectsHeader {...stats} onCreate={() => setCreateOpen(true)} />
 
       <div className="mt-6">

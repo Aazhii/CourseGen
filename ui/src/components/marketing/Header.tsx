@@ -28,19 +28,19 @@ export function Header({ navLabels }: { navLabels?: string[] }) {
       className={
         "fixed inset-x-0 top-0 z-50 transition-all duration-500 " +
         (scrolled
-          ? "backdrop-blur-2xl bg-background/40 border-b border-white/5 py-0"
+          ? "backdrop-blur-2xl bg-background/40 border-b border-border py-0"
           : "bg-transparent py-4")
       }
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 md:px-10">
         <Logo />
         
-        <nav className="hidden items-center gap-2 md:flex border border-white/5 bg-white/[0.03] backdrop-blur-md rounded-full px-2 py-1.5">
+        <nav className="hidden items-center gap-2 md:flex border border-border/40 bg-secondary/50 backdrop-blur-md rounded-full px-2 py-1.5">
           {navItems.map((n) => (
             <a
               key={n.href}
               href={n.href}
-              className="rounded-full px-5 py-2 text-sm font-bold uppercase tracking-widest text-muted-foreground/80 transition-all hover:text-white hover:bg-white/5 text-[10px]"
+              className="rounded-full px-5 py-2 text-sm font-bold uppercase tracking-widest text-muted-foreground/80 transition-all hover:text-foreground hover:bg-muted text-[10px]"
             >
               {n.label}
             </a>
@@ -48,7 +48,7 @@ export function Header({ navLabels }: { navLabels?: string[] }) {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Button asChild variant="ghost" size="sm" className="font-bold uppercase tracking-widest text-[10px] text-muted-foreground hover:text-white">
+          <Button asChild variant="ghost" size="sm" className="font-bold uppercase tracking-widest text-[10px] text-muted-foreground hover:text-foreground">
             <Link to="/login">Sign in</Link>
           </Button>
           <Button asChild variant="hero" size="sm" className="h-10 px-6 font-bold uppercase tracking-widest text-[10px] group">
@@ -57,7 +57,7 @@ export function Header({ navLabels }: { navLabels?: string[] }) {
         </div>
 
         <button
-          className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-2xl glass-strong border-white/10"
+          className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-2xl glass-strong border-border"
           aria-label="Open menu"
           onClick={() => setOpen((v) => !v)}
         >
@@ -66,20 +66,20 @@ export function Header({ navLabels }: { navLabels?: string[] }) {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-white/5 bg-background/95 backdrop-blur-3xl animate-fade-in">
+        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-3xl animate-fade-in">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-6 py-6 font-display">
             {navItems.map((n) => (
               <a
                 key={n.href}
                 href={n.href}
                 onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-4 text-lg font-bold text-muted-foreground hover:bg-white/5 hover:text-white transition-colors"
+                className="rounded-xl px-4 py-4 text-lg font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
                 {n.label}
               </a>
             ))}
             <div className="mt-8 grid grid-cols-2 gap-4">
-              <Button asChild variant="glass" size="lg" className="h-14 font-bold border-white/5">
+              <Button asChild variant="glass" size="lg" className="h-14 font-bold border-border">
                 <Link to="/login">Sign in</Link>
               </Button>
               <Button asChild variant="hero" size="lg" className="h-14 font-bold">

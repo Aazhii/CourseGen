@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Link2, Mail, Power, PowerOff, Copy, Trash2, X, Loader2, BarChart2, Search as SearchIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getCourseById } from "@/services/courseApi";
-import { resolveByPrefix, type SearchResultItem } from "@/services/searchApi";
-import { getCourseEnrollments } from "@/services/progressApi";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { getCourseById } from "../services/courseApi";
+import { resolveByPrefix, type SearchResultItem } from "../services/searchApi";
+import { getCourseEnrollments } from "../services/progressApi";
 import {
   activateShareLink,
   deactivateShareLink,
@@ -13,9 +14,9 @@ import {
   getCourseShareLinks,
   revokeShareLink,
   sendDirectInvite,
-} from "@/services/shareApi";
+} from "../services/shareApi";
 import { toast } from "sonner";
-import { useAuth } from "@/auth/AuthContext";
+import { useAuth } from "../auth/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +24,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import CourseAnalyticsModal from "@/components/course/CourseAnalyticsModal";
-import CourseLeaderboard from "@/components/course/CourseLeaderboard";
+} from "../components/ui/dialog";
+import CourseAnalyticsModal from "../components/course/CourseAnalyticsModal";
+import CourseLeaderboard from "../components/course/CourseLeaderboard";
 
 // ─── Types ─────────────────────────────────────────────────────────
 type Recipient = Pick<SearchResultItem, "id" | "label" | "description">;
@@ -52,7 +53,7 @@ function normalizeShareLink(item: any): ShareLinkRow {
   const token = String(item?.token ?? item?.shareToken ?? extracted ?? "").trim();
 
   const frontendUrl = token ? `${window.location.origin}/join/${token}` : undefined;
-  
+
   return {
     id: String(item?.id ?? item?.shareLinkId ?? item?.token ?? ""),
     token,
@@ -159,8 +160,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               onRemove(selected[selected.length - 1].id);
             }
           }}
-          placeholder={selected.length > 0 ? "" : (placeholder ?? "Type a user ID")}
-          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground flex-1"
+          className="min-w-[140px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground/60 flex-1"
         />
         {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
       </div>
@@ -174,7 +174,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
               className="share-suggestion-item"
               onMouseDown={() => handleAdd(user)}
             >
-              <span className="font-medium text-foreground">{user.label}</span>
+              <span className="font-medium text-foreground group-hover:text-primary transition-colors">{user.label}</span>
               {user.handle ? (
                 <span className="text-xs text-muted-foreground">@{user.handle}</span>
               ) : user.description && user.description !== "User" ? (
@@ -195,6 +195,7 @@ function UserAutocomplete({ id, selected, onAdd, onRemove, placeholder }: UserAu
 export default function ShareCourse() {
   const { courseId } = useParams();
   const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
   const [course, setCourse] = useState<any>(null);
   const [courseLoading, setCourseLoading] = useState(true);
   const [courseActive, setCourseActive] = useState(true);
@@ -245,10 +246,20 @@ export default function ShareCourse() {
           getCourseShareLinks(courseId).catch(() => []),
         ]);
         if (mounted) {
+          // Verify ownership: Only creator can share
+          const creatorId = String(courseData.creator || courseData.creatorId || "");
+          const currentId = String(currentUser?.id || "");
+          
+          if (creatorId !== currentId) {
+            toast.error("You are not authorized to share this course");
+            window.location.href = `/courses/${courseId}`;
+            return;
+          }
+
           setCourse(courseData);
           setGeneratedLinks(Array.isArray(linksData) ? linksData.map(normalizeShareLink).filter((item) => item.id) : []);
         }
-        
+
         // Load enrollments separately but initially
         setEnrollmentsLoading(true);
         try {
@@ -373,6 +384,7 @@ export default function ShareCourse() {
 
       await sendDirectInvite(courseId, recipients);
       setSelectedRecipients([]);
+      queryClient.invalidateQueries({ queryKey: ["courses-shared-by-me"] });
       toast.success("Invites sent");
     } catch (error) {
       console.error("Failed to send invites:", error);
@@ -528,7 +540,7 @@ export default function ShareCourse() {
               selected={selectedRecipients}
               onAdd={addRecipient}
               onRemove={removeRecipient}
-              placeholder="Type a user ID to search..."
+              placeholder="Search by name, handle or ID..."
             />
           </div>
           <Button
@@ -566,7 +578,7 @@ export default function ShareCourse() {
                 selected={allowlistedUsers}
                 onAdd={addAllowlistUser}
                 onRemove={removeAllowlistUser}
-                placeholder="Search users..."
+                placeholder="Search by name, handle or ID..."
               />
             </div>
             <div>
@@ -678,10 +690,10 @@ export default function ShareCourse() {
               placeholder="Search students..."
               value={enrollmentSearch}
               onChange={(e) => setEnrollmentSearch(e.target.value)}
-              className="pl-9 h-9 bg-secondary/30 border-border/50 focus:bg-secondary/50 transition-all"
+              className="pl-9 h-9 bg-white text-black border border-border/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/70"
             />
             {enrollmentSearch && (
-              <button 
+              <button
                 onClick={() => setEnrollmentSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
@@ -690,7 +702,7 @@ export default function ShareCourse() {
             )}
           </div>
         </div>
-        
+
         {enrollmentsLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">Loading enrollments...</p>
         ) : filteredEnrollments.length === 0 ? (
@@ -727,9 +739,9 @@ export default function ShareCourse() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                          <div 
-                            className="h-full bg-primary" 
-                            style={{ width: `${Math.round(env.progressPercentage)}%` }} 
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${Math.round(env.progressPercentage)}%` }}
                           />
                         </div>
                         <span className="text-xs text-muted-foreground">{Math.round(env.progressPercentage)}%</span>
@@ -739,9 +751,8 @@ export default function ShareCourse() {
                       {env.enrolledAt ? new Date(env.enrolledAt).toLocaleDateString() : 'Unknown'}
                     </td>
                     <td className="px-4 py-3">
-                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        env.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
-                      }`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${env.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                        }`}>
                         {env.status}
                       </span>
                     </td>

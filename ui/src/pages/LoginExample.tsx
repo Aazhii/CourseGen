@@ -1,20 +1,21 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, Github, Mail, Sparkles } from "lucide-react";
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/auth/AuthContext";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { Logo } from "../components/Logo";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { useAuth } from "../auth/AuthContext";
 import { toast } from "sonner";
-import { login as apiLogin } from "@/services/authApi";
-import { fallbackLoginContent } from "@/data/marketingContent";
-import { loginContentQueryOptions } from "@/lib/queries/marketing";
+import { login as apiLogin } from "../services/authApi";
+import { fallbackLoginContent } from "../data/marketingContent";
+import { loginContentQueryOptions } from "../lib/queries/marketing";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState("");
@@ -27,6 +28,34 @@ export default function LoginPage() {
     document.title = content.metaTitle;
   }, [content.metaTitle]);
 
+  const redirectTarget = (() => {
+    const redirect = new URLSearchParams(location.search).get("redirect");
+    if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+      return "/dashboard";
+    }
+    return redirect;
+  })();
+
+  useEffect(() => {
+    if (!auth.loading && auth.isAuthenticated) {
+      navigate(redirectTarget, { replace: true });
+    }
+  }, [auth.loading, auth.isAuthenticated, navigate, redirectTarget]);
+
+  // Force dark mode for login page
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasLight = root.classList.contains("light");
+    root.classList.remove("light");
+    root.classList.add("dark");
+    return () => {
+      if (wasLight) {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+    };
+  }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -37,7 +66,7 @@ export default function LoginPage() {
       if (data && data.token) {
         auth.login(data.token, data.user);
         toast.success("Welcome back!");
-        navigate("/dashboard");
+        navigate(redirectTarget, { replace: true });
       } else {
         throw new Error("Invalid response");
       }
@@ -56,7 +85,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-grid opacity-30" />
       </div>
 
-      <AmbientBackground />
+      <AmbientBackground showParticles particleDensity={0.00006} particleInfluence={110} />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
         {/* Left: brand panel */}
@@ -106,26 +135,16 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="mt-10 grid grid-cols-2 gap-4 relative z-10">
-                <Button variant="glass" type="button" className="h-12 border-white/5 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
-                  <GoogleIcon /> Google
-                </Button>
-                <Button variant="glass" type="button" className="h-12 border-white/5 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest">
-                  <Github className="h-4 w-4" /> GitHub
-                </Button>
-              </div>
+              {/* Social login moved below form */}
 
-              <div className="my-8 flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
-                <div className="h-px flex-1 bg-white/5" />
-                {content.right.divider}
-                <div className="h-px flex-1 bg-white/5" />
-              </div>
+
+
 
               <form onSubmit={onSubmit} className="space-y-5 relative z-10">
                 <div className="space-y-2">
                   <Label htmlFor="identifier" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground pl-1">Email or User ID</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40" />
                     <Input
                       id="identifier"
                       type="text"
@@ -134,16 +153,13 @@ export default function LoginPage() {
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder="you@company.com or your_user_id"
-                      className="h-12 pl-11 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
+                      className="h-12 pl-11 bg-white text-black border border-white/10 rounded-2xl focus-visible:ring-primary/20 transition-all font-medium"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between pl-1 pr-1">
                     <Label htmlFor="password" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{content.right.passwordLabel}</Label>
-                    <a href="#" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 hover:text-white transition-colors">
-                      {content.right.forgot}
-                    </a>
                   </div>
                   <div className="relative">
                     <Input
@@ -154,7 +170,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="h-12 pr-12 bg-white/[0.02] border-white/5 rounded-2xl focus-visible:ring-primary/20 transition-all"
+                      className="h-12 pr-12 bg-white text-black border border-white/10 rounded-2xl focus-visible:ring-primary/20 transition-all"
                     />
                     <button
                       type="button"
@@ -164,6 +180,11 @@ export default function LoginPage() {
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
+                  </div>
+                  <div className="flex justify-start mt-2">
+                    <a href="#" className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 hover:text-white transition-colors">
+                      {content.right.forgot}
+                    </a>
                   </div>
                 </div>
 
@@ -181,6 +202,33 @@ export default function LoginPage() {
                     </div>
                   ) : content.right.submit}
                 </Button>
+
+                <div className="pt-4 space-y-6">
+                  <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground relative z-10">
+                    <div className="h-px flex-1 bg-white/10" />
+                    {content.right.divider}
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 relative z-10">
+                    <Button 
+                      variant="glass" 
+                      type="button" 
+                      className="h-12 border-white/10 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest"
+                      onClick={() => window.location.href = "/oauth2/authorization/google"}
+                    >
+                      <GoogleIcon /> Google
+                    </Button>
+                    <Button 
+                      variant="glass" 
+                      type="button" 
+                      className="h-12 border-white/10 hover:bg-white/5 transition-all font-bold text-xs uppercase tracking-widest"
+                      onClick={() => window.location.href = "/oauth2/authorization/github"}
+                    >
+                      <Github className="h-4 w-4" /> GitHub
+                    </Button>
+                  </div>
+                </div>
               </form>
 
               <p className="mt-10 text-center text-xs font-bold uppercase tracking-widest text-muted-foreground relative z-10">

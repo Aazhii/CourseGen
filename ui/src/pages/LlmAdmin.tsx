@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeature } from "../hooks/useFeature";
 import {
   fetchLlmProviderHealth,
   fetchLlmProviders,
@@ -14,7 +14,9 @@ import {
   type LlmProviderPayload,
   type ProviderType,
   type WorkloadType,
-} from "@/services/llmAdminApi";
+} from "../services/llmAdminApi";
+import { executeMcpTool, listMcpTools } from "../services/mcpApi";
+import type { McpToolDescriptor } from "../types/mcp";
 import {
   Card,
   CardContent,
@@ -22,13 +24,13 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
+} from "../components/ui/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs";
+} from "../components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -37,20 +39,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+} from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
+import { Badge } from "../components/ui/badge";
 import { 
   Activity, 
   Settings, 
@@ -70,12 +72,50 @@ import {
   Lock
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { USE_MCP_CLIENT } from "@/constants";
+import { cn } from "../lib/utils";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip";
+import { USE_MCP_CLIENT } from "../constants";
 
 const WORKLOADS: WorkloadType[] = ["COURSE_GENERATION", "LESSON_GENERATION", "AI_COACH"];
+
+function JsonHighlighter({ json }: { json: string | null | undefined }) {
+  if (!json) return <span className="italic text-muted-foreground/50">No response body captured for this record.</span>;
+  
+  let formatted = "";
+  try {
+    formatted = JSON.stringify(JSON.parse(json), null, 2);
+  } catch {
+    formatted = json;
+  }
+
+  const highlighted = formatted
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, (match) => {
+      let cls = 'text-emerald-600 dark:text-emerald-400'; // default (numbers)
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'text-blue-600 dark:text-sky-300'; // key
+        } else {
+          cls = 'text-orange-600 dark:text-orange-400'; // string
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'text-purple-600 dark:text-purple-400'; // boolean
+      } else if (/null/.test(match)) {
+        cls = 'text-gray-500 dark:text-gray-400'; // null
+      }
+      return `<span class="${cls}">${match}</span>`;
+    });
+
+  return (
+    <pre 
+      className="p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground/90" 
+      dangerouslySetInnerHTML={{ __html: highlighted }} 
+    />
+  );
+}
 
 export default function LlmAdmin() {
   const adminFeature = useFeature("ADMIN_PANEL");
@@ -93,7 +133,7 @@ export default function LlmAdmin() {
   const [error, setError] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit">("routing");
+  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit" | "tools">("routing");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditItems, setAuditItems] = useState<McpAuditLogItem[]>([]);
   const [auditTotalPages, setAuditTotalPages] = useState(0);
@@ -110,6 +150,13 @@ export default function LlmAdmin() {
     page: 0,
     size: 20,
   });
+  const [mcpTools, setMcpTools] = useState<McpToolDescriptor[]>([]);
+  const [mcpToolsLoading, setMcpToolsLoading] = useState(false);
+  const [executingTool, setExecutingTool] = useState<McpToolDescriptor | null>(null);
+  const [toolInput, setToolInput] = useState<string>("{}");
+  const [toolResult, setToolResult] = useState<any>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [viewingAuditItem, setViewingAuditItem] = useState<McpAuditLogItem | null>(null);
   const auditFiltersRef = useRef(auditFilters);
 
   const [form, setForm] = useState({
@@ -265,6 +312,26 @@ export default function LlmAdmin() {
     loadAuditLogs(auditFiltersRef.current);
   }, [adminFeature.loading, adminFeature.allowed, activeTab, loadAuditFilterOptions, loadAuditLogs]);
 
+  useEffect(() => {
+    if (adminFeature.loading || !adminFeature.allowed || activeTab !== "tools") {
+      return;
+    }
+
+    const fetchTools = async () => {
+      setMcpToolsLoading(true);
+      try {
+        const tools = await listMcpTools();
+        setMcpTools(tools);
+      } catch (e) {
+        toast.error("Failed to fetch MCP tools");
+      } finally {
+        setMcpToolsLoading(false);
+      }
+    };
+
+    fetchTools();
+  }, [adminFeature.loading, adminFeature.allowed, activeTab]);
+
   function applyAuditFilters() {
     const nextFilters = { ...auditFilters, page: 0 };
     setAuditFilters(nextFilters);
@@ -322,6 +389,30 @@ export default function LlmAdmin() {
       toast.error("Failed to update route");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleExecuteTool() {
+    if (!executingTool) return;
+    setIsExecuting(true);
+    setToolResult(null);
+    try {
+      const parsedInput = JSON.parse(toolInput);
+      const res = await executeMcpTool({
+        tool: executingTool.name,
+        input: parsedInput
+      });
+      setToolResult(res);
+      if (res.success) {
+        toast.success(`Tool ${executingTool.name} executed successfully`);
+      } else {
+        toast.error(`Tool execution failed: ${res.error}`);
+      }
+    } catch (e) {
+      toast.error("Invalid JSON input or execution error");
+      setToolResult({ success: false, error: e instanceof Error ? e.message : "Client-side error" });
+    } finally {
+      setIsExecuting(false);
     }
   }
 
@@ -421,6 +512,10 @@ export default function LlmAdmin() {
               <Server className="w-4 h-4" />
               Provider Registry
             </TabsTrigger>
+            <TabsTrigger value="tools" className="gap-2">
+              <Zap className="w-4 h-4" />
+              MCP Tool Registry
+            </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="w-4 h-4" />
               Audit Logs
@@ -451,7 +546,7 @@ export default function LlmAdmin() {
                         onValueChange={(val) => saveRoute(workload, val === "_none" ? "" : val)}
                         disabled={loading || saving}
                       >
-                        <SelectTrigger className="w-full bg-background/50 font-medium">
+                        <SelectTrigger className="w-full bg-muted/50 border-border font-medium">
                           <SelectValue placeholder="Select provider" />
                         </SelectTrigger>
                         <SelectContent>
@@ -667,8 +762,8 @@ export default function LlmAdmin() {
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 shadow-sm animate-in fade-in slide-in-from-top-1 duration-500">
                         <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                         <div className="space-y-0.5">
-                          <p className="text-[10px] text-amber-900/90 font-bold uppercase tracking-tight">Security & Persistence Policy:</p>
-                          <p className="text-[10px] text-amber-800/80 leading-relaxed font-semibold">
+                          <p className="text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-tight">Security & Persistence Policy:</p>
+                          <p className="text-[10px] text-amber-700 dark:text-amber-400/80 leading-relaxed font-semibold">
                             Existing keys are protected. New entries will be merged into the active pool. 
                              One key per line.
                           </p>
@@ -839,6 +934,116 @@ export default function LlmAdmin() {
           </div>
         </TabsContent>
 
+        <TabsContent value="tools" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {mcpToolsLoading ? (
+              <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] bg-muted/10">
+                <RefreshCw className="h-10 w-10 animate-spin text-primary/40" />
+                <p className="mt-4 text-sm font-medium text-muted-foreground uppercase tracking-widest">Scanning RPC Interface...</p>
+              </div>
+            ) : mcpTools.length === 0 ? (
+              <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed rounded-[2rem] bg-muted/10 opacity-60 border-border/40">
+                <AlertCircle className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                <h3 className="text-xl font-bold uppercase tracking-tighter text-foreground/60">No Tools Registered</h3>
+                <p className="text-sm text-muted-foreground mt-2">The MCP core reported 0 active tool capability descriptors.</p>
+              </div>
+            ) : (
+              mcpTools.map((tool) => (
+                <Card key={tool.name} className="border-border/60 hover:border-primary/40 transition-all duration-300 group">
+                  <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 font-bold uppercase text-[10px]">Active</Badge>
+                        <CardTitle className="text-lg font-mono">{tool.name}</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs line-clamp-1">{tool.description}</CardDescription>
+                    </div>
+                    <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <Zap className="h-5 w-5" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-black text-muted-foreground/70 tracking-widest">Input Parameters</Label>
+                        <div className="rounded-lg bg-muted/30 border border-border/40 p-4 font-mono text-[11px] min-h-[100px] whitespace-pre-wrap">
+                          {JSON.stringify(tool.inputSchema, null, 2)}
+                        </div>
+                     </div>
+                  </CardContent>
+                  <CardFooter className="pt-0 pb-4 border-t border-border/40 bg-muted/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground/60 uppercase">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      Runtime Verified
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 text-[10px] uppercase font-bold border-primary/20 hover:bg-primary/5"
+                            onClick={() => {
+                              setExecutingTool(tool);
+                              setToolInput("{}");
+                              setToolResult(null);
+                            }}
+                          >
+                            Execute Tool <ChevronRight className="ml-1 w-3 h-3" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-lg">
+                          <DialogHeader>
+                            <DialogTitle className="font-mono">{tool.name}</DialogTitle>
+                            <DialogDescription>{tool.description}</DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase text-muted-foreground">JSON Payload</Label>
+                              <Textarea 
+                                className="min-h-[120px] font-mono text-xs bg-muted/50 border-border"
+                                value={toolInput}
+                                onChange={(e) => setToolInput(e.target.value)}
+                                placeholder='{ "key": "value" }'
+                              />
+                            </div>
+                            {toolResult && (
+                              <div className={cn(
+                                "flex flex-col rounded-lg border p-4 space-y-2 animate-in fade-in duration-300",
+                                toolResult.success ? "bg-emerald-500/5 border-emerald-500/20" : "bg-destructive/5 border-destructive/20"
+                              )}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase">Execution Result</span>
+                                  <Badge variant={toolResult.success ? "default" : "destructive"} className="text-[9px] h-4">
+                                    {toolResult.success ? "SUCCESS" : "ERROR"}
+                                  </Badge>
+                                </div>
+                                <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-auto max-h-[200px]">
+                                  {JSON.stringify(toolResult.data || toolResult.error, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button variant="ghost" onClick={() => setExecutingTool(null)}>Close</Button>
+                            <Button 
+                              onClick={handleExecuteTool} 
+                              disabled={isExecuting}
+                              className="gap-2"
+                            >
+                              {isExecuting && <RefreshCw className="w-4 h-4 animate-spin" />}
+                              Run Tool
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
         <TabsContent value="audit" className="space-y-6 mt-0">
           <Card className="border-border/60">
             <CardHeader>
@@ -916,13 +1121,14 @@ export default function LlmAdmin() {
               <div className="rounded-lg border border-border/60 overflow-hidden">
                 <div className="overflow-x-auto">
                   <div className="min-w-[1320px]">
-                    <div className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/30">
+                    <div className="grid grid-cols-[220px_280px_130px_160px_160px_1fr_100px] gap-3 px-5 py-3 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/30">
                       <div>Time</div>
                       <div>Tool</div>
                       <div>Status</div>
                       <div className="whitespace-nowrap">User</div>
                       <div className="whitespace-nowrap">Latency</div>
-                      <div>Error</div>
+                      <div>Result / Error</div>
+                      <div className="text-right">Action</div>
                     </div>
 
                     <div className="max-h-[420px] overflow-y-auto">
@@ -932,7 +1138,7 @@ export default function LlmAdmin() {
                     </div>
                   ) : (
                     auditItems.map((item) => (
-                      <div key={item.id} className="grid grid-cols-[220px_280px_130px_160px_160px_minmax(320px,1fr)] gap-3 px-5 py-3 text-xs border-t border-border/40 hover:bg-muted/20 transition-colors">
+                      <div key={item.id} className="grid grid-cols-[220px_280px_130px_160px_160px_1fr_100px] gap-3 px-5 py-3 text-xs border-t border-border/40 hover:bg-muted/20 transition-colors items-center">
                         <div className="font-medium text-foreground/90 whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</div>
                         <div className="font-mono text-[11px] text-foreground/80 break-all">{item.tool}</div>
                         <div>
@@ -942,7 +1148,25 @@ export default function LlmAdmin() {
                         </div>
                         <div className="text-foreground/80 whitespace-nowrap">{item.userId ?? "-"}</div>
                         <div className="text-foreground/80 whitespace-nowrap">{item.latencyMs != null ? `${item.latencyMs}ms` : "-"}</div>
-                        <div className="text-muted-foreground break-words">{item.errorMessage || "-"}</div>
+                        <div className="text-muted-foreground break-words line-clamp-1">
+                          {item.status === "SUCCESS" ? (
+                            <span className="font-mono text-[10px] opacity-70">
+                              {item.responseBody ? "Captured Response" : "No Content"}
+                            </span>
+                          ) : (
+                            item.errorMessage || "-"
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-[10px] uppercase font-bold"
+                            onClick={() => setViewingAuditItem(item)}
+                          >
+                            Details
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -982,6 +1206,98 @@ export default function LlmAdmin() {
         </TabsContent>
       </Tabs>
       
+      <Dialog open={!!viewingAuditItem} onOpenChange={(open) => !open && setViewingAuditItem(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0 overflow-hidden border-border/40 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="p-6 border-b bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <DialogTitle className="flex items-center gap-2 font-mono text-lg">
+                  <Activity className="w-5 h-5 text-primary" />
+                  Audit Record: {viewingAuditItem?.requestId.split('-')[0]}...
+                </DialogTitle>
+                <DialogDescription className="text-xs uppercase font-bold tracking-widest text-muted-foreground">
+                  Detailed Tool Execution Metadata
+                </DialogDescription>
+              </div>
+              {viewingAuditItem && (
+                <Badge variant={viewingAuditItem.status === "SUCCESS" ? "default" : "destructive"}>
+                  {viewingAuditItem.status}
+                </Badge>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Tool</div>
+                <div className="font-mono text-xs font-bold truncate">{viewingAuditItem?.tool}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Latency</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.latencyMs}ms</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">User ID</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.userId ?? "N/A"}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                <div className="text-[10px] uppercase font-black text-muted-foreground/60 mb-1">Role</div>
+                <div className="font-mono text-xs font-bold">{viewingAuditItem?.userRole ?? "N/A"}</div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {viewingAuditItem?.errorMessage && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black text-destructive/80 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Error Message
+                  </Label>
+                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 text-destructive text-sm font-medium leading-relaxed">
+                    {viewingAuditItem.errorMessage}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black text-muted-foreground/70 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5" />
+                  Response Content
+                </Label>
+                <div className="rounded-xl bg-muted/50 border border-border/40 p-0 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border/20">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">JSON Payload</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-[10px] hover:bg-primary/10 hover:text-primary"
+                      onClick={() => {
+                        if (viewingAuditItem?.responseBody) {
+                          navigator.clipboard.writeText(viewingAuditItem.responseBody);
+                          toast.success("Copied to clipboard");
+                        }
+                      }}
+                    >
+                      Copy JSON
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[450px] w-full">
+                    <JsonHighlighter json={viewingAuditItem?.responseBody} />
+                  </ScrollArea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-4 border-t bg-muted/10">
+            <Button variant="outline" className="h-9 px-6 font-bold text-xs uppercase" onClick={() => setViewingAuditItem(null)}>
+              Dismiss Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(55%_45%_at_50%_40%,rgba(var(--primary-rgb),0.02)_0%,transparent_100%)]" />
     </div>
   );
