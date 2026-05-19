@@ -58,14 +58,14 @@ export default function LandingPage() {
 
   const leaderboardRows = leaderboardPreview.length
     ? leaderboardPreview.map((entry: any) => ({
-        n: entry.displayName ?? entry.username ?? entry.handle ?? "Learner",
-        v: `${(entry.totalPoints ?? entry.points ?? 0).toLocaleString()} XP`,
-      }))
+      n: entry.displayName ?? entry.username ?? entry.handle ?? "Learner",
+      v: `${(entry.totalPoints ?? entry.points ?? 0).toLocaleString()} XP`,
+    }))
     : [
-        { n: "Priya S.", v: "1,240 XP" },
-        { n: "Marco D.", v: "1,180 XP" },
-        { n: "Aiko T.", v: "1,055 XP" },
-      ];
+      { n: "Priya S.", v: "1,240 XP" },
+      { n: "Marco D.", v: "1,180 XP" },
+      { n: "Aiko T.", v: "1,055 XP" },
+    ];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/30">
@@ -73,7 +73,7 @@ export default function LandingPage() {
 
       <main>
         {/* ---------- HERO ---------- */}
-        <section className="relative overflow-hidden pt-32 pb-24 md:pt-48 md:pb-40">
+        <section className="relative overflow-hidden pt-24 pb-24 md:pt-32 md:pb-40">
           <AmbientBackground showParticles particleInfluence={120} particleDensity={0.00007} />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8">
