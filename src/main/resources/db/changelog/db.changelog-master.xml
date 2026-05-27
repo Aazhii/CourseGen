@@ -235,6 +235,7 @@
     <include file="db/changelog/db.changelog-marketing-content.xml"/>
     <include file="db/changelog/db.changelog-course-enrichment.xml"/>
     <include file="db/changelog/db.changelog-sublessons.xml"/>
+    <include file="db/changelog/db.changelog-prerequisite-explanations.xml"/>
 
     <!-- Add creation counters columns after userstats table is created -->
     <changeSet id="userstats-add-creation-counters" author="ari">

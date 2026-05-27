@@ -23,6 +23,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { getCoachResponse } from "@/services/coachApi";
+import {
+  getCachedPrereqExplanation,
+  savePrereqExplanation,
+} from "@/services/prerequisiteApi";
 import { cn } from "@/lib/utils";
 
 // ─── Configuration ──────────────────────────────────────────────
@@ -478,7 +482,7 @@ export default function PrerequisiteLearnDialog({
 
       const cacheKey = buildCacheKey(prerequisite, courseId, flowConfig.explanationDepth);
 
-      // ─── Bug #1 fix: Check cache first ───
+      // ─── Layer 1: In-memory cache ───
       if (!forceRefresh && prereqCache.has(cacheKey)) {
         const cached = prereqCache.get(cacheKey)!;
         setLearnedContent(cached.blocks);
@@ -486,6 +490,27 @@ export default function PrerequisiteLearnDialog({
         return;
       }
 
+      // ─── Layer 2: Backend / DB cache ───
+      if (!forceRefresh && courseId) {
+        try {
+          const dbCached = await getCachedPrereqExplanation(
+            courseId,
+            prerequisite,
+            flowConfig.explanationDepth
+          );
+          if (dbCached && dbCached.blocks && dbCached.blocks.length > 0) {
+            // Populate in-memory cache too
+            prereqCache.set(cacheKey, dbCached);
+            setLearnedContent(dbCached.blocks);
+            setSuggestions(dbCached.suggestions || []);
+            return;
+          }
+        } catch {
+          // Backend cache miss or error — fall through to AI generation
+        }
+      }
+
+      // ─── Layer 3: AI generation (only if both caches miss) ───
       setLoading(true);
       setLearnedContent(null);
 
@@ -524,8 +549,18 @@ export default function PrerequisiteLearnDialog({
           suggestions: response.suggestions || [],
         };
 
-        // ─── Store in cache ───
+        // ─── Store in memory cache ───
         prereqCache.set(cacheKey, result);
+
+        // ─── Persist to backend (fire-and-forget) ───
+        if (courseId) {
+          savePrereqExplanation(
+            courseId,
+            prerequisite,
+            flowConfig.explanationDepth,
+            result
+          );
+        }
 
         setLearnedContent(result.blocks);
         setSuggestions(result.suggestions);
@@ -813,4 +848,7 @@ export default function PrerequisiteLearnDialog({
     </Dialog>
   );
 }
+
+
+
 
