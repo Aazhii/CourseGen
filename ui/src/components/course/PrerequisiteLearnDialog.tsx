@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -8,7 +8,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,21 +25,14 @@ import {
 import { getCoachResponse } from "@/services/coachApi";
 import { cn } from "@/lib/utils";
 
-// --- Configuration for the prerequisite learning flow ---
+// ─── Configuration ──────────────────────────────────────────────
 export interface PrerequisiteFlowConfig {
-  /** Allow inline "Quick Learn" via AI Coach */
   enableQuickLearn: boolean;
-  /** Allow "Create as Course" navigation */
   enableCreateCourse: boolean;
-  /** Exclude external references/citations from quick learn */
   excludeReferences: boolean;
-  /** Exclude quiz cards from quick learn */
   excludeQuizCards: boolean;
-  /** Include study plan suggestions */
   includeStudyPlan: boolean;
-  /** Custom AI prompt prefix for quick learn */
   promptPrefix: string;
-  /** Max depth of explanation (brief / standard / detailed) */
   explanationDepth: "brief" | "standard" | "detailed";
 }
 
@@ -54,7 +46,175 @@ export const DEFAULT_PREREQ_CONFIG: PrerequisiteFlowConfig = {
   explanationDepth: "standard",
 };
 
-// --- Props ---
+// ─── In-memory cache so we don't re-call AI for the same prerequisite ─────
+interface CachedResult {
+  blocks: any[];
+  suggestions: string[];
+}
+const prereqCache = new Map<string, CachedResult>();
+
+function buildCacheKey(
+  prerequisite: string,
+  courseId?: string,
+  depth?: string
+): string {
+  return `${prerequisite}::${courseId || "none"}::${depth || "standard"}`;
+}
+
+// ─── Lightweight Markdown renderer ──────────────────────────────
+function MarkdownContent({ text }: { text: string }) {
+  const rendered = useMemo(() => parseMarkdown(text), [text]);
+  return <div className="prereq-md space-y-2.5">{rendered}</div>;
+}
+
+function parseMarkdown(raw: string): React.ReactNode[] {
+  const lines = raw.split("\n");
+  const nodes: React.ReactNode[] = [];
+  let key = 0;
+  let listItems: string[] = [];
+  let listOrdered = false;
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    const Tag = listOrdered ? "ol" : "ul";
+    const cls = listOrdered
+      ? "list-decimal pl-5 space-y-1 text-sm text-muted-foreground"
+      : "list-disc pl-5 space-y-1 text-sm text-muted-foreground";
+    nodes.push(
+      <Tag key={key++} className={cls}>
+        {listItems.map((li, j) => (
+          <li key={j}>
+            <InlineMarkdown text={li} />
+          </li>
+        ))}
+      </Tag>
+    );
+    listItems = [];
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Headings
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      flushList();
+      const level = headingMatch[1].length;
+      const headingText = headingMatch[2];
+      const cls =
+        level === 1
+          ? "text-lg font-bold text-foreground mt-3"
+          : level === 2
+            ? "text-base font-semibold text-foreground mt-2.5"
+            : level === 3
+              ? "text-sm font-semibold text-foreground mt-2"
+              : "text-sm font-medium text-foreground mt-1.5";
+      nodes.push(
+        <div key={key++} className={cls}>
+          <InlineMarkdown text={headingText} />
+        </div>
+      );
+      continue;
+    }
+
+    // Unordered list items (- or *)
+    const ulMatch = line.match(/^\s*[-*]\s+(.+)$/);
+    if (ulMatch) {
+      if (listOrdered && listItems.length) flushList();
+      listOrdered = false;
+      listItems.push(ulMatch[1]);
+      continue;
+    }
+
+    // Ordered list items (1. 2. etc.)
+    const olMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (olMatch) {
+      if (!listOrdered && listItems.length) flushList();
+      listOrdered = true;
+      listItems.push(olMatch[1]);
+      continue;
+    }
+
+    // Empty line
+    if (line.trim() === "") {
+      flushList();
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim())) {
+      flushList();
+      nodes.push(<hr key={key++} className="border-border/50 my-2" />);
+      continue;
+    }
+
+    // Regular paragraph
+    flushList();
+    nodes.push(
+      <p key={key++} className="text-sm text-muted-foreground leading-relaxed">
+        <InlineMarkdown text={line} />
+      </p>
+    );
+  }
+  flushList();
+  return nodes;
+}
+
+/** Inline markdown: **bold**, *italic*, `code`, [link](url) */
+function InlineMarkdown({ text }: { text: string }) {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`|\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let k = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (match[2]) {
+      parts.push(
+        <strong key={k++} className="font-semibold text-foreground">
+          {match[2]}
+        </strong>
+      );
+    } else if (match[3]) {
+      parts.push(
+        <em key={k++} className="italic text-foreground/80">
+          {match[3]}
+        </em>
+      );
+    } else if (match[4]) {
+      parts.push(
+        <code
+          key={k++}
+          className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-primary"
+        >
+          {match[4]}
+        </code>
+      );
+    } else if (match[5] && match[6]) {
+      parts.push(
+        <a
+          key={k++}
+          href={match[6]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          {match[5]}
+        </a>
+      );
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return <>{parts}</>;
+}
+
+// ─── Props ──────────────────────────────────────────────────────
 interface PrerequisiteLearnDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,7 +224,7 @@ interface PrerequisiteLearnDialogProps {
   config?: Partial<PrerequisiteFlowConfig>;
 }
 
-// --- Inline content renderer ---
+// ─── Inline content renderer ────────────────────────────────────
 function QuickLearnContent({
   blocks,
   excludeReferences,
@@ -80,7 +240,7 @@ function QuickLearnContent({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {filteredBlocks.map((block, i) => {
         if (block.type === "text") {
           const content = block.content as { title?: string; body: string };
@@ -88,13 +248,11 @@ function QuickLearnContent({
             <div key={i} className="space-y-2">
               {content.title && (
                 <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-amber-500" />
+                  <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
                   {content.title}
                 </h4>
               )}
-              <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {content.body}
-              </div>
+              <MarkdownContent text={content.body} />
             </div>
           );
         }
@@ -151,9 +309,7 @@ function QuickLearnContent({
             correctIndex: number;
             explanation?: string;
           };
-          return (
-            <QuizCard key={i} quiz={quiz} />
-          );
+          return <QuizCard key={i} quiz={quiz} />;
         }
 
         return null;
@@ -162,7 +318,7 @@ function QuickLearnContent({
   );
 }
 
-// --- Mini quiz card for quick learn ---
+// ─── Mini quiz card ──────────────────────────────────────────────
 function QuizCard({
   quiz,
 }: {
@@ -190,24 +346,20 @@ function QuizCard({
         {quiz.options.map((opt, i) => {
           const isThis = selected === i;
           const isRight = i === quiz.correctIndex;
-          let classes =
-            "border rounded-md px-3 py-2 text-sm cursor-pointer transition-all";
-
-          if (isAnswered) {
-            if (isRight)
-              classes += " border-green-500/50 bg-green-500/10 text-green-600";
-            else if (isThis)
-              classes += " border-red-500/50 bg-red-500/10 text-red-500";
-            else classes += " border-border/50 text-muted-foreground opacity-60";
-          } else {
-            classes +=
-              " border-border hover:border-primary/50 hover:bg-muted/50";
-          }
 
           return (
             <div
               key={i}
-              className={classes}
+              className={cn(
+                "border rounded-md px-3 py-2 text-sm cursor-pointer transition-all",
+                isAnswered
+                  ? isRight
+                    ? "border-green-500/50 bg-green-500/10 text-green-600"
+                    : isThis
+                      ? "border-red-500/50 bg-red-500/10 text-red-500"
+                      : "border-border/50 text-muted-foreground opacity-60"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+              )}
               onClick={() => !isAnswered && setSelected(i)}
             >
               {opt}
@@ -224,7 +376,7 @@ function QuizCard({
   );
 }
 
-// --- Settings panel for prerequisite flow config ---
+// ─── Settings panel ──────────────────────────────────────────────
 function PrereqSettingsPanel({
   config,
   onChange,
@@ -299,7 +451,7 @@ function PrereqSettingsPanel({
   );
 }
 
-// --- Main Dialog ---
+// ─── Main Dialog ─────────────────────────────────────────────────
 export default function PrerequisiteLearnDialog({
   open,
   onOpenChange,
@@ -317,52 +469,76 @@ export default function PrerequisiteLearnDialog({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [flowConfig, setFlowConfig] = useState<PrerequisiteFlowConfig>(mergedConfig);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleQuickLearn = useCallback(async () => {
-    setMode("learning");
-    setLoading(true);
-    setError(null);
-    setLearnedContent(null);
+  const handleQuickLearn = useCallback(
+    async (forceRefresh = false) => {
+      setMode("learning");
+      setError(null);
 
-    const depthInstructions = {
-      brief: "Give a brief, concise overview in 2-3 paragraphs.",
-      standard:
-        "Give a clear, well-structured explanation with key concepts and examples.",
-      detailed:
-        "Give a thorough, in-depth explanation with multiple examples, edge cases, and comparisons.",
-    };
+      const cacheKey = buildCacheKey(prerequisite, courseId, flowConfig.explanationDepth);
 
-    let prompt = flowConfig.promptPrefix
-      ? `${flowConfig.promptPrefix}\n\n`
-      : "";
-    prompt += `I'm learning "${courseTitle || "a course"}" and need to understand a prerequisite: "${prerequisite}". `;
-    prompt += depthInstructions[flowConfig.explanationDepth] + " ";
+      // ─── Bug #1 fix: Check cache first ───
+      if (!forceRefresh && prereqCache.has(cacheKey)) {
+        const cached = prereqCache.get(cacheKey)!;
+        setLearnedContent(cached.blocks);
+        setSuggestions(cached.suggestions);
+        return;
+      }
 
-    if (flowConfig.includeStudyPlan) {
-      prompt +=
-        "Also include a short study plan to master this prerequisite. ";
-    }
-    if (flowConfig.excludeReferences) {
-      prompt += "Do NOT include external references or citations. ";
-    }
-    if (!flowConfig.excludeQuizCards) {
-      prompt += "Include a quick quiz question to test understanding. ";
-    }
+      setLoading(true);
+      setLearnedContent(null);
 
-    try {
-      const response = await getCoachResponse({
-        courseId: courseId,
-        message: prompt,
-      });
+      const depthInstructions = {
+        brief: "Give a brief, concise overview in 2-3 paragraphs.",
+        standard:
+          "Give a clear, well-structured explanation with key concepts and examples.",
+        detailed:
+          "Give a thorough, in-depth explanation with multiple examples, edge cases, and comparisons.",
+      };
 
-      setLearnedContent(response.blocks || []);
-      setSuggestions(response.suggestions || []);
-    } catch (err: any) {
-      setError(err.message || "Failed to generate explanation. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [prerequisite, courseId, courseTitle, flowConfig]);
+      let prompt = flowConfig.promptPrefix
+        ? `${flowConfig.promptPrefix}\n\n`
+        : "";
+      prompt += `I'm learning "${courseTitle || "a course"}" and need to understand a prerequisite: "${prerequisite}". `;
+      prompt += depthInstructions[flowConfig.explanationDepth] + " ";
+
+      if (flowConfig.includeStudyPlan) {
+        prompt += "Also include a short study plan to master this prerequisite. ";
+      }
+      if (flowConfig.excludeReferences) {
+        prompt += "Do NOT include external references or citations. ";
+      }
+      if (!flowConfig.excludeQuizCards) {
+        prompt += "Include a quick quiz question to test understanding. ";
+      }
+
+      try {
+        const response = await getCoachResponse({
+          courseId: courseId,
+          message: prompt,
+        });
+
+        const result: CachedResult = {
+          blocks: response.blocks || [],
+          suggestions: response.suggestions || [],
+        };
+
+        // ─── Store in cache ───
+        prereqCache.set(cacheKey, result);
+
+        setLearnedContent(result.blocks);
+        setSuggestions(result.suggestions);
+      } catch (err: any) {
+        setError(
+          err.message || "Failed to generate explanation. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [prerequisite, courseId, courseTitle, flowConfig]
+  );
 
   const handleCreateCourse = () => {
     onOpenChange(false);
@@ -377,18 +553,20 @@ export default function PrerequisiteLearnDialog({
         courseId: courseId,
         message: `Following up on the prerequisite "${prerequisite}": ${question}`,
         chatHistory: [
-          {
-            role: "user",
-            text: `Explain the prerequisite: ${prerequisite}`,
-          },
-          {
-            role: "assistant",
-            text: "I explained the prerequisite above.",
-          },
+          { role: "user", text: `Explain the prerequisite: ${prerequisite}` },
+          { role: "assistant", text: "I explained the prerequisite above." },
         ],
       });
       setLearnedContent((prev) => [...(prev || []), ...response.blocks]);
       setSuggestions(response.suggestions || []);
+
+      // Scroll to bottom after new content
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      });
     } catch (err: any) {
       setError(err.message || "Failed to get follow-up.");
     } finally {
@@ -411,27 +589,39 @@ export default function PrerequisiteLearnDialog({
         onOpenChange(val);
       }}
     >
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+      {/* Bug #4 fix: bigger dialog — 780px wide, 90vh tall */}
+      <DialogContent className="sm:max-w-[780px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/50 shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <BookOpen className="w-5 h-5 text-primary" />
             {mode === "settings" ? "Learning Preferences" : prerequisite}
           </DialogTitle>
           <DialogDescription className="text-sm">
-            {mode === "choose" &&
-              "Choose how you'd like to learn this prerequisite"}
-            {mode === "learning" && "AI-powered quick explanation"}
+            {mode === "choose" && "Choose how you'd like to learn this prerequisite"}
+            {mode === "learning" && (
+              <>
+                AI-powered quick explanation
+                {prereqCache.has(
+                  buildCacheKey(prerequisite, courseId, flowConfig.explanationDepth)
+                ) && !loading && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
+                    <CheckCircle2 className="w-3 h-3" /> cached
+                  </span>
+                )}
+              </>
+            )}
             {mode === "settings" && "Customize how prerequisites are explained"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        {/* Bug #2 fix: min-h-0 allows flex child to shrink & scroll */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           {/* Choice mode */}
           {mode === "choose" && (
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
               {flowConfig.enableQuickLearn && (
                 <button
-                  onClick={handleQuickLearn}
+                  onClick={() => handleQuickLearn()}
                   className="w-full group flex items-start gap-4 p-4 rounded-xl border border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
@@ -487,29 +677,25 @@ export default function PrerequisiteLearnDialog({
 
           {/* Settings mode */}
           {mode === "settings" && (
-            <div className="p-6 space-y-4">
-              <PrereqSettingsPanel
-                config={flowConfig}
-                onChange={setFlowConfig}
-              />
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <PrereqSettingsPanel config={flowConfig} onChange={setFlowConfig} />
               <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMode("choose")}
-                >
+                <Button variant="outline" size="sm" onClick={() => setMode("choose")}>
                   Done
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Learning mode */}
+          {/* Learning mode — Bug #2 fix: native overflow-y-auto with min-h-0 */}
           {mode === "learning" && (
-            <div className="flex flex-col h-full max-h-[calc(85vh-120px)]">
-              <ScrollArea className="flex-1 px-6 py-4">
+            <>
+              <div
+                ref={scrollRef}
+                className="flex-1 min-h-0 overflow-y-auto px-6 py-5"
+              >
                 {loading && !learnedContent && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
                     <p className="text-sm text-muted-foreground">
                       Generating explanation for{" "}
@@ -522,13 +708,9 @@ export default function PrerequisiteLearnDialog({
                 )}
 
                 {error && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
                     <p className="text-sm text-red-500">{error}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleQuickLearn}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleQuickLearn()}>
                       <RefreshCw className="w-4 h-4 mr-1" />
                       Retry
                     </Button>
@@ -574,7 +756,7 @@ export default function PrerequisiteLearnDialog({
                     )}
                   </div>
                 )}
-              </ScrollArea>
+              </div>
 
               {/* Footer actions */}
               {learnedContent && !loading && (
@@ -584,7 +766,7 @@ export default function PrerequisiteLearnDialog({
                       variant="ghost"
                       size="sm"
                       className="text-xs gap-1"
-                      onClick={handleQuickLearn}
+                      onClick={() => handleQuickLearn(true)}
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       Regenerate
@@ -624,7 +806,7 @@ export default function PrerequisiteLearnDialog({
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </DialogContent>
