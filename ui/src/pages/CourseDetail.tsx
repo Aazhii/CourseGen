@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Share2, Trash2, Play, CheckCircle2, Sparkles, Pencil, Loader2, LayoutGrid, Settings2 } from "lucide-react";
+import PrerequisiteLearnDialog, { type PrerequisiteFlowConfig } from "../components/course/PrerequisiteLearnDialog";
 import { Button } from "../components/ui/button";
 import { Progress } from "../components/ui/progress";
 import { Input } from "../components/ui/input";
@@ -29,6 +30,16 @@ export default function CourseDetail() {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  // Prerequisite learn dialog state
+  const [prereqDialogOpen, setPrereqDialogOpen] = useState(false);
+  const [selectedPrereq, setSelectedPrereq] = useState("");
+  const [prereqConfig, setPrereqConfig] = useState<Partial<PrerequisiteFlowConfig>>({});
+
+  const handleLearnPrereq = useCallback((item: string) => {
+    setSelectedPrereq(item);
+    setPrereqDialogOpen(true);
+  }, []);
 
   const isCreator = useMemo(() => {
     if (!course || !user) return false;
@@ -289,11 +300,14 @@ export default function CourseDetail() {
                         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 mt-1.5 shrink-0" />
                         <span className="font-medium text-foreground">{item}</span>
                       </div>
-                      <Link to={`/create-course?topic=${encodeURIComponent(item)}`}>
-                        <Button variant="secondary" size="sm" className="h-7 text-xs font-medium w-full sm:w-auto">
-                          Learn this
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 text-xs font-medium w-full sm:w-auto"
+                        onClick={() => handleLearnPrereq(item)}
+                      >
+                        Learn this
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -448,6 +462,15 @@ export default function CourseDetail() {
         </div>
       </div>
 
+      {/* Prerequisite Learn Dialog */}
+      <PrerequisiteLearnDialog
+        open={prereqDialogOpen}
+        onOpenChange={setPrereqDialogOpen}
+        prerequisite={selectedPrereq}
+        courseId={courseId}
+        courseTitle={course?.title || course?.topic}
+        config={prereqConfig}
+      />
     </div>
   );
 }
