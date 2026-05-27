@@ -3,7 +3,7 @@ import type { Module, Lesson } from "@/types/course-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronRight, File, Folder, MoreVertical, Plus, Trash2, ArrowUp, ArrowDown, Edit2 } from "lucide-react";
+import { ChevronDown, ChevronRight, File, Folder, MoreVertical, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -11,6 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { batchGenerateLessons } from "@/services/courseApi";
 
 export function ModuleLessonTree() {
   const { state, dispatch } = useCourseBuilder();
@@ -19,6 +21,32 @@ export function ModuleLessonTree() {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [batchGeneratingModuleId, setBatchGeneratingModuleId] = useState<string | null>(null);
+
+  const handleBatchGenerate = async (moduleId: string) => {
+    const limitStr = window.prompt("Enter max number of AI lessons to generate simultaneously (1-10):", "3");
+    if (!limitStr) return;
+    const limit = parseInt(limitStr, 10);
+    if (isNaN(limit) || limit < 1 || limit > 10) {
+      toast.error("Please enter a valid number between 1 and 10.");
+      return;
+    }
+
+    setBatchGeneratingModuleId(moduleId);
+    toast.loading(`Batch generating up to ${limit} lessons...`, { id: `batch-${moduleId}` });
+    try {
+      const generatedLessons = await batchGenerateLessons(course.id, moduleId, limit);
+      toast.success(`Successfully generated ${generatedLessons.length} lessons!`, { id: `batch-${moduleId}` });
+      // We could optionally dispatch an action to update the UI or refetch course,
+      // but reloading the course or letting the user click them works since it's saved to DB.
+      // Easiest is to just update state if we want, but since they are already in the UI (as pending),
+      // we don't strictly have to do anything except let the user know they are ready!
+    } catch (error: any) {
+      toast.error(`Batch generation failed: ${error.message}`, { id: `batch-${moduleId}` });
+    } finally {
+      setBatchGeneratingModuleId(null);
+    }
+  };
 
   const toggleModule = (id: string) => {
     setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
@@ -120,7 +148,11 @@ export function ModuleLessonTree() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <MoreVertical className="h-3 w-3" />
+                          {batchGeneratingModuleId === m.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          ) : (
+                            <MoreVertical className="h-3 w-3" />
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -130,7 +162,15 @@ export function ModuleLessonTree() {
                         }}><Edit2 className="h-4 w-4 mr-2" /> Rename</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => dispatch({ type: "MOVE_MODULE_UP", payload: m.id })}><ArrowUp className="h-4 w-4 mr-2" /> Move Up</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => dispatch({ type: "MOVE_MODULE_DOWN", payload: m.id })}><ArrowDown className="h-4 w-4 mr-2" /> Move Down</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => dispatch({ type: "DELETE_MODULE", payload: m.id })}><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => dispatch({ type: "DELETE_MODULE", payload: m.id })} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>
+                        <DropdownMenuItem 
+                          disabled={batchGeneratingModuleId === m.id}
+                          onClick={() => handleBatchGenerate(m.id)}
+                          className="text-primary font-medium border-t mt-1 pt-1"
+                        >
+                          {batchGeneratingModuleId === m.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          Batch Generate AI Lessons
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

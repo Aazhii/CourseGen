@@ -97,12 +97,43 @@ public class AutoGenerationController {
         return ResponseEntity.ok(ApiResponse.success("Configuration updated", result));
     }
 
+    /**
+     * GET /api/admin/auto-generation/logs
+     * Returns the recent generation logs with pagination.
+     */
+    @GetMapping("/logs")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(403).body(ApiResponse.failure("Admin access required"));
+        }
+
+        java.util.List<com.aicourse.dto.GenerationLog> allLogs = scheduler.getRecentLogs();
+        int totalItems = allLogs.size();
+        int totalPages = (int) Math.ceil((double) totalItems / size);
+
+        int start = Math.min(page * size, totalItems);
+        int end = Math.min(start + size, totalItems);
+        java.util.List<com.aicourse.dto.GenerationLog> pagedLogs = allLogs.subList(start, end);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("items", pagedLogs);
+        data.put("totalItems", totalItems);
+        data.put("totalPages", totalPages);
+        data.put("page", page);
+        data.put("size", size);
+
+        return ResponseEntity.ok(ApiResponse.success("Recent auto-generation logs", data));
+    }
+
     private boolean isAdmin(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
             return false;
         }
-        String roles = principal.getUser().getRoles();
-        return roles != null && roles.toUpperCase().contains("ADMIN");
+        return principal.getUser().getRoles() == com.auth.enums.UserRole.ADMIN;
     }
 }
+
 

@@ -33,3 +33,29 @@ export async function configureAutoGen(config: { batchSize?: number; intervalMs?
   return (response?.data ?? response) as { batchSize: number; intervalMs: number };
 }
 
+export interface AutoGenLog {
+  lessonId: number;
+  lessonTitle: string;
+  moduleId: number;
+  moduleTitle: string;
+  courseId: number;
+  courseTitle: string;
+  success: boolean;
+  errorMessage: string | null;
+  timestampMs: number;
+}
+
+export interface AutoGenLogsResponse {
+  items: AutoGenLog[];
+  totalItems: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export async function getAutoGenLogs(page = 0, size = 10): Promise<AutoGenLogsResponse> {
+  const response = await apiFetch(`/api/admin/auto-generation/logs?page=${page}&size=${size}`);
+  return (response?.data ?? response) as AutoGenLogsResponse;
+}
+
+

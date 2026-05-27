@@ -62,6 +62,28 @@ public class LessonController {
         }
     }
 
+    @PostMapping("/{courseId}/modules/{moduleId}/lessons/batch-generate")
+    public ResponseEntity<java.util.List<Lesson>> batchGenerateLessons(@PathVariable Long courseId, @PathVariable Long moduleId,
+                                                 @RequestParam(defaultValue = "3") int limit, Authentication authentication) throws Exception {
+        LOGGER.log(Level.INFO, "Request received to batch generate up to {0} lessons for module ID: {1} in course ID: {2}",
+                new Object[]{limit, moduleId, courseId});
+        try {
+            if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Long userId = principal.getUser().getId();
+            // Note: MCP is currently not supporting batch directly, so we use the default service
+            java.util.List<Lesson> generatedLessons = lessonServiceImpl.batchGenerateLessonsForModule(courseId, moduleId, limit, userId);
+
+            LOGGER.log(Level.INFO, "Batch generation completed. {0} lessons generated.", new Object[]{generatedLessons.size()});
+            return ResponseEntity.ok(generatedLessons);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error batch generating lessons for module ID: {0}: {1}", new Object[]{moduleId, e.getMessage()});
+            throw e;
+        }
+    }
+
     @GetMapping("/lessons/{id}")
     public ResponseEntity<Lesson> getLesson(@PathVariable Long id, Authentication authentication) throws Exception {
         LOGGER.log(Level.INFO, "Fetching lesson details for ID: {0}", new Object[]{id});

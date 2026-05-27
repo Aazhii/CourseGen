@@ -87,12 +87,18 @@ public class LessonServiceImpl implements LessonService {
             }
             
             JsonNode contentJson = JsonParserUtil.parseStringToJsonObject(cleanJson);
+            
+            // If the root is an object and contains a "blocks" array, extract it
+            JsonNode blocksArray = contentJson;
+            if (contentJson.isObject() && contentJson.has("blocks")) {
+                blocksArray = contentJson.get("blocks");
+            }
 
-            if (!contentJson.isArray()) {
+            if (!blocksArray.isArray()) {
                 throw new IllegalArgumentException("AI content must be a JSON array of lesson blocks");
             }
 
-            lesson.setContent(contentJson);
+            lesson.setContent(blocksArray);
             lesson.setEnriched(true);
 
             // Optionally set estimated minutes based on block count
@@ -119,31 +125,51 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @Transactional
-    public void enrichPendingLessonsLimited() throws Exception {
+    public java.util.List<com.aicourse.dto.GenerationLog> enrichPendingLessonsLimited() throws Exception {
+        return enrichPendingLessonsLimited(2);
+    }
+
+    @Override
+    @Transactional
+    public java.util.List<com.aicourse.dto.GenerationLog> enrichPendingLessonsLimited(int batchSize) throws Exception {
         LOGGER.log(Level.FINE, "Checking for pending lessons to enrich...");
-        List<Lesson> lessons = lessonRepo.findNext2PendingLessons();
+        List<Lesson> lessons = lessonRepo.findNextPendingLessons(batchSize);
 
         if (lessons.isEmpty()) {
             LOGGER.log(Level.FINE, "No pending lessons found.");
-            return;
+            return new java.util.ArrayList<>();
         }
 
         LOGGER.log(Level.INFO, "Found {0} pending lessons. Starting enrichment...", new Object[]{lessons.size()});
 
-        for (Lesson lesson : lessons) {
-            try {
-                Long courseId = lesson.getModule().getCourse().getId();
-                Long moduleId = lesson.getModule().getId();
-                Long lessonId = lesson.getId();
+        java.util.List<com.aicourse.dto.GenerationLog> logs = new java.util.ArrayList<>();
 
+        for (Lesson lesson : lessons) {
+            Long courseId = lesson.getModule().getCourse().getId();
+            Long moduleId = lesson.getModule().getId();
+            Long lessonId = lesson.getId();
+            String lessonTitle = lesson.getTitle();
+            String moduleTitle = lesson.getModule().getTitle();
+            String courseTitle = lesson.getModule().getCourse().getTitle();
+
+            try {
                 LOGGER.log(Level.INFO, "Enriching Lesson ID: {0}...", new Object[]{lessonId});
                 generateLessonContent(courseId, moduleId, lessonId, null); // this call is for background run so we don't need userid so far this lesson generation
+                
+                logs.add(new com.aicourse.dto.GenerationLog(
+                    lessonId, lessonTitle, moduleId, moduleTitle, courseId, courseTitle, true, null, System.currentTimeMillis()
+                ));
             } catch (Exception e) {
                 // IMPORTANT: don't kill scheduler
                 LOGGER.log(Level.SEVERE, "Error enriching pending lesson ID: {0}: {1}",
-                        new Object[]{lesson.getId(), e.getMessage()});
+                        new Object[]{lessonId, e.getMessage()});
+                
+                logs.add(new com.aicourse.dto.GenerationLog(
+                    lessonId, lessonTitle, moduleId, moduleTitle, courseId, courseTitle, false, e.getMessage(), System.currentTimeMillis()
+                ));
             }
         }
+        return logs;
     }
 
     @Override
@@ -161,5 +187,37 @@ public class LessonServiceImpl implements LessonService {
         Long courseId = lesson.getModule().getCourse().getId();
         sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
         return lesson;
+    }
+
+    @Override
+    @Transactional
+    public List<Lesson> batchGenerateLessonsForModule(Long courseId, Long moduleId, int limit, Long userId) throws Exception {
+        LOGGER.log(Level.INFO, "Batch generating up to {0} lessons for Module ID: {1}", new Object[]{limit, moduleId});
+        
+        // Ensure user has access
+        if (userId != null) {
+            sharedCourseAccessGuard.assertContentAccessAllowed(courseId, userId);
+        }
+
+        List<Lesson> pendingLessons = lessonRepo.findPendingLessonsByModuleId(moduleId, limit);
+        List<Lesson> generatedLessons = new java.util.ArrayList<>();
+
+        if (pendingLessons.isEmpty()) {
+            LOGGER.log(Level.INFO, "No pending lessons found for Module ID: {0}", new Object[]{moduleId});
+            return generatedLessons;
+        }
+
+        for (Lesson lesson : pendingLessons) {
+            try {
+                Lesson generated = generateLessonContent(courseId, moduleId, lesson.getId(), userId);
+                generatedLessons.add(generated);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error in batch generating lesson ID: {0}: {1}", 
+                    new Object[]{lesson.getId(), e.getMessage()});
+                // We continue generating others even if one fails
+            }
+        }
+
+        return generatedLessons;
     }
 }
