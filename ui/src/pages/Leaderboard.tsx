@@ -78,7 +78,7 @@ export default function Leaderboard() {
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Your Rank</p>
               <p className="font-display font-bold text-foreground">
-                #{myRank.rank ?? myRank.position ?? "—"}{" "}
+                {myRank.rank && myRank.rank > 0 ? `#${myRank.rank}` : "Unranked"}{" "}
                 <span className="text-muted-foreground font-normal text-sm">
                   · {myRank.totalPoints ?? myRank.points ?? 0} pts
                 </span>
