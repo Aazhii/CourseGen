@@ -256,12 +256,20 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
     public List<Course> getCoursesByCreator(Long creator) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving courses for creator: {0}", new Object[]{creator});
-        return courseRepo.findByCreator(creator);
+        List<Course> courses = courseRepo.findByCreator(creator);
+        for (Course course : courses) {
+            if (course.getModules() != null) {
+                course.getModules().size();
+            }
+        }
+        return courses;
     }
 
     @Override
+    @Transactional
     public List<Course> getCoursesSharedByCreator(Long creator) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving courses shared by creator: {0}", new Object[]{creator});
         Set<Long> courseIds = new LinkedHashSet<>(courseShareLinkRepo.findDistinctCourseIdsByCreatedBy(creator));
@@ -269,13 +277,31 @@ public class CourseServiceImpl implements CourseService {
         if (courseIds.isEmpty()) {
             return List.of();
         }
-        return courseRepo.findAllById(courseIds);
+        List<Course> courses = courseRepo.findAllById(courseIds);
+        for (Course course : courses) {
+            if (course.getModules() != null) {
+                course.getModules().size();
+            }
+        }
+        return courses;
     }
 
     @Override
+    @Transactional
     public Course getCourseById(Long id, Long requesterId) throws Exception {
         LOGGER.log(Level.FINE, "Retrieving course by ID: {0}", new Object[]{id});
         Course course = sharedCourseAccessGuard.assertCourseShellAccess(id, requesterId);
+        if (course.getModules() != null) {
+            course.getModules().forEach(module -> {
+                if (module.getLessons() != null) {
+                    module.getLessons().forEach(lesson -> {
+                        if (lesson.getSubLessons() != null) {
+                            lesson.getSubLessons().size();
+                        }
+                    });
+                }
+            });
+        }
         LOGGER.log(Level.FINE, "Course access granted for user {0} and course {1}",
                 new Object[]{requesterId, id});
         return course;
