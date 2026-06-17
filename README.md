@@ -1,4 +1,38 @@
-# AI Course Generation Platform - API Documentation
+# AI Course Generation Platform
+
+This repository contains the full-stack AI Course Generation Platform, which includes a Spring Boot backend (running on Java 25), a Vite React frontend, and a PostgreSQL database.
+
+---
+
+## Running the Application with Docker
+
+### Prerequisites
+Make sure you have [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed on your machine.
+
+### Quick Start
+1. Navigate to the root directory of the project.
+2. Build and start all services (Database, Backend, and Frontend) in the background:
+   ```bash
+   docker-compose up --build -d
+   ```
+3. To view logs and monitor progress:
+   ```bash
+   docker-compose logs -f
+   ```
+4. To stop the application:
+   ```bash
+   docker-compose down
+   ```
+
+### Accessing the Services
+
+* **Frontend UI**: Open [http://localhost:3000](http://localhost:3000) in your web browser.
+* **Backend API**: The API runs on [http://localhost:8080](http://localhost:8080).
+* **Database**: PostgreSQL is exposed locally on port `5432` (Username: `postgres`, Password: `password`, Database: `aicourse`).
+
+---
+
+# API Documentation
 
 This document provides a comprehensive list of all backend API endpoints available in the AI CourseGen Spring Boot
 application. All endpoints are prefixed with the base URL (default: `http://localhost:8080`).
