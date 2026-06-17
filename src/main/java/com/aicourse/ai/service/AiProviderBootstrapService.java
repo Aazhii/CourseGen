@@ -8,8 +8,7 @@ import com.aicourse.ai.model.AiLlmRoute;
 import com.aicourse.ai.repo.AiLlmApiKeyRepo;
 import com.aicourse.ai.repo.AiLlmProviderRepo;
 import com.aicourse.ai.repo.AiLlmRouteRepo;
-import com.aicourse.geminiConnection.GeminiApiKeyProperties;
-import com.aicourse.groqConnection.GroqApiKeyProperties;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,22 +22,18 @@ public class AiProviderBootstrapService {
     private final AiLlmProviderRepo providerRepo;
     private final AiLlmApiKeyRepo apiKeyRepo;
     private final AiLlmRouteRepo routeRepo;
-    private final GeminiApiKeyProperties geminiApiKeyProperties;
-    private final GroqApiKeyProperties groqApiKeyProperties;
-
     @Value("${spring.ai.google.genai.chat.options.model:gemini-2.5-flash}")
     private String geminiModel;
 
+    @Value("${spring.ai.groq.chat.options.model:llama3-8b-8192}")
+    private String groqModel;
+
     public AiProviderBootstrapService(AiLlmProviderRepo providerRepo,
                                       AiLlmApiKeyRepo apiKeyRepo,
-                                      AiLlmRouteRepo routeRepo,
-                                      GeminiApiKeyProperties geminiApiKeyProperties,
-                                      GroqApiKeyProperties groqApiKeyProperties) {
+                                      AiLlmRouteRepo routeRepo) {
         this.providerRepo = providerRepo;
         this.apiKeyRepo = apiKeyRepo;
         this.routeRepo = routeRepo;
-        this.geminiApiKeyProperties = geminiApiKeyProperties;
-        this.groqApiKeyProperties = groqApiKeyProperties;
     }
 
     @PostConstruct
@@ -50,20 +45,17 @@ public class AiProviderBootstrapService {
                 AiProviderType.GEMINI,
                 geminiModel,
                 null,
-                Math.toIntExact(Math.max(1, geminiApiKeyProperties.getKeyCooldownHours()))
+                24
         );
 
         AiLlmProvider groq = ensureProvider(
                 "groq",
                 "Groq",
                 AiProviderType.GROQ,
-                groqApiKeyProperties.getModel(),
+                groqModel,
                 "https://api.groq.com/openai/v1/chat/completions",
-                Math.toIntExact(Math.max(1, groqApiKeyProperties.getKeyCooldownHours()))
+                24
         );
-
-        ensureKeys(gemini, geminiApiKeyProperties.resolveApiKeys());
-        ensureKeys(groq, groqApiKeyProperties.resolveApiKeys());
 
         ensureRoute(AiWorkload.COURSE_GENERATION, gemini);
         ensureRoute(AiWorkload.LESSON_GENERATION, gemini);
@@ -92,22 +84,7 @@ public class AiProviderBootstrapService {
         return providerRepo.save(provider);
     }
 
-    private void ensureKeys(AiLlmProvider provider, List<String> configuredKeys) {
-        if (!apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(provider).isEmpty()) {
-            return;
-        }
 
-        for (String key : configuredKeys) {
-            if (key == null || key.isBlank()) {
-                continue;
-            }
-            AiLlmApiKey row = new AiLlmApiKey();
-            row.setProvider(provider);
-            row.setApiKey(key.trim());
-            row.setEnabled(true);
-            apiKeyRepo.save(row);
-        }
-    }
 
     private void ensureRoute(AiWorkload workload, AiLlmProvider provider) {
         if (routeRepo.findByWorkload(workload).isPresent()) {

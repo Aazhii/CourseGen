@@ -1,5 +1,9 @@
 package com.aicourse.groqConnection;
 
+import com.aicourse.ai.model.AiLlmApiKey;
+import com.aicourse.ai.model.AiLlmProvider;
+import com.aicourse.ai.repo.AiLlmApiKeyRepo;
+import com.aicourse.ai.repo.AiLlmProviderRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -25,34 +29,42 @@ public class GroqApiKeyManager {
             "http 429"
     );
 
-    private final List<String> apiKeys;
-    private final Duration cooldownDuration;
+    private final AiLlmProviderRepo providerRepo;
+    private final AiLlmApiKeyRepo apiKeyRepo;
     private final Clock clock;
     private final AtomicInteger roundRobinIndex = new AtomicInteger(0);
     private final Map<String, Instant> keyCooldownUntil = new ConcurrentHashMap<>();
 
     @Autowired
-    public GroqApiKeyManager(GroqApiKeyProperties properties) {
-        this(properties.resolveApiKeys(), properties.getKeyCooldownHours(), Clock.systemUTC());
+    public GroqApiKeyManager(AiLlmProviderRepo providerRepo, AiLlmApiKeyRepo apiKeyRepo) {
+        this(providerRepo, apiKeyRepo, Clock.systemUTC());
     }
 
     // Secondary constructor used by unit tests.
-    GroqApiKeyManager(List<String> apiKeys, long keyCooldownHours, Clock clock) {
-        this.apiKeys = List.copyOf(apiKeys);
-        this.cooldownDuration = Duration.ofHours(Math.max(1, keyCooldownHours));
+    GroqApiKeyManager(AiLlmProviderRepo providerRepo, AiLlmApiKeyRepo apiKeyRepo, Clock clock) {
+        this.providerRepo = providerRepo;
+        this.apiKeyRepo = apiKeyRepo;
         this.clock = Objects.requireNonNull(clock, "clock is required");
-
-        if (this.apiKeys.isEmpty()) {
-            throw new IllegalStateException("No Groq API keys configured. Set spring.ai.groq.api-keys or api-key.");
-        }
     }
 
     public synchronized String acquireAvailableKey() {
         Instant now = clock.instant();
 
-        for (int attempt = 0; attempt < apiKeys.size(); attempt++) {
-            int index = Math.floorMod(roundRobinIndex.getAndIncrement(), apiKeys.size());
-            String candidate = apiKeys.get(index);
+        AiLlmProvider provider = providerRepo.findByCodeIgnoreCase("groq")
+                .orElseThrow(() -> new IllegalStateException("Groq provider not found in database."));
+
+        List<AiLlmApiKey> dbKeys = apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(provider);
+        List<String> currentKeys = dbKeys.stream().map(AiLlmApiKey::getApiKey).toList();
+
+        if (currentKeys.isEmpty()) {
+            throw new IllegalStateException("No Groq API keys configured in the database.");
+        }
+
+        Duration cooldownDuration = Duration.ofHours(Math.max(1, provider.getKeyCooldownHours()));
+
+        for (int attempt = 0; attempt < currentKeys.size(); attempt++) {
+            int index = Math.floorMod(roundRobinIndex.getAndIncrement(), currentKeys.size());
+            String candidate = currentKeys.get(index);
             Instant cooldownUntil = keyCooldownUntil.get(candidate);
 
             if (cooldownUntil == null || !cooldownUntil.isAfter(now)) {
@@ -70,7 +82,10 @@ public class GroqApiKeyManager {
     }
 
     public void markKeyOnCooldown(String key) {
-        keyCooldownUntil.put(key, clock.instant().plus(cooldownDuration));
+        int cooldownHours = providerRepo.findByCodeIgnoreCase("groq")
+                .map(AiLlmProvider::getKeyCooldownHours)
+                .orElse(24);
+        keyCooldownUntil.put(key, clock.instant().plus(Duration.ofHours(Math.max(1, cooldownHours))));
     }
 
     public boolean isQuotaOrRateLimitError(Throwable error) {
@@ -79,7 +94,9 @@ public class GroqApiKeyManager {
     }
 
     public int totalKeyCount() {
-        return apiKeys.size();
+        return providerRepo.findByCodeIgnoreCase("groq")
+                .map(provider -> apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(provider).size())
+                .orElse(0);
     }
 
     private String buildErrorMessage(Throwable error) {
