@@ -125,7 +125,7 @@ public class LessonPromptBuilder {
 
         // ---- TASK ----
         sb.append("## TASK\n");
-        sb.append("Generate a comprehensive, mentor-style lesson as a JSON array of content blocks. Depth and clarity matter more than brevity. Do NOT compress.\n\n");
+        sb.append("Generate a comprehensive, mentor-style lesson as a JSON object containing an array of content blocks. Depth and clarity matter more than brevity. Do NOT compress.\n\n");
 
         // ---- STRUCTURE REQUIREMENTS ----
         sb.append("## DYNAMIC TEACHING FLOW (Crucial!)\n");
@@ -234,23 +234,22 @@ public class LessonPromptBuilder {
 
         // ---- OUTPUT FORMAT ----
         sb.append("## OUTPUT FORMAT (CRITICAL!)\n");
-        sb.append("YOU MUST respond with ONLY a raw JSON array.\n");
+        sb.append("YOU MUST respond with ONLY a valid JSON object containing a single key `blocks` which is an array of objects.\n");
         sb.append("Do NOT include:\n");
         sb.append("- Markdown code fences (```json or ```)\n");
         sb.append("- Explanatory text before or after the JSON\n");
-        sb.append("- A wrapping object\n");
-        sb.append("- Any whitespace before the first [ or after the last ]\n\n");
+        sb.append("- Any text other than the JSON object\n\n");
         sb.append("VALID RESPONSE FORMAT:\n");
-        sb.append("[{\"type\":\"heading\",\"content\":\"Title\"},{\"type\":\"text\",\"content\":\"Paragraph\"}]\n\n");
+        sb.append("{\"blocks\": [{\"type\":\"heading\",\"content\":\"Title\"},{\"type\":\"text\",\"content\":\"Paragraph\"}]}\n\n");
         sb.append("INVALID RESPONSE FORMAT:\n");
-        sb.append("```json\n[...]\n```\n");
-        sb.append("\"Here is the lesson: [...]\" \n\n");
+        sb.append("```json\n{...}\n```\n");
+        sb.append("\"Here is the lesson: {...}\" \n\n");
         sb.append("The response must:\n");
-        sb.append("- Start with exactly [ (no spaces, no preamble)\n");
-        sb.append("- End with exactly ] (no spaces, no explanation)\n");
+        sb.append("- Start with exactly { (no spaces, no preamble)\n");
+        sb.append("- End with exactly } (no spaces, no explanation)\n");
         sb.append("- Contain ONLY valid JSON\n");
-        sb.append("- Have every block with exactly two keys: \"type\" and \"content\" (no extra keys like \"description\")\n");
-        sb.append("- Be minified or properly formatted but containing only the array\n\n");
+        sb.append("- Have every block inside the `blocks` array with exactly two keys: \"type\" and \"content\"\n");
+        sb.append("- Be properly formatted JSON\n\n");
         sb.append("Allowed block types: ");
 
         StringBuilder types = new StringBuilder("\"heading\", \"text\", \"image\", \"list\", \"table\"");

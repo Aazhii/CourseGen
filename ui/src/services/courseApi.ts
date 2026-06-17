@@ -265,3 +265,19 @@ export async function deleteLesson(courseId: string, moduleId: string, lessonId:
   });
 }
 
+/**
+ * Batch generate lessons for a module
+ */
+export async function batchGenerateLessons(
+  courseId: string,
+  moduleId: string,
+  limit: number = 3
+) {
+  const response = await apiFetch(
+    `/api/courses/${courseId}/modules/${moduleId}/lessons/batch-generate?limit=${limit}`,
+    {
+      method: 'POST',
+    }
+  );
+  return unwrapApiData<any>(response);
+}

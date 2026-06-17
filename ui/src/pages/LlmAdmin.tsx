@@ -53,8 +53,8 @@ import {
 } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
 import { Badge } from "../components/ui/badge";
-import { 
-  Activity, 
+import {
+  Activity,
   Settings, 
   Server, 
   Zap, 
@@ -69,13 +69,18 @@ import {
   Clock,
   Database,
   Info,
-  Lock
+  Lock,
+  Cpu,
+  Loader2,
+  Play,
+  Pause,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/ui/tooltip";
 import { USE_MCP_CLIENT } from "../constants";
+import { getAutoGenStatus, toggleAutoGen, configureAutoGen, getAutoGenLogs, type AutoGenStatus, type AutoGenLog } from "../services/autoGenApi";
 
 const WORKLOADS: WorkloadType[] = ["COURSE_GENERATION", "LESSON_GENERATION", "AI_COACH"];
 
@@ -133,7 +138,7 @@ export default function LlmAdmin() {
   const [error, setError] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit" | "tools">("routing");
+  const [activeTab, setActiveTab] = useState<"routing" | "providers" | "audit" | "tools" | "autogen">("routing");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditItems, setAuditItems] = useState<McpAuditLogItem[]>([]);
   const [auditTotalPages, setAuditTotalPages] = useState(0);
@@ -157,6 +162,20 @@ export default function LlmAdmin() {
   const [toolResult, setToolResult] = useState<any>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [viewingAuditItem, setViewingAuditItem] = useState<McpAuditLogItem | null>(null);
+
+  // --- Auto-generation state ---
+  const [autoGenStatus, setAutoGenStatus] = useState<AutoGenStatus | null>(null);
+  const [autoGenLoading, setAutoGenLoading] = useState(false);
+  const [autoGenToggling, setAutoGenToggling] = useState(false);
+  const [autoGenConfigSaving, setAutoGenConfigSaving] = useState(false);
+  const [autoGenBatchSize, setAutoGenBatchSize] = useState(2);
+  const [autoGenIntervalSec, setAutoGenIntervalSec] = useState(60);
+  const [autoGenLogs, setAutoGenLogs] = useState<AutoGenLog[]>([]);
+  const [autoGenPage, setAutoGenPage] = useState(0);
+  const [autoGenTotalPages, setAutoGenTotalPages] = useState(0);
+  const [autoGenTotalItems, setAutoGenTotalItems] = useState(0);
+  const autoGenPageRef = useRef(0);
+  autoGenPageRef.current = autoGenPage;
   const auditFiltersRef = useRef(auditFilters);
 
   const [form, setForm] = useState({
@@ -249,6 +268,59 @@ export default function LlmAdmin() {
       toast.error(msg);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // --- Auto-generation helpers ---
+  const fetchAutoGenStatus = useCallback(async (page: number) => {
+    try {
+      const [s, res] = await Promise.all([getAutoGenStatus(), getAutoGenLogs(page, 10)]);
+      setAutoGenStatus(s);
+      setAutoGenBatchSize(s.batchSize);
+      setAutoGenIntervalSec(Math.round(s.intervalMs / 1000));
+      setAutoGenLogs(res.items || []);
+      setAutoGenTotalPages(res.totalPages || 0);
+      setAutoGenTotalItems(res.totalItems || 0);
+    } catch {
+      // silent — user may not be admin
+    }
+  }, []);
+
+  useEffect(() => {
+    if (adminFeature.loading || !adminFeature.allowed) return;
+    fetchAutoGenStatus(autoGenPageRef.current);
+    const id = window.setInterval(() => {
+      fetchAutoGenStatus(autoGenPageRef.current);
+    }, 10_000);
+    return () => window.clearInterval(id);
+  }, [adminFeature.loading, adminFeature.allowed, fetchAutoGenStatus]);
+
+  async function handleAutoGenToggle(enabled: boolean) {
+    setAutoGenToggling(true);
+    try {
+      await toggleAutoGen(enabled);
+      toast.success(enabled ? "Auto-generation enabled" : "Auto-generation disabled");
+      await fetchAutoGenStatus(autoGenPageRef.current);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to toggle auto-generation");
+    } finally {
+      setAutoGenToggling(false);
+    }
+  }
+
+  async function handleAutoGenConfigSave() {
+    setAutoGenConfigSaving(true);
+    try {
+      await configureAutoGen({
+        batchSize: autoGenBatchSize,
+        intervalMs: autoGenIntervalSec * 1000,
+      });
+      toast.success("Auto-generation configuration saved");
+      await fetchAutoGenStatus(autoGenPageRef.current);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save configuration");
+    } finally {
+      setAutoGenConfigSaving(false);
     }
   }
 
@@ -519,6 +591,13 @@ export default function LlmAdmin() {
             <TabsTrigger value="audit" className="gap-2">
               <Activity className="w-4 h-4" />
               Audit Logs
+            </TabsTrigger>
+            <TabsTrigger value="autogen" className="gap-2">
+              <Cpu className="w-4 h-4" />
+              Auto Generation
+              {autoGenStatus?.enabled && (
+                <span className="ml-1 w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              )}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1204,6 +1283,333 @@ export default function LlmAdmin() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ────────── Auto Generation Tab ────────── */}
+        <TabsContent value="autogen" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Control Card */}
+            <Card className="lg:col-span-2 overflow-hidden border-border/60">
+              <div className={cn("h-1 bg-gradient-to-r", autoGenStatus?.enabled ? "from-green-500/80 to-emerald-500/40" : "from-muted-foreground/30 to-muted-foreground/10")} />
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2.5 rounded-xl", autoGenStatus?.enabled ? "bg-green-500/10" : "bg-muted/50")}>
+                      <Cpu className={cn("w-5 h-5", autoGenStatus?.enabled ? "text-green-500" : "text-muted-foreground")} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Parallel Lesson Generation</CardTitle>
+                      <CardDescription className="mt-1">
+                        Automatically generate lesson content for all pending lessons in the background
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {autoGenStatus?.running && (
+                      <Badge variant="outline" className="gap-1.5 text-amber-500 border-amber-500/30 bg-amber-500/5">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Running
+                      </Badge>
+                    )}
+                    <Switch
+                      checked={autoGenStatus?.enabled ?? false}
+                      disabled={autoGenToggling}
+                      onCheckedChange={handleAutoGenToggle}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Status Banner */}
+                <div className={cn(
+                  "rounded-xl border p-4 flex items-center gap-4",
+                  autoGenStatus?.enabled
+                    ? "bg-green-500/5 border-green-500/20"
+                    : "bg-muted/30 border-border/50"
+                )}>
+                  {autoGenStatus?.enabled ? (
+                    <>
+                      <Play className="w-5 h-5 text-green-500 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Auto-generation is active</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Processing {autoGenStatus?.batchSize ?? 2} lessons every {Math.round((autoGenStatus?.intervalMs ?? 60000) / 1000)}s.
+                          {(autoGenStatus?.pendingLessons ?? 0) > 0 ? (
+                            <> <span className="font-medium text-foreground">{autoGenStatus?.pendingLessons}</span> lessons pending.</>
+                          ) : (
+                            <> All lessons are generated! 🎉</>
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-5 h-5 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Auto-generation is paused</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Enable the toggle to start generating lesson content automatically.
+                          {(autoGenStatus?.pendingLessons ?? 0) > 0 && (
+                            <> <span className="font-medium text-amber-500">{autoGenStatus?.pendingLessons} lessons</span> waiting.</>
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Configuration */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Settings className="w-3.5 h-3.5" />
+                    Configuration
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ag-batch" className="text-xs font-medium">Batch Size (lessons per run)</Label>
+                      <Select
+                        value={String(autoGenBatchSize)}
+                        onValueChange={(v) => setAutoGenBatchSize(Number(v))}
+                      >
+                        <SelectTrigger id="ag-batch" className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 5, 10].map((n) => (
+                            <SelectItem key={n} value={String(n)}>{n} lesson{n > 1 ? "s" : ""}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ag-interval" className="text-xs font-medium">Interval (seconds between runs)</Label>
+                      <Select
+                        value={String(autoGenIntervalSec)}
+                        onValueChange={(v) => setAutoGenIntervalSec(Number(v))}
+                      >
+                        <SelectTrigger id="ag-interval" className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[15, 30, 60, 120, 300].map((s) => (
+                            <SelectItem key={s} value={String(s)}>
+                              {s < 60 ? `${s}s` : `${s / 60}m`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={autoGenConfigSaving}
+                      onClick={handleAutoGenConfigSave}
+                      className="gap-2"
+                    >
+                      {autoGenConfigSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Save Configuration
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Last Error */}
+                {autoGenStatus?.lastError && (
+                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-red-500">Last Error</p>
+                      <p className="text-xs text-muted-foreground mt-1">{autoGenStatus.lastError}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Stats Card */}
+            <Card className="overflow-hidden border-border/60">
+              <div className="h-1 bg-gradient-to-r from-blue-500/60 to-purple-500/30" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-500" />
+                  Generation Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/40 text-center">
+                    <div className="text-2xl font-bold text-foreground">{autoGenStatus?.pendingLessons ?? "—"}</div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Pending</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-green-500/5 border border-green-500/20 text-center">
+                    <div className="text-2xl font-bold text-green-500">{autoGenStatus?.totalGenerated ?? 0}</div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Generated</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/20 text-center">
+                    <div className="text-2xl font-bold text-red-500">{autoGenStatus?.totalFailed ?? 0}</div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Failed</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted/30 border border-border/40 text-center">
+                    <div className="text-sm font-bold text-foreground">
+                      {autoGenStatus?.lastRunTimestamp
+                        ? new Date(autoGenStatus.lastRunTimestamp).toLocaleTimeString()
+                        : "Never"}
+                    </div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1">Last Run</div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border/40 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant="outline" className={cn(
+                      "text-[10px]",
+                      autoGenStatus?.enabled ? "text-green-500 border-green-500/30" : "text-muted-foreground"
+                    )}>
+                      {autoGenStatus?.enabled ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Batch Size</span>
+                    <span className="font-medium">{autoGenStatus?.batchSize ?? "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Interval</span>
+                    <span className="font-medium">{autoGenStatus ? `${Math.round(autoGenStatus.intervalMs / 1000)}s` : "—"}</span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 mt-2"
+                  onClick={() => fetchAutoGenStatus(autoGenPage)}
+                  disabled={autoGenLoading}
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", autoGenLoading && "animate-spin")} />
+                  Refresh Stats
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Info Card */}
+          <Card className="border-border/40 bg-muted/10">
+            <CardContent className="py-4 flex items-start gap-3">
+              <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+              <div className="text-xs text-muted-foreground space-y-1.5">
+                <p><span className="font-semibold text-foreground">How it works:</span> When enabled, the scheduler picks up un-enriched lessons and calls the AI provider to generate content — just like clicking "Start" on a lesson, but automatically.</p>
+                <p><span className="font-semibold text-foreground">API limits:</span> Adjust batch size and interval to stay within your AI provider's rate limits. Start with 1–2 lessons per 60s and increase once stable.</p>
+                <p><span className="font-semibold text-foreground">Safe to toggle:</span> Disabling pauses the scheduler instantly. No in-flight generation is interrupted. Re-enabling resumes from where it left off.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity Logs */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                Recent Generation Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 border-b border-border/60">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Time</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Course / Module</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Lesson</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {autoGenLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                          No recent generation activity
+                        </td>
+                      </tr>
+                    ) : (
+                      autoGenLogs.map((log) => (
+                        <tr key={`${log.lessonId}-${log.timestampMs}`} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-4 py-3 align-top whitespace-nowrap text-muted-foreground">
+                            {new Date(log.timestampMs).toLocaleTimeString()}
+                          </td>
+                          <td className="px-4 py-3 align-top">
+                            <div className="font-medium">{log.courseTitle}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{log.moduleTitle}</div>
+                          </td>
+                          <td className="px-4 py-3 align-top font-medium">
+                            {log.lessonTitle}
+                          </td>
+                          <td className="px-4 py-3 align-top">
+                            {log.success ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 text-xs font-semibold">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Success
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-600 border border-red-500/20 text-xs font-semibold">
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                  Failed
+                                </div>
+                                {log.errorMessage && (
+                                  <div className="text-[11px] text-red-500 bg-red-500/5 p-2 rounded border border-red-500/10 break-words max-w-md">
+                                    {log.errorMessage}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination controls */}
+              <div className="p-4 border-t border-border/40 flex items-center justify-between text-sm">
+                <div className="text-muted-foreground">
+                  {autoGenTotalItems} record{autoGenTotalItems === 1 ? "" : "s"} total
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newPage = Math.max(autoGenPage - 1, 0);
+                      setAutoGenPage(newPage);
+                      fetchAutoGenStatus(newPage);
+                    }}
+                    disabled={autoGenPage <= 0}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-muted-foreground text-xs">
+                    Page {autoGenPage + 1} / {Math.max(autoGenTotalPages, 1)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newPage = autoGenPage + 1;
+                      setAutoGenPage(newPage);
+                      fetchAutoGenStatus(newPage);
+                    }}
+                    disabled={autoGenPage + 1 >= autoGenTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
       
       <Dialog open={!!viewingAuditItem} onOpenChange={(open) => !open && setViewingAuditItem(null)}>

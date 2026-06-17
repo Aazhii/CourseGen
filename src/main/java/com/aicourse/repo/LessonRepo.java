@@ -24,6 +24,31 @@ public interface LessonRepo extends JpaRepository<Lesson, Long> {
     )
     List<Lesson> findNext2PendingLessons();
 
+    @Query(
+            value = """
+            SELECT *
+            FROM lessons
+            WHERE is_enriched = false
+            ORDER BY created_at ASC
+            LIMIT :limit
+        """,
+            nativeQuery = true
+    )
+    List<Lesson> findNextPendingLessons(@Param("limit") int limit);
+
+    @Query(
+            value = """
+            SELECT *
+            FROM lessons
+            WHERE module_id = :moduleId 
+              AND is_enriched = false
+            ORDER BY created_at ASC
+            LIMIT :limit
+        """,
+            nativeQuery = true
+    )
+    List<Lesson> findPendingLessonsByModuleId(@Param("moduleId") Long moduleId, @Param("limit") int limit);
+
     @Query("""
                 SELECT COUNT(l) FROM Lesson l
                 WHERE l.module.course.id = :courseId
@@ -36,4 +61,6 @@ public interface LessonRepo extends JpaRepository<Lesson, Long> {
                 WHERE l.module.course.id = :courseId
             """)
     long countByCourseId(@Param("courseId") Long courseId);
+
+    long countByIsEnriched(boolean isEnriched);
 }
