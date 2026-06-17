@@ -25,18 +25,18 @@ public class GroqConnection implements AiTextClient {
     private static final Logger LOGGER = Logger.getLogger(GroqConnection.class.getName());
 
     private final GroqApiKeyManager apiKeyManager;
-    private final GroqApiKeyProperties properties;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
     @Value("${spring.ai.groq.base-url:https://api.groq.com/openai/v1/chat/completions}")
     private String baseUrl;
 
+    @Value("${spring.ai.groq.chat.options.model:llama3-8b-8192}")
+    private String model;
+
     public GroqConnection(GroqApiKeyManager apiKeyManager,
-                          GroqApiKeyProperties properties,
                           ObjectMapper objectMapper) {
         this.apiKeyManager = apiKeyManager;
-        this.properties = properties;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(20))
@@ -57,7 +57,7 @@ public class GroqConnection implements AiTextClient {
     private String invokeGroqOnce(String apiKey, String prompt) {
         try {
             String body = objectMapper.writeValueAsString(Map.of(
-                    "model", properties.getModel(),
+                    "model", model,
                     "messages", List.of(Map.of("role", "user", "content", prompt)),
                     "temperature", 0.2
             ));

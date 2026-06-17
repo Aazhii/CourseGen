@@ -1,5 +1,9 @@
 package com.aicourse.geminiConnection;
 
+import com.aicourse.ai.model.AiLlmApiKey;
+import com.aicourse.ai.model.AiLlmProvider;
+import com.aicourse.ai.repo.AiLlmApiKeyRepo;
+import com.aicourse.ai.repo.AiLlmProviderRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,34 +27,42 @@ public class GeminiApiKeyManager {
             "http 429"
     );
 
-    private final List<String> apiKeys;
-    private final Duration cooldownDuration;
+    private final AiLlmProviderRepo providerRepo;
+    private final AiLlmApiKeyRepo apiKeyRepo;
     private final Clock clock;
     private final AtomicInteger roundRobinIndex = new AtomicInteger(0);
     private final Map<String, Instant> keyCooldownUntil = new ConcurrentHashMap<>();
 
     @Autowired
-    public GeminiApiKeyManager(GeminiApiKeyProperties properties) {
-        this(properties.resolveApiKeys(), properties.getKeyCooldownHours(), Clock.systemUTC());
+    public GeminiApiKeyManager(AiLlmProviderRepo providerRepo, AiLlmApiKeyRepo apiKeyRepo) {
+        this(providerRepo, apiKeyRepo, Clock.systemUTC());
     }
 
     // Secondary constructor used by unit tests.
-    GeminiApiKeyManager(List<String> apiKeys, long keyCooldownHours, Clock clock) {
-        this.apiKeys = List.copyOf(apiKeys);
-        this.cooldownDuration = Duration.ofHours(Math.max(1, keyCooldownHours));
+    GeminiApiKeyManager(AiLlmProviderRepo providerRepo, AiLlmApiKeyRepo apiKeyRepo, Clock clock) {
+        this.providerRepo = providerRepo;
+        this.apiKeyRepo = apiKeyRepo;
         this.clock = Objects.requireNonNull(clock, "clock is required");
-
-        if (this.apiKeys.isEmpty()) {
-            throw new IllegalStateException("No Gemini API keys configured. Set spring.ai.google.genai.api-keys or api-key.");
-        }
     }
 
     public synchronized String acquireAvailableKey() {
         Instant now = clock.instant();
 
-        for (int attempt = 0; attempt < apiKeys.size(); attempt++) {
-            int index = Math.floorMod(roundRobinIndex.getAndIncrement(), apiKeys.size());
-            String candidate = apiKeys.get(index);
+        AiLlmProvider provider = providerRepo.findByCodeIgnoreCase("gemini")
+                .orElseThrow(() -> new IllegalStateException("Gemini provider not found in database."));
+
+        List<AiLlmApiKey> dbKeys = apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(provider);
+        List<String> currentKeys = dbKeys.stream().map(AiLlmApiKey::getApiKey).toList();
+
+        if (currentKeys.isEmpty()) {
+            throw new IllegalStateException("No Gemini API keys configured in the database.");
+        }
+
+        Duration cooldownDuration = Duration.ofHours(Math.max(1, provider.getKeyCooldownHours()));
+
+        for (int attempt = 0; attempt < currentKeys.size(); attempt++) {
+            int index = Math.floorMod(roundRobinIndex.getAndIncrement(), currentKeys.size());
+            String candidate = currentKeys.get(index);
             Instant cooldownUntil = keyCooldownUntil.get(candidate);
 
             if (cooldownUntil == null || !cooldownUntil.isAfter(now)) {
@@ -68,7 +80,10 @@ public class GeminiApiKeyManager {
     }
 
     public void markKeyOnCooldown(String key) {
-        keyCooldownUntil.put(key, clock.instant().plus(cooldownDuration));
+        int cooldownHours = providerRepo.findByCodeIgnoreCase("gemini")
+                .map(AiLlmProvider::getKeyCooldownHours)
+                .orElse(24);
+        keyCooldownUntil.put(key, clock.instant().plus(Duration.ofHours(Math.max(1, cooldownHours))));
     }
 
     public boolean isQuotaOrRateLimitError(Throwable error) {
@@ -77,7 +92,9 @@ public class GeminiApiKeyManager {
     }
 
     public int totalKeyCount() {
-        return apiKeys.size();
+        return providerRepo.findByCodeIgnoreCase("gemini")
+                .map(provider -> apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(provider).size())
+                .orElse(0);
     }
 
     private String buildErrorMessage(Throwable error) {

@@ -1,19 +1,59 @@
 package com.aicourse.geminiConnection;
 
+import com.aicourse.ai.model.AiLlmApiKey;
+import com.aicourse.ai.model.AiLlmProvider;
+import com.aicourse.ai.repo.AiLlmApiKeyRepo;
+import com.aicourse.ai.repo.AiLlmProviderRepo;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 
+@ExtendWith(MockitoExtension.class)
 class GeminiApiKeyManagerTest {
+
+    @Mock
+    private AiLlmProviderRepo providerRepo;
+
+    @Mock
+    private AiLlmApiKeyRepo apiKeyRepo;
+
+    private AiLlmProvider provider;
+
+    @BeforeEach
+    void setUp() {
+        provider = new AiLlmProvider();
+        provider.setCode("gemini");
+        provider.setKeyCooldownHours(24);
+        
+        Mockito.lenient().when(providerRepo.findByCodeIgnoreCase("gemini")).thenReturn(Optional.of(provider));
+    }
+
+    private void mockKeys(List<String> keys) {
+        List<AiLlmApiKey> dbKeys = keys.stream().map(keyStr -> {
+            AiLlmApiKey key = new AiLlmApiKey();
+            key.setApiKey(keyStr);
+            key.setEnabled(true);
+            return key;
+        }).toList();
+        Mockito.lenient().when(apiKeyRepo.findByProviderAndEnabledTrueOrderByIdAsc(any())).thenReturn(dbKeys);
+    }
 
     @Test
     void acquireAvailableKeyRotatesInRoundRobinOrder() {
-        GeminiApiKeyManager manager = new GeminiApiKeyManager(List.of("k1", "k2", "k3"), 24, Clock.systemUTC());
+        mockKeys(List.of("k1", "k2", "k3"));
+        GeminiApiKeyManager manager = new GeminiApiKeyManager(providerRepo, apiKeyRepo, Clock.systemUTC());
 
         assertEquals("k1", manager.acquireAvailableKey());
         assertEquals("k2", manager.acquireAvailableKey());
@@ -23,8 +63,9 @@ class GeminiApiKeyManagerTest {
 
     @Test
     void acquireAvailableKeySkipsCoolingKey() {
+        mockKeys(List.of("k1", "k2"));
         MutableClock clock = new MutableClock(Instant.parse("2026-04-09T10:00:00Z"));
-        GeminiApiKeyManager manager = new GeminiApiKeyManager(List.of("k1", "k2"), 24, clock);
+        GeminiApiKeyManager manager = new GeminiApiKeyManager(providerRepo, apiKeyRepo, clock);
 
         manager.markKeyOnCooldown("k1");
 
@@ -33,8 +74,9 @@ class GeminiApiKeyManagerTest {
 
     @Test
     void acquireAvailableKeyThrowsWhenAllKeysAreCoolingDown() {
+        mockKeys(List.of("k1", "k2"));
         MutableClock clock = new MutableClock(Instant.parse("2026-04-09T10:00:00Z"));
-        GeminiApiKeyManager manager = new GeminiApiKeyManager(List.of("k1", "k2"), 24, clock);
+        GeminiApiKeyManager manager = new GeminiApiKeyManager(providerRepo, apiKeyRepo, clock);
 
         manager.markKeyOnCooldown("k1");
         manager.markKeyOnCooldown("k2");
@@ -44,7 +86,7 @@ class GeminiApiKeyManagerTest {
 
     @Test
     void isQuotaOrRateLimitErrorDetectsQuotaMessages() {
-        GeminiApiKeyManager manager = new GeminiApiKeyManager(List.of("k1"), 24, Clock.systemUTC());
+        GeminiApiKeyManager manager = new GeminiApiKeyManager(providerRepo, apiKeyRepo, Clock.systemUTC());
 
         assertTrue(manager.isQuotaOrRateLimitError(new RuntimeException("RESOURCE_EXHAUSTED: Quota exceeded")));
         assertTrue(manager.isQuotaOrRateLimitError(new RuntimeException("HTTP 429 Too Many Requests")));
