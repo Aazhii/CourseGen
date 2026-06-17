@@ -49,6 +49,17 @@ public class GlobalLeaderboardService extends AbstractLeaderboardService {
             }
             rank.incrementAndGet();
         }
+
+        // Return a default UserRankDTO for existing users who do not have stats yet
+        Users u = userRepo.findById(userId).orElse(null);
+        if (u != null) {
+            String displayName = (u.getDisplayName() != null && !u.getDisplayName().isBlank())
+                    ? u.getDisplayName()
+                    : u.getUsername();
+            String handle = u.getUsername();
+            return new UserRankDTO(0, userId, 0, displayName, handle, 0, 0, 0);
+        }
+
         return null;
     }
 
