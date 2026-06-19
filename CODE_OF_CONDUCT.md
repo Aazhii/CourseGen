@@ -38,7 +38,7 @@ This Code of Conduct applies within all community spaces and also applies when a
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer:
 
-**Email:** [arikaran258@gmail.com](mailto:arikaran258@gmail.com)
+**Email:** [arikaran258@gmail.com](mailto:arikaran258@gmail.com) or [nandanadhandapani.ai@gmail.com](mailto:nandanadhandapani.ai@gmail.com)
 
 All complaints will be reviewed and investigated promptly and fairly.
 
