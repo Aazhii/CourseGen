@@ -1,6 +1,6 @@
 ---
-name: Bug Report
-about: Report a bug or unexpected behavior in the AI Course Generation Platform.
+name: "\U0001FAB2 Bug Report"
+about: Report a bug or unexpected behavior in the AI Course Generation Platform
 title: "[Bug]:"
 labels: bug
 assignees: ''
