@@ -23,6 +23,18 @@ Before creating a new issue or pull request:
 
 ---
 
+## Looking for Something to Work On?
+
+Check issues labeled:
+
+* good first issue
+* help wanted
+* enhancement
+
+These are great starting points for new contributors.
+
+---
+
 ## Development Setup
 
 ### Prerequisites
@@ -111,19 +123,7 @@ Before submitting a pull request, ensure:
 * [ ] Code follows project conventions
 * [ ] Documentation is updated where necessary
 * [ ] New functionality is tested
-
----
-
-## Looking for Something to Work On?
-
-Check issues labeled:
-
-* good first issue
-* help wanted
-* enhancement
-
-These are great starting points for new contributors.
-
+      
 ---
 
 ## Questions?
