@@ -46,9 +46,9 @@ These are great starting points for new contributors.
 ### Clone Repository
 
 ```bash
-git clone https://github.com/arikaran-rajamanickam/aicourse-generator-spring-boot.git
+git clone https://github.com/Aazhii/CourseGen
 
-cd aicourse-generator-spring-boot
+cd CourseGen
 ````
 
 ### Run the Application
@@ -82,7 +82,7 @@ http://localhost:3000 , http://localhost:8080
 
 Host: localhost:5432 , DB : aicourse
 
-Username & Password : postgres/password
+Username/Password : postgres/password
 
 ---
 
