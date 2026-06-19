@@ -6,7 +6,7 @@ If you discover a security vulnerability, please do not create a public GitHub i
 
 Instead, report the issue privately by contacting:
 
-**Email:** arikaran258@gmail.com
+**Email:** [arikaran258@gmail.com](mailto:arikaran258@gmail.com) or [nandanadhandapani.ai@gmail.com](mailto:nandanadhandapani.ai@gmail.com)
 
 Please include:
 
